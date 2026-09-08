@@ -5,58 +5,60 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
+import com.server.server.exceptions.DuplicateResourceException;
+import com.server.server.exceptions.ResourceNotFoundException;
 import com.server.server.models.Country;
 import com.server.server.repositories.CountryRepository;
 
+import lombok.RequiredArgsConstructor;
+
 @Service
+@RequiredArgsConstructor
 public class CountryService {
 
-    @Autowired
-    private CountryRepository countryRepository;
+    private final CountryRepository countryRepository;
 
     @Value("${api.restcountries.url}")
     private String restCountriesUrl;
 
-    @Value("${api.restcountries.all.url}")
-    private String allCountriesUrl;
+    private final RestTemplate restTemplate;
 
-    private final RestTemplate restTemplate = new RestTemplate();
-
+    @Transactional(readOnly = true)
     public List<Country> getAllCountries() {
         return countryRepository.findAll();
     }
 
+    @Transactional(readOnly = true)
     public Country getCountryById(Integer id) {
         return countryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Country not found with ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Country", id));
     }
 
-    public Country createCountry(Country country, String userType) {
-        validateAdmin(userType);
+    @Transactional
+    public Country createCountry(Country country) {
         if (countryRepository.existsByCountryCodeIgnoreCase(country.getCountryCode())) {
-            throw new RuntimeException("Country code " + country.getCountryCode() + " already exists.");
+            throw new DuplicateResourceException("Country code " + country.getCountryCode() + " already exists.");
         }
         return countryRepository.save(country);
     }
 
+    @Transactional
     @SuppressWarnings("unchecked")
-    public Country syncFromExternal(String name, String userType) {
-        validateAdmin(userType);
+    public Country syncFromExternal(String name) {
         String fullUrl = restCountriesUrl + name;
         try {
             List<Map<String, Object>> response = restTemplate.getForObject(fullUrl, List.class);
             if (response == null || response.isEmpty()) {
-                throw new RuntimeException("No country found with name: " + name);
+                throw new ResourceNotFoundException("Country not found with name: " + name);
             }
             Map<String, Object> data = response.get(0);
             String code = String.valueOf(data.get("cca2"));
 
-            // Check if it exists to UPDATE rather than throw an error
             Optional<Country> existingCountry = countryRepository.findByCountryCodeIgnoreCase(code);
             Country country = existingCountry.orElseGet(Country::new);
 
@@ -72,17 +74,19 @@ public class CountryService {
             country.setDialCode(extractDialCode(iddObj));
 
             return countryRepository.save(country);
+        } catch (ResourceNotFoundException e) {
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException("External Sync Failed: " + e.getMessage());
         }
     }
 
+    @Transactional
     @SuppressWarnings("unchecked")
-    public Map<String, Integer> syncAllCountries(String userType) {
-        validateAdmin(userType);
+    public Map<String, Integer> syncAllCountries() {
         String allUrl = "https://restcountries.com/v3.1/all?fields=name,cca2,flags,idd";
         int addedCount = 0;
-        int updatedCount = 0; // Let's track updates too!
+        int updatedCount = 0;
 
         try {
             List<Map<String, Object>> response = restTemplate.getForObject(allUrl, List.class);
@@ -90,7 +94,6 @@ public class CountryService {
                 for (Map<String, Object> data : response) {
                     String code = String.valueOf(data.get("cca2"));
 
-                    // Fetch existing or create new
                     Optional<Country> existingOpt = countryRepository.findByCountryCodeIgnoreCase(code);
                     Country country;
                     boolean isNew = false;
@@ -130,18 +133,12 @@ public class CountryService {
         }
     }
 
-    public void deleteCountry(Integer id, String userType) {
-        validateAdmin(userType);
+    @Transactional
+    public void deleteCountry(Integer id) {
         if (!countryRepository.existsById(id)) {
-            throw new RuntimeException("Cannot delete: Country not found with ID: " + id);
+            throw new ResourceNotFoundException("Country", id);
         }
         countryRepository.deleteById(id);
-    }
-
-    private void validateAdmin(String userType) {
-        if (!"ADMIN".equalsIgnoreCase(userType)) {
-            throw new RuntimeException("Access Denied: Only ADMINs can perform this action.");
-        }
     }
 
     @SuppressWarnings("unchecked")

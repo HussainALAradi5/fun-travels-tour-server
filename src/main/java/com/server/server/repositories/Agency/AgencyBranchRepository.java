@@ -6,7 +6,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.server.server.models.agency.AgencyBranch;
+import com.server.server.models.Agency.AgencyBranch;
 
 @Repository
 public interface AgencyBranchRepository extends JpaRepository<AgencyBranch, Integer> {

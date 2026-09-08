@@ -2,7 +2,7 @@ package com.server.server.models.tourmanagement;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.server.server.enums.GenericStatus;
-import com.server.server.models.agency.Agency;
+import com.server.server.models.Agency.Agency;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

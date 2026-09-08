@@ -1,11 +1,9 @@
 package com.server.server.controllers;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,10 +11,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.server.server.models.User; // Ensure you have spring-boot-starter-validation
+import com.server.server.dto.auth.AuthResponse;
+import com.server.server.dto.user.UserResponse;
+import com.server.server.models.User;
 import com.server.server.repositories.UserRepository;
 import com.server.server.services.JwtService;
 import com.server.server.services.UserService;
+import com.server.server.utilities.ApiResponse;
+import com.server.server.utilities.ModelMapper;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,57 +33,31 @@ public class AuthController {
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final ModelMapper modelMapper;
 
     @PostMapping("/register")
-    public ResponseEntity<Map<String, Object>> register(@Valid @RequestBody User user) {
-        try {
-            // Check for empty critical fields manually if not using @Valid annotations in
-            // Model
-            if (user.getEmail() == null || user.getEmail().isBlank()) {
-                throw new RuntimeException("Email is required");
-            }
-            if (user.getPassword() == null || user.getPassword().isBlank()) {
-                throw new RuntimeException("Password is required");
-            }
-
-            User savedUser = userService.createUser(user);
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "User registered successfully!",
-                    "data", savedUser));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "message", e.getMessage()));
-        }
+    public ResponseEntity<ApiResponse<UserResponse>> register(@Valid @RequestBody User user) {
+        User savedUser = userService.createUser(user);
+        UserResponse userResponse = modelMapper.toUserResponse(savedUser);
+        return ResponseEntity.ok(ApiResponse.ok("User registered successfully!", userResponse));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> request) {
-        try {
-            String identifier = request.get("identifier");
-            String password = request.get("password");
+    public ResponseEntity<ApiResponse<AuthResponse>> login(@RequestBody Map<String, String> request) {
+        String identifier = request.get("identifier");
+        String password = request.get("password");
 
-            // 1. Authenticate with Spring Security (uses the updated UserDetailsService)
-            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(identifier, password));
+        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(identifier, password));
 
-            // 2. Find the user to get their actual email for the JWT
-            User user = userRepository
-                    .findByEmailIgnoreCaseOrUserNameIgnoreCaseOrMobileNumber(identifier, identifier, identifier)
-                    .orElseThrow(() -> new RuntimeException("User data not found after authentication"));
+        User user = userRepository
+                .findByEmailIgnoreCaseOrUserNameIgnoreCaseOrMobileNumber(identifier, identifier, identifier)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-            // 3. Generate token using the user's primary email
-            String token = jwtService.generateToken(user.getEmail());
+        String token = jwtService.generateToken(user.getEmail());
 
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("token", token);
-            response.put("user", user);
+        UserResponse userResponse = modelMapper.toUserResponse(user);
+        AuthResponse authResponse = new AuthResponse(token, userResponse);
 
-            return ResponseEntity.ok(response);
-        } catch (BadCredentialsException e) {
-            return ResponseEntity.status(401)
-                    .body(Map.of("success", false, "message", "Invalid email/username or password"));
-        } catch (Exception e) {
-            return ResponseEntity.status(400).body(Map.of("success", false, "message", e.getMessage()));
-        }
+        return ResponseEntity.ok(ApiResponse.ok("Login successful", authResponse));
     }
 }

@@ -2,9 +2,9 @@ package com.server.server.services;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+
+import com.server.server.dto.notification.NotificationCounts;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -102,7 +102,7 @@ public class NotificationService {
 
             // --- NEW REAL-TIME BROADCAST ---
             // Grab the new counts and send them directly to this specific user's topic
-            Map<String, Long> counts = getNotificationCounts(managedUser.getId());
+            NotificationCounts counts = getNotificationCounts(managedUser.getId());
             messagingTemplate.convertAndSend("/topic/notifications/" + managedUser.getId(), counts);
 
         } catch (Exception e) {
@@ -116,12 +116,12 @@ public class NotificationService {
     }
 
     @Transactional
-    public void markAsRead(Integer notificationId) {
+    public Notification markAsRead(Integer notificationId) {
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new RuntimeException("Notification not found"));
         notification.setIsRead(true);
         notification.setReadAt(LocalDateTime.now());
-        notificationRepository.save(notification);
+        return notificationRepository.save(notification);
     }
 
     @Scheduled(cron = "0 0 9 * * ?")
@@ -144,11 +144,9 @@ public class NotificationService {
     }
 
     @Transactional(readOnly = true)
-    public Map<String, Long> getNotificationCounts(Integer userId) {
-        Map<String, Long> counts = new HashMap<>();
-        counts.put("unread", notificationRepository.countByRecipientIdAndIsReadFalse(userId));
-        counts.put("read", notificationRepository.countByRecipientIdAndIsReadTrue(userId));
-        return counts;
+    public NotificationCounts getNotificationCounts(Integer userId) {
+        long unreadCount = notificationRepository.countByRecipientIdAndIsReadFalse(userId);
+        return new NotificationCounts(unreadCount);
     }
 
     public void sendTicketAutoCancellationNotification(Ticket ticket) {

@@ -2,7 +2,6 @@ package com.server.server.controllers.agency;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,43 +11,50 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.server.server.dto.agency.AgencyBranchResponse;
+import com.server.server.dto.user.UserResponse;
 import com.server.server.models.User;
-import com.server.server.models.agency.AgencyBranch;
+import com.server.server.models.Agency.AgencyBranch;
 import com.server.server.services.agency.AgencyBranchService;
 import com.server.server.utilities.ApiResponse;
+import com.server.server.utilities.ModelMapper;
+
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/branches")
+@RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class AgencyBranchController {
 
-    @Autowired
-    private AgencyBranchService branchService; // Use the new specific service
+    private final AgencyBranchService branchService;
+    private final ModelMapper modelMapper;
 
     @PostMapping("/agency/{agencyId}")
-    public ResponseEntity<ApiResponse<AgencyBranch>> addBranch(
+    public ResponseEntity<ApiResponse<AgencyBranchResponse>> addBranch(
             @PathVariable Integer agencyId,
             @RequestBody AgencyBranch branch) {
-        return ResponseEntity.ok(new ApiResponse<>(true, "Branch added", branchService.addBranch(agencyId, branch)));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Branch added", modelMapper.toBranchResponse(branchService.addBranch(agencyId, branch))));
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<AgencyBranch>>> getAllBranches() {
-        return ResponseEntity.ok(new ApiResponse<>(true, "Fetched all branches", branchService.getAllBranches()));
+    public ResponseEntity<ApiResponse<List<AgencyBranchResponse>>> getAllBranches() {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Fetched all branches", modelMapper.toBranchResponseList(branchService.getAllBranches())));
     }
 
     @GetMapping("/agency/{agencyId}")
-    public ResponseEntity<ApiResponse<List<AgencyBranch>>> getByAgency(@PathVariable Integer agencyId) {
+    public ResponseEntity<ApiResponse<List<AgencyBranchResponse>>> getByAgency(@PathVariable Integer agencyId) {
         return ResponseEntity
-                .ok(new ApiResponse<>(true, "Fetched agency branches", branchService.getBranchesByAgency(agencyId)));
+                .ok(new ApiResponse<>(true, "Fetched agency branches", modelMapper.toBranchResponseList(branchService.getBranchesByAgency(agencyId))));
     }
 
     @GetMapping("/agency/{agencyId}/branch/{branchId}/employees")
-    public ResponseEntity<ApiResponse<List<User>>> getEmployeesByAgencyAndBranch(
+    public ResponseEntity<ApiResponse<List<UserResponse>>> getEmployeesByAgencyAndBranch(
             @PathVariable Integer agencyId,
             @PathVariable Integer branchId) {
 
         List<User> employees = branchService.getEmployeesByBranch(agencyId, branchId);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Fetched employees for specific agency branch", employees));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Fetched employees for specific agency branch", modelMapper.toUserResponseList(employees)));
     }
 }
+

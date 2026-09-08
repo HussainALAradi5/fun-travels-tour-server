@@ -2,45 +2,49 @@ package com.server.server.controllers.agency;
 
 import java.util.List;
 import java.util.Map;
-import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.server.server.models.agency.Agency;
+import com.server.server.dto.agency.AgencyResponse;
+import com.server.server.dto.user.UserResponse;
+import com.server.server.models.Agency.Agency;
 import com.server.server.models.User;
 import com.server.server.services.agency.AgencyService;
 import com.server.server.utilities.ApiResponse;
+import com.server.server.utilities.ModelMapper;
+
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/agencies")
+@RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class AgencyController {
 
-    @Autowired
-    private AgencyService agencyService;
+    private final AgencyService agencyService;
+    private final ModelMapper modelMapper;
 
     @PostMapping
-    public ResponseEntity<ApiResponse<Agency>> create(@RequestBody Map<String, Object> payload) {
-        // Pass the raw map to the service.
-        // Logic for extraction and object building is now in the Service.
+    public ResponseEntity<ApiResponse<AgencyResponse>> create(@RequestBody Map<String, Object> payload) {
         Agency created = agencyService.createAgencyFromMap(payload);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Agency created successfully", created));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Agency created successfully", modelMapper.toAgencyResponse(created)));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<Agency>> getById(@PathVariable Integer id) {
-        return ResponseEntity.ok(new ApiResponse<>(true, "Fetched agency", agencyService.getAgencyById(id)));
+    public ResponseEntity<ApiResponse<AgencyResponse>> getById(@PathVariable Integer id) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Fetched agency", modelMapper.toAgencyResponse(agencyService.getAgencyById(id))));
     }
 
-@GetMapping("/{id}/employees")
-public ResponseEntity<ApiResponse<List<User>>> getEmployeesByAgency(@PathVariable Integer id) {
-    // Assuming you have this method in your service
-    List<User> employees = agencyService.getEmployeesByAgencyId(id); 
-    return ResponseEntity.ok(new ApiResponse<>(true, "Fetched agency employees", employees));
-}
+    @GetMapping("/{id}/employees")
+    public ResponseEntity<ApiResponse<List<UserResponse>>> getEmployeesByAgency(@PathVariable Integer id) {
+        List<User> employees = agencyService.getEmployeesByAgencyId(id);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Fetched agency employees", modelMapper.toUserResponseList(employees)));
+    }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<Agency>>> getAll() {
-        return ResponseEntity.ok(new ApiResponse<>(true, "Fetched all agencies", agencyService.getAllAgencies()));
+    public ResponseEntity<ApiResponse<List<AgencyResponse>>> getAll() {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Fetched all agencies", modelMapper.toAgencyResponseList(agencyService.getAllAgencies())));
     }
 }
+

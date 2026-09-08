@@ -11,7 +11,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.server.server.enums.GenericStatus;
 import com.server.server.enums.tourmanagement.TransportationStatus;
 import com.server.server.enums.tourmanagement.TransportationType;
-import com.server.server.models.agency.Agency;
+import com.server.server.models.Agency.Agency;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;

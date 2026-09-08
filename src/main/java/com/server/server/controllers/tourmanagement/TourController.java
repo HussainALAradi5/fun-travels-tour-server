@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,11 +15,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.server.server.dto.tour.TourResponse;
 import com.server.server.enums.GenericStatus;
-import com.server.server.exceptions.WorkflowException;
 import com.server.server.models.tourmanagement.Tour;
 import com.server.server.services.tourmanagement.TourService;
+import com.server.server.utilities.ApiResponse;
+import com.server.server.utilities.ModelMapper;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -26,25 +30,25 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TourController {
     private final TourService tourService;
+    private final ModelMapper modelMapper;
 
     @GetMapping("/catalog")
-    public ResponseEntity<List<Tour>> getCatalog(
+    public ResponseEntity<ApiResponse<List<TourResponse>>> getCatalog(
             @RequestParam(required = false) Integer startCountryId,
             @RequestParam(required = false) Integer endCountryId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-
-        return ResponseEntity.ok(tourService.getCatalogTours(startCountryId, endCountryId, startDate, endDate));
+        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTourResponseList(tourService.getCatalogTours(startCountryId, endCountryId, startDate, endDate))));
     }
 
     @GetMapping("/filter")
-    public ResponseEntity<List<Tour>> filter(
+    public ResponseEntity<ApiResponse<List<TourResponse>>> filter(
             @RequestParam(required = false) GenericStatus status,
             @RequestParam(required = false) Integer minSlots,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(required = false) Long agencyId,
-            @RequestParam(required = false) Long branchId, 
+            @RequestParam(required = false) Long branchId,
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice,
             @RequestParam(required = false) Integer countryId,
@@ -52,41 +56,36 @@ public class TourController {
             @RequestParam(required = false) Integer createdById,
             @RequestParam(required = false) String sortBy,
             @RequestParam(required = false) String sortDir) {
-
-        return ResponseEntity.ok(tourService.filter(
-                status, minSlots, startDate, endDate, agencyId, branchId, 
-                minPrice, maxPrice, countryId, cityId, createdById,
-                sortBy, sortDir));
+        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTourResponseList(tourService.filter(
+                status, minSlots, startDate, endDate, agencyId, branchId,
+                minPrice, maxPrice, countryId, cityId, createdById, sortBy, sortDir))));
     }
 
     @GetMapping
-    public ResponseEntity<List<Tour>> getAll() {
-        return ResponseEntity.ok(tourService.getAll());
+    public ResponseEntity<ApiResponse<List<TourResponse>>> getAll() {
+        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTourResponseList(tourService.getAll())));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Tour> getById(@PathVariable Integer id) {
-        return ResponseEntity.ok(tourService.getById(id));
+    public ResponseEntity<ApiResponse<TourResponse>> getById(@PathVariable Integer id) {
+        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTourResponse(tourService.getById(id))));
     }
 
     @PostMapping
-    public ResponseEntity<Tour> create(@RequestBody Tour tour) {
-        return ResponseEntity.ok(tourService.create(tour));
+    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<ApiResponse<TourResponse>> create(@Valid @RequestBody Tour tour) {
+        return ResponseEntity.ok(ApiResponse.ok("Tour created!", modelMapper.toTourResponse(tourService.create(tour))));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Tour> update(@PathVariable Integer id, @RequestBody Tour tour) {
-        return ResponseEntity.ok(tourService.updateTour(id, tour));
+    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<ApiResponse<TourResponse>> update(@PathVariable Integer id, @Valid @RequestBody Tour tour) {
+        return ResponseEntity.ok(ApiResponse.ok("Tour updated!", modelMapper.toTourResponse(tourService.updateTour(id, tour))));
     }
 
     @PutMapping("/{id}/status")
-    public ResponseEntity<?> updateStatus(@PathVariable Integer id, @RequestParam GenericStatus status) {
-        try {
-            return ResponseEntity.ok(tourService.updateStatus(id, status));
-        } catch (WorkflowException e) {
-            return ResponseEntity.badRequest().body(java.util.Map.of(
-                    "success", false,
-                    "message", e.getMessage()));
-        }
+    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<ApiResponse<TourResponse>> updateStatus(@PathVariable Integer id, @RequestParam GenericStatus status) {
+        return ResponseEntity.ok(ApiResponse.ok("Status updated!", modelMapper.toTourResponse(tourService.updateStatus(id, status))));
     }
 }

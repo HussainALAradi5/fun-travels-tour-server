@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,25 +14,29 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.server.server.dto.payment.TransactionResponse;
 import com.server.server.enums.TransactionType;
 import com.server.server.models.Account;
 import com.server.server.models.Transaction;
 import com.server.server.services.Account.AccountService;
 import com.server.server.services.TransactionService;
+import com.server.server.utilities.ApiResponse;
+import com.server.server.utilities.ModelMapper;
+
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/transactions")
+@RequiredArgsConstructor
 public class TransactionController {
 
-    @Autowired
-    private TransactionService transactionService;
-
-    @Autowired
-    private AccountService accountService;
+    private final TransactionService transactionService;
+    private final AccountService accountService;
+    private final ModelMapper modelMapper;
 
     @GetMapping("/filter")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'CUSTOMER', 'OWNER')")
-    public ResponseEntity<List<Transaction>> filterTransactions(
+    public ResponseEntity<ApiResponse<List<TransactionResponse>>> filterTransactions(
             @RequestParam(required = false) Integer userId,
             @RequestParam(required = false) TransactionType type,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
@@ -42,35 +45,18 @@ public class TransactionController {
             @RequestParam(required = false) Long branchId,
             @RequestParam(required = false, defaultValue = "timestamp") String sortBy,
             @RequestParam(required = false, defaultValue = "desc") String sortDir) {
-
-        return ResponseEntity.ok(transactionService.filterTransactions(
-                userId, type, startDate, endDate, agencyId, branchId, sortBy, sortDir));
+        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTransactionResponseList(transactionService.filterTransactions(
+                userId, type, startDate, endDate, agencyId, branchId, sortBy, sortDir))));
     }
 
-@PostMapping("/manual-credit/{userId}")
+    @PostMapping("/manual-credit/{userId}")
     @PreAuthorize("hasAuthority('ADMIN')")
-    public ResponseEntity<?> manualCredit( // Changed to <?> to return String error messages
+    public ResponseEntity<ApiResponse<TransactionResponse>> manualCredit(
             @PathVariable Integer userId,
             @RequestParam BigDecimal amount,
             @RequestParam String description) {
-
-        // SECURITY FIX: Prevent Admins from crediting negative or zero amounts
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            return ResponseEntity.badRequest().body("Manual credit amount must be greater than zero.");
-        }
-
-        try {
-            Account account = accountService.getAccountByUserId(userId);
-            Transaction tx = transactionService.creditAccount(
-                    account,
-                    amount,
-                    TransactionType.MANUAL_ADJUSTMENT,
-                    description,
-                    null 
-            );
-            return ResponseEntity.ok(tx);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        Account account = accountService.getAccountByUserId(userId);
+        Transaction tx = transactionService.creditAccount(account, amount, TransactionType.MANUAL_ADJUSTMENT, description, null);
+        return ResponseEntity.ok(ApiResponse.ok("Credit applied!", modelMapper.toTransactionResponse(tx)));
     }
 }

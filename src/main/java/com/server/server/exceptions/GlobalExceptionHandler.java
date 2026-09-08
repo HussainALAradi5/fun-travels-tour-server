@@ -1,7 +1,5 @@
 package com.server.server.exceptions;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
@@ -11,80 +9,95 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
-import jakarta.validation.ConstraintViolationException;
+import com.server.server.utilities.ApiResponse;
 
+import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(WorkflowException.class)
-    public ResponseEntity<Map<String, Object>> handleWorkflowException(WorkflowException ex) {
-        // Returns 409 Conflict for workflow violations
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNotFound(ResourceNotFoundException ex) {
+        return buildResponse(ex.getMessage(), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDuplicate(DuplicateResourceException ex) {
         return buildResponse(ex.getMessage(), HttpStatus.CONFLICT);
     }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidationExceptions(MethodArgumentNotValidException ex) {
-        String errorMessage = ex.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .map(error -> error.getField() + ": " + error.getDefaultMessage())
-                .collect(Collectors.joining(", "));
-        return buildResponse(errorMessage, HttpStatus.BAD_REQUEST);
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
+        return buildResponse(ex.getMessage(), HttpStatus.FORBIDDEN);
     }
 
-    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
-    public ResponseEntity<Map<String, Object>> handleDataIntegrity(Exception ex) {
-        return buildResponse("Record conflict: Duplicate unique field.", HttpStatus.CONFLICT);
+    @ExceptionHandler(WorkflowException.class)
+    public ResponseEntity<ApiResponse<Void>> handleWorkflow(WorkflowException ex) {
+        return buildResponse(ex.getMessage(), HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(IllegalArgumentException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleIllegalArg(IllegalArgumentException ex) {
         return buildResponse(ex.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
-    // --- NEW: Deep-Digging Transaction Handler ---
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse<Void>> handleValidation(MethodArgumentNotValidException ex) {
+        String errors = ex.getBindingResult().getFieldErrors().stream()
+                .map(e -> e.getField() + ": " + e.getDefaultMessage())
+                .collect(Collectors.joining(", "));
+        return buildResponse(errors, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDataIntegrity(Exception ex) {
+        return buildResponse("Record conflict: Duplicate unique field.", HttpStatus.CONFLICT);
+    }
+
     @ExceptionHandler(TransactionSystemException.class)
-    public ResponseEntity<Map<String, Object>> handleTransactionSystemException(TransactionSystemException ex) {
-        // 1. PRINT THE EXACT CRASH TO CONSOLE SO WE CAN FIND THE LOOP!
-        System.err.println("=== TRANSACTION CRASH DETECTED ===");
-        ex.printStackTrace(); 
-        
+    public ResponseEntity<ApiResponse<Void>> handleTransaction(TransactionSystemException ex) {
+        log.error("Transaction error: ", ex);
+
         Throwable cause = ex;
         while (cause != null) {
-            // Check if a @NotNull or @NotBlank failed right before DB commit
-            if (cause instanceof ConstraintViolationException) {
-                ConstraintViolationException consEx = (ConstraintViolationException) cause;
-                String errorMessage = consEx.getConstraintViolations()
-                        .stream()
-                        .map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
+            if (cause instanceof ConstraintViolationException consEx) {
+                String errors = consEx.getConstraintViolations().stream()
+                        .map(v -> v.getPropertyPath() + ": " + v.getMessage())
                         .collect(Collectors.joining(", "));
-                return buildResponse("Validation Failed -> " + errorMessage, HttpStatus.BAD_REQUEST);
+                return buildResponse("Validation failed: " + errors, HttpStatus.BAD_REQUEST);
             }
             if (cause.getCause() == cause) break;
             cause = cause.getCause();
         }
-        
-        // Extract the deepest root cause (usually StackOverflowError)
+
         Throwable root = ex;
-        while(root.getCause() != null && root.getCause() != root) {
+        while (root.getCause() != null && root.getCause() != root) {
             root = root.getCause();
         }
-        
-        return buildResponse("DB Crash (" + root.getClass().getSimpleName() + "): " + root.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        return buildResponse("Database error: " + root.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex) {
-        // Print unexpected runtime errors to terminal too
-        ex.printStackTrace();
-        return buildResponse(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    public ResponseEntity<ApiResponse<Void>> handleRuntime(RuntimeException ex) {
+        log.error("Runtime error: ", ex);
+
+        String msg = ex.getMessage();
+        if (msg != null && msg.toLowerCase().contains("not found")) {
+            return buildResponse(msg, HttpStatus.NOT_FOUND);
+        }
+        if (msg != null && (msg.toLowerCase().contains("taken") || msg.toLowerCase().contains("already exists"))) {
+            return buildResponse(msg, HttpStatus.CONFLICT);
+        }
+        if (msg != null && msg.toLowerCase().contains("access denied")) {
+            return buildResponse(msg, HttpStatus.FORBIDDEN);
+        }
+
+        return buildResponse(msg, HttpStatus.BAD_REQUEST);
     }
 
-    private ResponseEntity<Map<String, Object>> buildResponse(String message, HttpStatus status) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", false);
-        response.put("message", message);
-        response.put("status", status.value());
-        return new ResponseEntity<>(response, status);
+    private ResponseEntity<ApiResponse<Void>> buildResponse(String message, HttpStatus status) {
+        return ResponseEntity.status(status).body(ApiResponse.error(message));
     }
 }

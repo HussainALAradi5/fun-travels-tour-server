@@ -1,14 +1,10 @@
 package com.server.server.controllers;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,112 +16,98 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.server.server.dto.user.UserResponse;
 import com.server.server.enums.UserTypeEnum;
 import com.server.server.models.User;
 import com.server.server.services.UserService;
+import com.server.server.utilities.ApiResponse;
+import com.server.server.utilities.ModelMapper;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class UserController {
 
-    @Autowired
     private final UserService userService;
+    private final ModelMapper modelMapper;
 
     @GetMapping
-    public ResponseEntity<?> getAllUsers() {
-        return ResponseEntity.ok(userService.getUsersByType(null));
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER')")
+    public ResponseEntity<ApiResponse<List<UserResponse>>> getAllUsers() {
+        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toUserResponseList(userService.getUsersByType(null))));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getUserById(@PathVariable Integer id) {
-        return execute(() -> userService.getUserById(id), null, HttpStatus.OK);
+    public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable Integer id) {
+        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toUserResponse(userService.getUserById(id))));
     }
 
     @GetMapping("/agency/{agencyId}")
-    public ResponseEntity<List<User>> getEmployeesByAgency(
+    public ResponseEntity<ApiResponse<List<UserResponse>>> getEmployeesByAgency(
             @PathVariable Integer agencyId,
             @RequestParam(required = false) UserTypeEnum role) {
-        return ResponseEntity.ok(userService.getAgencyUsers(agencyId, role));
+        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toUserResponseList(userService.getAgencyUsers(agencyId, role))));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateUser(@PathVariable Integer id, @RequestBody User user) {
-        return execute(() -> userService.updateUser(id, user), "User updated successfully!", HttpStatus.OK);
+    public ResponseEntity<ApiResponse<UserResponse>> updateUser(@PathVariable Integer id, @Valid @RequestBody User user) {
+        return ResponseEntity.ok(ApiResponse.ok("User updated!", modelMapper.toUserResponse(userService.updateUser(id, user))));
     }
 
     @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
     @PostMapping("/bulk-import")
-    public ResponseEntity<?> bulkImport(@RequestParam("file") MultipartFile file, @RequestParam Integer agencyId) {
-        return execute(() -> userService.bulkImportEmployees(file, agencyId), "Bulk import successful!",
-                HttpStatus.CREATED);
+    public ResponseEntity<ApiResponse<List<UserResponse>>> bulkImport(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam Integer agencyId) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.ok("Bulk import successful!", modelMapper.toUserResponseList(userService.bulkImportEmployees(file, agencyId))));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PutMapping("/permissions/{id}")
-    public ResponseEntity<?> updatePermissions(@PathVariable Integer id, @RequestParam UserTypeEnum type,
+    public ResponseEntity<ApiResponse<UserResponse>> updatePermissions(
+            @PathVariable Integer id,
+            @RequestParam UserTypeEnum type,
             @RequestParam(required = false) Integer branchId) {
-        return execute(() -> userService.updatePermissions(id, type, branchId), "Permissions updated!", HttpStatus.OK);
+        return ResponseEntity.ok(ApiResponse.ok("Permissions updated!", modelMapper.toUserResponse(userService.updatePermissions(id, type, branchId))));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'OWNER', 'MANAGER')")
     @PostMapping("/add-employee")
-    public ResponseEntity<?> addEmployee(@RequestBody User user, @RequestParam(required = false) Integer agencyId,
-            @RequestParam(required = false) Integer branchId, @RequestParam UserTypeEnum requesterType) {
-        return execute(() -> userService.createUser(user), "Employee added!", HttpStatus.CREATED);
+    public ResponseEntity<ApiResponse<UserResponse>> addEmployee(@Valid @RequestBody User user) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.ok("Employee added!", modelMapper.toUserResponse(userService.createUser(user))));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteUser(@PathVariable Integer id) {
-        return execute(() -> {
-            userService.softDeleteUser(id);
-            return null;
-        }, "User deactivated successfully", HttpStatus.OK);
+    public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable Integer id) {
+        userService.softDeleteUser(id);
+        return ResponseEntity.ok(ApiResponse.ok("User deactivated successfully"));
     }
 
     @GetMapping("/role/{type}")
-    public ResponseEntity<List<User>> getUsersByRole(@PathVariable UserTypeEnum type) {
-        return ResponseEntity.ok(userService.getUsersByType(type));
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER')")
+    public ResponseEntity<ApiResponse<List<UserResponse>>> getUsersByRole(@PathVariable UserTypeEnum type) {
+        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toUserResponseList(userService.getUsersByType(type))));
     }
 
-    private ResponseEntity<Map<String, Object>> execute(ServiceAction action, String message, HttpStatus status) {
-        Map<String, Object> response = new HashMap<>();
-        try {
-            Object data = action.run();
-            if (message != null)
-                response.put("message", message);
-            if (data != null)
-                response.put("data", data);
-            response.put("success", true);
-            return new ResponseEntity<>(response, status);
-        } catch (Exception e) {
-            response.put("message", e.getMessage());
-            response.put("success", false);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-        }
-
-    }
-
-@PostMapping("/request-password-reset")
-    public ResponseEntity<?> requestPasswordReset(
-            @RequestParam String identifier, 
+    @PostMapping("/request-password-reset")
+    public ResponseEntity<ApiResponse<String>> requestPasswordReset(
+            @RequestParam String identifier,
             @RequestParam(required = false) String baseNumber) {
-        return execute(() -> userService.requestPasswordReset(identifier, baseNumber), 
-            "Reset code sent successfully!", HttpStatus.OK);
+        return ResponseEntity.ok(ApiResponse.ok(userService.requestPasswordReset(identifier, baseNumber)));
     }
 
     @PostMapping("/confirm-password-reset")
-    public ResponseEntity<?> confirmPasswordReset(
-            @RequestParam String identifier, 
+    public ResponseEntity<ApiResponse<UserResponse>> confirmPasswordReset(
+            @RequestParam String identifier,
             @RequestParam(required = false) String baseNumber,
-            @RequestParam String token, 
+            @RequestParam String token,
             @RequestParam String newPassword) {
-        return execute(() -> userService.confirmPasswordReset(identifier, baseNumber, token, newPassword), 
-            "Password reset successfully!", HttpStatus.OK);
-    }
-    @FunctionalInterface
-    interface ServiceAction {
-        Object run() throws Exception;
+        return ResponseEntity.ok(ApiResponse.ok("Password reset!", modelMapper.toUserResponse(userService.confirmPasswordReset(identifier, baseNumber, token, newPassword))));
     }
 }

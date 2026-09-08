@@ -47,5 +47,6 @@ public class Payment {
     // NEW: Link to the internal ledger transactions
     @OneToMany(mappedBy = "payment", cascade = CascadeType.ALL)
     @JsonIgnore
+    @Builder.Default
     private List<Transaction> transactions = new ArrayList<>();
 }

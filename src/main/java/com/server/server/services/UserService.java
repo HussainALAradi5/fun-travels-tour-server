@@ -14,7 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.server.server.enums.UserTypeEnum;
 import com.server.server.models.User;
-import com.server.server.models.agency.Agency;
+import com.server.server.models.Agency.Agency;
 import com.server.server.repositories.UserRepository;
 import com.server.server.repositories.agency.AgencyBranchRepository;
 import com.server.server.repositories.agency.AgencyRepository;

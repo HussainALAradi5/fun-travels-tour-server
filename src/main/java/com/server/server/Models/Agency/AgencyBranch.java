@@ -1,4 +1,4 @@
-package com.server.server.models.agency;
+package com.server.server.models.Agency;
 
 import java.util.List;
 
