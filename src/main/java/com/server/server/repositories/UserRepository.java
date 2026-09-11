@@ -26,6 +26,10 @@ public interface UserRepository extends JpaRepository<User, Integer> {
 
     Optional<User> findByMobileNumber(String mobileNumber);
 
+    boolean existsByMobileNumber(String mobileNumber);
+
+    boolean existsByMobileNumberAndIdNot(String mobileNumber, Integer id);
+
     List<User> findByIsActiveTrue();
 
     List<User> findByUserTypeAndIsActiveTrue(UserTypeEnum type);

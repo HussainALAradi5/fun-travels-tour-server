@@ -51,6 +51,8 @@ public class UserService {
             throw new RuntimeException("Email taken");
         if (userRepository.existsByUserName(user.getUserName()))
             throw new RuntimeException("Username taken");
+        if (userRepository.existsByMobileNumber(user.getMobileNumber()))
+            throw new RuntimeException("Mobile number already in use");
 
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         if (user.getUserType() == null) {
@@ -142,6 +144,10 @@ public class UserService {
     public User updateUser(@NonNull Integer id, User incoming) {
         Objects.requireNonNull(id, "id must not be null");
         User existing = getUserById(id);
+        if (incoming.getMobileNumber() != null
+                && userRepository.existsByMobileNumberAndIdNot(incoming.getMobileNumber(), id)) {
+            throw new RuntimeException("Mobile number already in use");
+        }
         BeanUtils.copyProperties(incoming, existing, "id", "password", "userName", "profileImageUrl", "agency",
                 "agencyBranch", "userType");
         if (incoming.getUserType() != null) {

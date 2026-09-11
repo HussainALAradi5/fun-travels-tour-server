@@ -22,6 +22,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -60,6 +61,9 @@ public class User {
     @Enumerated(EnumType.STRING)
     private UserTypeEnum userType;
 
+    @NotBlank(message = "Mobile number is required")
+    @Pattern(regexp = "^\\+?[1-9]\\d{7,14}$", message = "Mobile number must be a valid international phone number")
+    @Column(name = "mobile_number", nullable = false, unique = true)
     private String mobileNumber;
 
     @ManyToOne(fetch = FetchType.EAGER)
