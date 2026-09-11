@@ -1,9 +1,11 @@
 package com.server.server.services.tourmanagement;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,7 +32,8 @@ public class TransportationService {
     }
 
     @Transactional(readOnly = true)
-    public Transportation getById(Integer id) {
+    public Transportation getById(@NonNull Integer id) {
+        Objects.requireNonNull(id, "id must not be null");
         return repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Transportation unit not found."));
     }
@@ -92,7 +95,8 @@ public class TransportationService {
     }
     @Transactional
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'OWNER')")
-    public Transportation update(Integer id, Transportation incomingData) {
+    public Transportation update(@NonNull Integer id, Transportation incomingData) {
+        Objects.requireNonNull(id, "id must not be null");
         Transportation existing = getById(id);
 
         // Efficient update ignoring managed relationships and status fields
@@ -104,7 +108,8 @@ public class TransportationService {
 
     @Transactional
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER')")
-    public Transportation updateStatus(Integer id, TransportationStatus newUnitStatus) {
+    public Transportation updateStatus(@NonNull Integer id, TransportationStatus newUnitStatus) {
+        Objects.requireNonNull(id, "id must not be null");
         Transportation transport = getById(id);
         validateStatusTransition(transport.getUnitStatus(), newUnitStatus);
         transport.setUnitStatus(newUnitStatus);

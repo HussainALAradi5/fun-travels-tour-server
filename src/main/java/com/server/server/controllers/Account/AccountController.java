@@ -3,6 +3,7 @@ package com.server.server.controllers.Account;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,13 +29,13 @@ public class AccountController {
 
     @GetMapping("/user/{userId}/balance")
     @PreAuthorize("hasAnyAuthority('CUSTOMER', 'ADMIN', 'OWNER', 'MANAGER')")
-    public ResponseEntity<ApiResponse<AccountResponse>> getAccountBalance(@PathVariable Integer userId) {
+    public ResponseEntity<ApiResponse<AccountResponse>> getAccountBalance(@NonNull @PathVariable Integer userId) {
         return ResponseEntity.ok(ApiResponse.ok(modelMapper.toAccountResponse(accountService.getAccountByUserId(userId))));
     }
 
     @GetMapping("/user/{userId}/history")
     @PreAuthorize("hasAnyAuthority('CUSTOMER', 'ADMIN')")
-    public ResponseEntity<ApiResponse<List<TransactionResponse>>> getAccountHistory(@PathVariable Integer userId) {
+    public ResponseEntity<ApiResponse<List<TransactionResponse>>> getAccountHistory(@NonNull @PathVariable Integer userId) {
         Account account = accountService.getAccountByUserId(userId);
         return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTransactionResponseList(accountService.getTransactionHistory(account.getId()))));
     }

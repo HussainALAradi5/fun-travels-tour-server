@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.*;
 
 import com.server.server.dto.agency.AgencyResponse;
@@ -32,12 +33,12 @@ public class AgencyController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<AgencyResponse>> getById(@PathVariable Integer id) {
+    public ResponseEntity<ApiResponse<AgencyResponse>> getById(@NonNull @PathVariable Integer id) {
         return ResponseEntity.ok(new ApiResponse<>(true, "Fetched agency", modelMapper.toAgencyResponse(agencyService.getAgencyById(id))));
     }
 
     @GetMapping("/{id}/employees")
-    public ResponseEntity<ApiResponse<List<UserResponse>>> getEmployeesByAgency(@PathVariable Integer id) {
+    public ResponseEntity<ApiResponse<List<UserResponse>>> getEmployeesByAgency(@NonNull @PathVariable Integer id) {
         List<User> employees = agencyService.getEmployeesByAgencyId(id);
         return ResponseEntity.ok(new ApiResponse<>(true, "Fetched agency employees", modelMapper.toUserResponseList(employees)));
     }

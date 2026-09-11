@@ -34,3 +34,7 @@ build/
 
 ### Application Properties (contains credentials) ###
 src/main/resources/application.properties
+FunTravelsTour.insomnia_export.json
+FunTravelsTour.postman_collection.json
+FunTravelsTour.postman_environment.json
+server.log

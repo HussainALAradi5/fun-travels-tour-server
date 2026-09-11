@@ -2,9 +2,11 @@ package com.server.server.services.Account;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,7 +53,8 @@ public class AccountService {
 
     // 2. THE AUTO-HEAL FIX
     @Transactional
-    public Account getAccountByUserId(Integer userId) {
+    public Account getAccountByUserId(@NonNull Integer userId) {
+        Objects.requireNonNull(userId, "userId must not be null");
         return accountRepository.findByUserId(userId)
                 .orElseGet(() -> {
                     // If account is missing, find the user and generate an account instantly!
@@ -61,7 +64,8 @@ public class AccountService {
                 });
     }
 
-    public List<Transaction> getTransactionHistory(Integer accountId) {
+    public List<Transaction> getTransactionHistory(@NonNull Integer accountId) {
+        Objects.requireNonNull(accountId, "accountId must not be null");
         return transactionRepository.findByAccountIdOrderByTimestampDesc(accountId);
     }
 }

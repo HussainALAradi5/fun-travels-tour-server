@@ -1,7 +1,9 @@
 package com.server.server.services.agency;
 
 import java.util.List;
+import java.util.Objects;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,12 +33,14 @@ public class AgencyBranchService {
     }
 
     @Transactional(readOnly = true)
-    public List<AgencyBranch> getBranchesByAgency(Integer agencyId) {
+    public List<AgencyBranch> getBranchesByAgency(@NonNull Integer agencyId) {
+        Objects.requireNonNull(agencyId, "agencyId must not be null");
         return branchRepository.findByAgencyIdAndIsActiveTrue(agencyId);
     }
 
     @Transactional
-    public AgencyBranch addBranch(Integer agencyId, AgencyBranch branch) {
+    public AgencyBranch addBranch(@NonNull Integer agencyId, AgencyBranch branch) {
+        Objects.requireNonNull(agencyId, "agencyId must not be null");
         Agency agency = agencyRepository.findById(agencyId)
                 .orElseThrow(() -> new ResourceNotFoundException("Agency", agencyId));
 
@@ -64,7 +68,9 @@ public class AgencyBranchService {
     }
 
     @Transactional(readOnly = true)
-    public List<User> getEmployeesByBranch(Integer agencyId, Integer branchId) {
+    public List<User> getEmployeesByBranch(@NonNull Integer agencyId, @NonNull Integer branchId) {
+        Objects.requireNonNull(agencyId, "agencyId must not be null");
+        Objects.requireNonNull(branchId, "branchId must not be null");
         AgencyBranch branch = branchRepository.findById(branchId)
                 .orElseThrow(() -> new ResourceNotFoundException("Branch", branchId));
 

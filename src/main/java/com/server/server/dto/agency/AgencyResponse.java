@@ -1,8 +1,5 @@
 package com.server.server.dto.agency;
 
-import com.server.server.dto.user.UserResponse.AgencyBranchSummary;
-import com.server.server.dto.user.UserResponse.AgencySummary;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

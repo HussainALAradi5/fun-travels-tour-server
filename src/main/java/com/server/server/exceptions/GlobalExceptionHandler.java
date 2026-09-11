@@ -4,6 +4,8 @@ import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.transaction.TransactionSystemException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -17,6 +19,16 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ApiResponse<Void>> handleBadCredentials(BadCredentialsException ex) {
+        return buildResponse("Invalid username or password", HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(UsernameNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUserNotFound(UsernameNotFoundException ex) {
+        return buildResponse("Invalid username or password", HttpStatus.UNAUTHORIZED);
+    }
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleNotFound(ResourceNotFoundException ex) {
@@ -48,7 +60,7 @@ public class GlobalExceptionHandler {
         String errors = ex.getBindingResult().getFieldErrors().stream()
                 .map(e -> e.getField() + ": " + e.getDefaultMessage())
                 .collect(Collectors.joining(", "));
-        return buildResponse(errors, HttpStatus.BAD_REQUEST);
+        return buildResponse("Validation failed: " + errors, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
@@ -94,7 +106,13 @@ public class GlobalExceptionHandler {
             return buildResponse(msg, HttpStatus.FORBIDDEN);
         }
 
-        return buildResponse(msg, HttpStatus.BAD_REQUEST);
+        return buildResponse(msg != null ? msg : "An unexpected error occurred", HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
+        log.error("Unexpected error: ", ex);
+        return buildResponse("An internal server error occurred", HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     private ResponseEntity<ApiResponse<Void>> buildResponse(String message, HttpStatus status) {

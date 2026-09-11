@@ -3,7 +3,9 @@ package com.server.server.services;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,7 +34,8 @@ public class GenericTrackingService {
     private final UserRequestRepository userRequestRepository;
 
     // --- VALIDATION LOGIC ---
-    private void validateReferenceState(Integer refId, ReferenceType refType) {
+    private void validateReferenceState(@NonNull Integer refId, ReferenceType refType) {
+        Objects.requireNonNull(refId, "refId must not be null");
         if (refType == ReferenceType.USER_REQUEST) {
             UserRequest request = userRequestRepository.findById(refId)
                     .orElseThrow(() -> new RuntimeException("Reference request not found"));
@@ -46,7 +49,8 @@ public class GenericTrackingService {
     }
 
     // --- TIMELINE FETCHING ---
-    public Map<String, Object> getTimelineMap(Integer refId, ReferenceType refType) {
+    public Map<String, Object> getTimelineMap(@NonNull Integer refId, ReferenceType refType) {
+        Objects.requireNonNull(refId, "refId must not be null");
         Map<String, Object> timelineData = new HashMap<>();
         timelineData.put("events", getEvents(refId, refType));
         timelineData.put("comments", getComments(refId, refType));
@@ -55,7 +59,9 @@ public class GenericTrackingService {
 
     // --- COMMENTS ---
     @Transactional
-    public GenericComment addComment(Integer refId, ReferenceType refType, String content, Integer authorId) {
+    public GenericComment addComment(@NonNull Integer refId, ReferenceType refType, String content, @NonNull Integer authorId) {
+        Objects.requireNonNull(refId, "refId must not be null");
+        Objects.requireNonNull(authorId, "authorId must not be null");
         // Enforce state rule before saving
         validateReferenceState(refId, refType);
 
@@ -70,7 +76,9 @@ public class GenericTrackingService {
     }
 
     @Transactional
-    public GenericComment updateComment(Integer commentId, Integer editorId, String newContent) {
+    public GenericComment updateComment(@NonNull Integer commentId, @NonNull Integer editorId, String newContent) {
+        Objects.requireNonNull(commentId, "commentId must not be null");
+        Objects.requireNonNull(editorId, "editorId must not be null");
         GenericComment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new RuntimeException("Comment not found"));
 
@@ -91,13 +99,15 @@ public class GenericTrackingService {
         return commentRepository.save(comment);
     }
 
-    public List<GenericComment> getComments(Integer refId, ReferenceType refType) {
+    public List<GenericComment> getComments(@NonNull Integer refId, ReferenceType refType) {
+        Objects.requireNonNull(refId, "refId must not be null");
         return commentRepository.findByReferenceIdAndReferenceTypeOrderByCreatedAtDesc(refId, refType);
     }
 
     // --- EVENT LOGS ---
     @Transactional
-    public void logEvent(Integer refId, ReferenceType refType, String action, String description, User actor) {
+    public void logEvent(@NonNull Integer refId, ReferenceType refType, String action, String description, User actor) {
+        Objects.requireNonNull(refId, "refId must not be null");
         GenericEventLog log = GenericEventLog.builder()
                 .referenceId(refId).referenceType(refType)
                 .action(action).description(description).actor(actor).build();
@@ -105,7 +115,8 @@ public class GenericTrackingService {
         eventLogRepository.save(log);
     }
 
-    public List<GenericEventLog> getEvents(Integer refId, ReferenceType refType) {
+    public List<GenericEventLog> getEvents(@NonNull Integer refId, ReferenceType refType) {
+        Objects.requireNonNull(refId, "refId must not be null");
         return eventLogRepository.findByReferenceIdAndReferenceTypeOrderByCreatedAtDesc(refId, refType);
     }
 }

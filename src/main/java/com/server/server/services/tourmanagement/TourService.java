@@ -2,9 +2,11 @@ package com.server.server.services.tourmanagement;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -122,7 +124,8 @@ public class TourService {
     }
 
     @Transactional(readOnly = true)
-    public Tour getById(Integer id) {
+    public Tour getById(@NonNull Integer id) {
+        Objects.requireNonNull(id, "id must not be null");
         return tourRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new IllegalArgumentException("Tour not found with id: " + id));
     }
@@ -169,7 +172,8 @@ public class TourService {
 
     @Transactional
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'OWNER')")
-    public Tour updateTour(Integer id, Tour incomingData) {
+    public Tour updateTour(@NonNull Integer id, Tour incomingData) {
+        Objects.requireNonNull(id, "id must not be null");
         Tour existing = getById(id);
         User currentUser = userService.getCurrentUser();
         boolean canEdit = false;
@@ -284,7 +288,8 @@ public class TourService {
 
     @Transactional
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE')")
-    public Tour updateStatus(Integer id, GenericStatus newStatus) {
+    public Tour updateStatus(@NonNull Integer id, GenericStatus newStatus) {
+        Objects.requireNonNull(id, "id must not be null");
         Tour tour = getById(id);
         GenericStatus currentStatus = tour.getStatus();
 
@@ -349,7 +354,8 @@ public class TourService {
     }
 
     @Transactional
-    public void restoreInventory(Integer tourId, int slotsToRestore) {
+    public void restoreInventory(@NonNull Integer tourId, int slotsToRestore) {
+        Objects.requireNonNull(tourId, "tourId must not be null");
         Tour tour = tourRepository.findByIdWithLock(tourId)
                 .orElseThrow(() -> new IllegalArgumentException("Tour not found"));
 

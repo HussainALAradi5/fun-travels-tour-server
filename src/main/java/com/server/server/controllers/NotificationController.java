@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -32,7 +33,7 @@ public class NotificationController {
 
     @GetMapping("/user/{userId}")
     public ResponseEntity<ApiResponse<List<NotificationResponse>>> getUserNotifications(
-            @PathVariable Integer userId,
+            @NonNull @PathVariable Integer userId,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) Boolean isRead,
             @RequestParam(required = false) NotificationType type,
@@ -46,13 +47,13 @@ public class NotificationController {
     }
 
     @PutMapping("/{id}/read")
-    public ResponseEntity<ApiResponse<NotificationResponse>> markAsRead(@PathVariable Integer id) {
+    public ResponseEntity<ApiResponse<NotificationResponse>> markAsRead(@NonNull @PathVariable Integer id) {
         Notification notification = notificationService.markAsRead(id);
         return ResponseEntity.ok(ApiResponse.ok(modelMapper.toNotificationResponse(notification)));
     }
 
     @GetMapping("/user/{userId}/counts")
-    public ResponseEntity<ApiResponse<NotificationCounts>> getNotificationCounts(@PathVariable Integer userId) {
+    public ResponseEntity<ApiResponse<NotificationCounts>> getNotificationCounts(@NonNull @PathVariable Integer userId) {
         return ResponseEntity.ok(ApiResponse.ok(notificationService.getNotificationCounts(userId)));
     }
 }

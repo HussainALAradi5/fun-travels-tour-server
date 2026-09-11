@@ -2,9 +2,11 @@ package com.server.server.services;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import org.springframework.beans.BeanUtils;
+import org.springframework.lang.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -16,10 +18,9 @@ import com.server.server.enums.UserTypeEnum;
 import com.server.server.models.User;
 import com.server.server.models.Agency.Agency;
 import com.server.server.repositories.UserRepository;
-import com.server.server.repositories.agency.AgencyBranchRepository;
 import com.server.server.repositories.agency.AgencyRepository;
+import com.server.server.repositories.agency.AgencyBranchRepository;
 import com.server.server.services.Account.AccountService;
-
 import jakarta.mail.internet.MimeMessage;
 import jakarta.transaction.Transactional;
 
@@ -135,7 +136,8 @@ public class UserService {
         }
     }
 
-    public User updateUser(Integer id, User incoming) {
+    public User updateUser(@NonNull Integer id, User incoming) {
+        Objects.requireNonNull(id, "id must not be null");
         User existing = getUserById(id);
         BeanUtils.copyProperties(incoming, existing, "id", "password", "userName", "profileImageUrl", "agency",
                 "agencyBranch");
@@ -149,7 +151,8 @@ public class UserService {
         return userRepository.saveAndFlush(existing);
     }
 
-    public User updatePermissions(Integer id, UserTypeEnum type, Integer branchId) {
+    public User updatePermissions(@NonNull Integer id, UserTypeEnum type, Integer branchId) {
+        Objects.requireNonNull(id, "id must not be null");
         User user = getUserById(id);
         user.setUserType(type);
 
@@ -165,7 +168,8 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public void softDeleteUser(Integer id) {
+    public void softDeleteUser(@NonNull Integer id) {
+        Objects.requireNonNull(id, "id must not be null");
         User user = getUserById(id);
         user.setActive(false);
         user.setAgencyBranch(null);
@@ -184,7 +188,8 @@ public class UserService {
         return user;
     }
 
-    public List<User> getAgencyUsers(Integer agencyId, UserTypeEnum type) {
+    public List<User> getAgencyUsers(@NonNull Integer agencyId, UserTypeEnum type) {
+        Objects.requireNonNull(agencyId, "agencyId must not be null");
         if (type == null) {
             return userRepository.findByAgencyIdAndIsActiveTrue(agencyId);
         }
@@ -192,7 +197,8 @@ public class UserService {
     }
 
     @Transactional
-    public List<User> bulkImportEmployees(MultipartFile file, Integer agencyId) {
+    public List<User> bulkImportEmployees(MultipartFile file, @NonNull Integer agencyId) {
+        Objects.requireNonNull(agencyId, "agencyId must not be null");
         Agency agency = agencyRepository.findById(agencyId).orElseThrow(() -> new RuntimeException("Agency required"));
 
         List<User> users = excelImportService.importFile(file, User::new, (user, data) -> {
@@ -220,7 +226,8 @@ public class UserService {
         return userRepository.saveAll(filtered);
     }
 
-    public User getUserById(Integer id) {
+    public User getUserById(@NonNull Integer id) {
+        Objects.requireNonNull(id, "id must not be null");
         return userRepository.findById(id).filter(User::isActive)
                 .orElseThrow(() -> new RuntimeException("User not found or inactive."));
     }

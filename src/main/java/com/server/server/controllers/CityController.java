@@ -3,6 +3,7 @@ package com.server.server.controllers;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -36,7 +37,7 @@ public class CityController {
     }
 
     @GetMapping("/country/{countryId}")
-    public ResponseEntity<ApiResponse<List<CityResponse>>> getByCountry(@PathVariable Integer countryId) {
+    public ResponseEntity<ApiResponse<List<CityResponse>>> getByCountry(@NonNull @PathVariable Integer countryId) {
         return ResponseEntity.ok(ApiResponse.ok(modelMapper.toCityResponseList(cityService.getCitiesByCountry(countryId))));
     }
 
@@ -49,7 +50,7 @@ public class CityController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('ADMIN')")
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Integer id) {
+    public ResponseEntity<ApiResponse<Void>> delete(@NonNull @PathVariable Integer id) {
         cityService.deleteCity(id);
         return ResponseEntity.ok(ApiResponse.ok("City deleted successfully!"));
     }

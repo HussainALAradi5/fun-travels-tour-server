@@ -3,6 +3,7 @@ package com.server.server.controllers.tourmanagement;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -36,19 +37,19 @@ public class SeatController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<SeatResponse>> getById(@PathVariable Integer id) {
+    public ResponseEntity<ApiResponse<SeatResponse>> getById(@NonNull @PathVariable Integer id) {
         return ResponseEntity.ok(ApiResponse.ok(modelMapper.toSeatResponse(seatService.getById(id))));
     }
 
     @PatchMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
-    public ResponseEntity<ApiResponse<SeatResponse>> updateSeatDetails(@PathVariable Integer id, @Valid @RequestBody Seat seat) {
+    public ResponseEntity<ApiResponse<SeatResponse>> updateSeatDetails(@NonNull @PathVariable Integer id, @Valid @RequestBody Seat seat) {
         return ResponseEntity.ok(ApiResponse.ok(modelMapper.toSeatResponse(seatService.updateSeat(id, seat))));
     }
 
     @GetMapping("/filter")
     public ResponseEntity<ApiResponse<List<SeatResponse>>> filter(
-            @RequestParam Integer transportId,
+            @NonNull @RequestParam Integer transportId,
             @RequestParam(required = false) SeatStatus status,
             @RequestParam(required = false) ChairType chairType,
             @RequestParam(required = false) String keyword) {
@@ -57,7 +58,7 @@ public class SeatController {
 
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
-    public ResponseEntity<ApiResponse<SeatResponse>> updateStatus(@PathVariable Integer id, @RequestParam SeatStatus status) {
+    public ResponseEntity<ApiResponse<SeatResponse>> updateStatus(@NonNull @PathVariable Integer id, @RequestParam SeatStatus status) {
         return ResponseEntity.ok(ApiResponse.ok(modelMapper.toSeatResponse(seatService.updateStatus(id, status))));
     }
 }

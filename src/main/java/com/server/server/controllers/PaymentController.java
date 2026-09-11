@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -37,7 +38,7 @@ public class PaymentController {
     @PostMapping("/execute/{reservationId}")
     @PreAuthorize("hasAnyAuthority('CUSTOMER', 'ADMIN', 'MANAGER')")
     public ResponseEntity<ApiResponse<ReservationResponse>> executePayment(
-            @PathVariable Integer reservationId,
+            @NonNull @PathVariable Integer reservationId,
             @RequestParam PaymentMethod method) {
         TourReservation result = reservationService.finalizeReservationWithPayment(reservationId, method);
         return ResponseEntity.ok(ApiResponse.ok("Payment processed!", modelMapper.toReservationResponse(result)));

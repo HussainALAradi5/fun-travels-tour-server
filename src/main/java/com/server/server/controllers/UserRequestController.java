@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -40,7 +41,7 @@ public class UserRequestController {
 
     @GetMapping
     public ResponseEntity<List<UserRequest>> getRequests(
-            @RequestParam Integer currentUserId,
+            @NonNull @RequestParam Integer currentUserId,
             @RequestParam(required = false) UserRequestStatus status,
             @RequestParam(required = false) UserRequestType type,
             @RequestParam(required = false) Integer userIdFilter) {

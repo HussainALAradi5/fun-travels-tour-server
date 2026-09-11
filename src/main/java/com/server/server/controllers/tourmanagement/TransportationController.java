@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -47,19 +48,19 @@ public class TransportationController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<TransportationResponse>> getById(@PathVariable Integer id) {
+    public ResponseEntity<ApiResponse<TransportationResponse>> getById(@NonNull @PathVariable Integer id) {
         return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTransportationResponse(service.getById(id))));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
-    public ResponseEntity<ApiResponse<TransportationResponse>> update(@PathVariable Integer id, @Valid @RequestBody Transportation transportation) {
+    public ResponseEntity<ApiResponse<TransportationResponse>> update(@NonNull @PathVariable Integer id, @Valid @RequestBody Transportation transportation) {
         return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTransportationResponse(service.update(id, transportation))));
     }
 
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
-    public ResponseEntity<ApiResponse<TransportationResponse>> updateStatus(@PathVariable Integer id, @RequestParam TransportationStatus status) {
+    public ResponseEntity<ApiResponse<TransportationResponse>> updateStatus(@NonNull @PathVariable Integer id, @RequestParam TransportationStatus status) {
         return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTransportationResponse(service.updateStatus(id, status))));
     }
 

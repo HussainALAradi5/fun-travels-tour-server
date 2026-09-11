@@ -6,9 +6,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,7 +62,8 @@ public class TourReservationService {
     }
 
     @Transactional(readOnly = true)
-    public TourReservation getById(Integer id) {
+    public TourReservation getById(@NonNull Integer id) {
+        Objects.requireNonNull(id, "id must not be null");
         return repository.findById(id).orElseThrow(() -> new IllegalArgumentException("Reservation not found"));
     }
 
@@ -217,7 +220,8 @@ public class TourReservationService {
         return reservationGrandTotal;
     }
 
-    private void validateNoDateConflicts(Integer userId, LocalDate startDate, LocalDate endDate) {
+    private void validateNoDateConflicts(@NonNull Integer userId, LocalDate startDate, LocalDate endDate) {
+        Objects.requireNonNull(userId, "userId must not be null");
         // Fallback to startDate if endDate is null (e.g., 1-day tours)
         LocalDate effectiveEndDate = endDate != null ? endDate : startDate;
 
@@ -229,7 +233,8 @@ public class TourReservationService {
 
     @Transactional
     @PreAuthorize("hasAnyAuthority('CUSTOMER', 'ADMIN', 'MANAGER')")
-    public TourReservation finalizeReservationWithPayment(Integer reservationId, PaymentMethod method) {
+    public TourReservation finalizeReservationWithPayment(@NonNull Integer reservationId, PaymentMethod method) {
+        Objects.requireNonNull(reservationId, "reservationId must not be null");
         TourReservation res = getById(reservationId);
 
         if (res.getStatus() == GenericStatus.APPROVED || res.getStatus() == GenericStatus.ACTIVE) {
@@ -264,7 +269,8 @@ public class TourReservationService {
     }
 
     @Transactional
-    public TourReservation cancelReservation(Integer reservationId) {
+    public TourReservation cancelReservation(@NonNull Integer reservationId) {
+        Objects.requireNonNull(reservationId, "reservationId must not be null");
         TourReservation res = repository.findById(reservationId)
                 .orElseThrow(() -> new WorkflowException("Reservation not found"));
 
@@ -331,7 +337,8 @@ public class TourReservationService {
 
     @Transactional
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE')")
-    public TourReservation updateStatus(Integer id, GenericStatus newStatus) {
+    public TourReservation updateStatus(@NonNull Integer id, GenericStatus newStatus) {
+        Objects.requireNonNull(id, "id must not be null");
         if (newStatus == GenericStatus.CANCELLED) {
             return cancelReservation(id);
         }

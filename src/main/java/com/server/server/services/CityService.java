@@ -1,7 +1,9 @@
 package com.server.server.services;
 
 import java.util.List;
+import java.util.Objects;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,7 +26,8 @@ public class CityService {
     }
 
     @Transactional(readOnly = true)
-    public List<City> getCitiesByCountry(Integer countryId) {
+    public List<City> getCitiesByCountry(@NonNull Integer countryId) {
+        Objects.requireNonNull(countryId, "countryId must not be null");
         return cityRepository.findByCountryId(countryId);
     }
 
@@ -45,7 +48,8 @@ public class CityService {
     }
 
     @Transactional
-    public void deleteCity(Integer id) {
+    public void deleteCity(@NonNull Integer id) {
+        Objects.requireNonNull(id, "id must not be null");
         if (!cityRepository.existsById(id)) {
             throw new ResourceNotFoundException("City", id);
         }

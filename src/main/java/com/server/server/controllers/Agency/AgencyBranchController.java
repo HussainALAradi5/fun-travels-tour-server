@@ -3,6 +3,7 @@ package com.server.server.controllers.agency;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,7 +33,7 @@ public class AgencyBranchController {
 
     @PostMapping("/agency/{agencyId}")
     public ResponseEntity<ApiResponse<AgencyBranchResponse>> addBranch(
-            @PathVariable Integer agencyId,
+            @NonNull @PathVariable Integer agencyId,
             @RequestBody AgencyBranch branch) {
         return ResponseEntity.ok(new ApiResponse<>(true, "Branch added", modelMapper.toBranchResponse(branchService.addBranch(agencyId, branch))));
     }
@@ -43,15 +44,15 @@ public class AgencyBranchController {
     }
 
     @GetMapping("/agency/{agencyId}")
-    public ResponseEntity<ApiResponse<List<AgencyBranchResponse>>> getByAgency(@PathVariable Integer agencyId) {
+    public ResponseEntity<ApiResponse<List<AgencyBranchResponse>>> getByAgency(@NonNull @PathVariable Integer agencyId) {
         return ResponseEntity
                 .ok(new ApiResponse<>(true, "Fetched agency branches", modelMapper.toBranchResponseList(branchService.getBranchesByAgency(agencyId))));
     }
 
     @GetMapping("/agency/{agencyId}/branch/{branchId}/employees")
     public ResponseEntity<ApiResponse<List<UserResponse>>> getEmployeesByAgencyAndBranch(
-            @PathVariable Integer agencyId,
-            @PathVariable Integer branchId) {
+            @NonNull @PathVariable Integer agencyId,
+            @NonNull @PathVariable Integer branchId) {
 
         List<User> employees = branchService.getEmployeesByBranch(agencyId, branchId);
         return ResponseEntity.ok(new ApiResponse<>(true, "Fetched employees for specific agency branch", modelMapper.toUserResponseList(employees)));

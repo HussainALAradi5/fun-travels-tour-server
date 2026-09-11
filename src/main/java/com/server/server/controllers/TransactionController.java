@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -52,7 +53,7 @@ public class TransactionController {
     @PostMapping("/manual-credit/{userId}")
     @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<ApiResponse<TransactionResponse>> manualCredit(
-            @PathVariable Integer userId,
+            @NonNull @PathVariable Integer userId,
             @RequestParam BigDecimal amount,
             @RequestParam String description) {
         Account account = accountService.getAccountByUserId(userId);

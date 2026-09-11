@@ -3,6 +3,7 @@ package com.server.server.controllers.tourmanagement;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -37,7 +38,7 @@ public class MealPlanController {
     }
 
     @GetMapping("/agency/{agencyId}")
-    public ResponseEntity<ApiResponse<List<MealPlanResponse>>> getMenu(@PathVariable Integer agencyId) {
+    public ResponseEntity<ApiResponse<List<MealPlanResponse>>> getMenu(@NonNull @PathVariable Integer agencyId) {
         return ResponseEntity.ok(ApiResponse.ok(modelMapper.toMealPlanResponseList(service.getAgencyCatalog(agencyId))));
     }
 
@@ -49,14 +50,14 @@ public class MealPlanController {
 
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
-    public ResponseEntity<ApiResponse<Void>> toggleStatus(@PathVariable Integer id, @RequestParam GenericStatus status) {
+    public ResponseEntity<ApiResponse<Void>> toggleStatus(@NonNull @PathVariable Integer id, @RequestParam GenericStatus status) {
         service.updateMealStatus(id, status);
         return ResponseEntity.ok(ApiResponse.ok("Status updated!"));
     }
 
     @PutMapping("/{id}/price")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
-    public ResponseEntity<ApiResponse<MealPlanResponse>> updatePrice(@PathVariable Integer id, @RequestParam Double price) {
+    public ResponseEntity<ApiResponse<MealPlanResponse>> updatePrice(@NonNull @PathVariable Integer id, @RequestParam Double price) {
         return ResponseEntity.ok(ApiResponse.ok("Price updated!", modelMapper.toMealPlanResponse(service.updatePricing(id, price))));
     }
 }

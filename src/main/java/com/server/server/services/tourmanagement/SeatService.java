@@ -1,8 +1,10 @@
 package com.server.server.services.tourmanagement;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,13 +26,15 @@ public class SeatService {
     }
 
     @Transactional(readOnly = true)
-    public Seat getById(Integer id) {
+    public Seat getById(@NonNull Integer id) {
+        Objects.requireNonNull(id, "id must not be null");
         return seatRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Seat not found"));
     }
 
 
 @Transactional
-    public Seat updateSeat(Integer id, Seat updatedData) {
+    public Seat updateSeat(@NonNull Integer id, Seat updatedData) {
+        Objects.requireNonNull(id, "id must not be null");
         Seat seat = getById(id);
         
         // --- STRICT RULE: Cannot modify if booked ---
@@ -61,7 +65,8 @@ public class SeatService {
     }
     
     @Transactional
-    public Seat updateStatus(Integer id, SeatStatus status) {
+    public Seat updateStatus(@NonNull Integer id, SeatStatus status) {
+        Objects.requireNonNull(id, "id must not be null");
         Seat seat = getById(id);
         seat.setStatus(status);
         return seatRepository.save(seat);

@@ -3,9 +3,11 @@ package com.server.server.services;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
@@ -34,7 +36,8 @@ public class CountryService {
     }
 
     @Transactional(readOnly = true)
-    public Country getCountryById(Integer id) {
+    public Country getCountryById(@NonNull Integer id) {
+        Objects.requireNonNull(id, "id must not be null");
         return countryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Country", id));
     }
@@ -134,7 +137,8 @@ public class CountryService {
     }
 
     @Transactional
-    public void deleteCountry(Integer id) {
+    public void deleteCountry(@NonNull Integer id) {
+        Objects.requireNonNull(id, "id must not be null");
         if (!countryRepository.existsById(id)) {
             throw new ResourceNotFoundException("Country", id);
         }

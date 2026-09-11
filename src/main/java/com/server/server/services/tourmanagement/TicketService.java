@@ -6,10 +6,12 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,14 +63,16 @@ public class TicketService {
     }
 
     @Transactional(readOnly = true)
-    public Ticket getById(Integer id) {
+    public Ticket getById(@NonNull Integer id) {
+        Objects.requireNonNull(id, "id must not be null");
         return ticketRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new IllegalArgumentException("Ticket not found"));
     }
 
     @Transactional
     @PreAuthorize("hasAnyAuthority('CUSTOMER')")
-    public Ticket update(Integer id, Ticket incomingData) {
+    public Ticket update(@NonNull Integer id, Ticket incomingData) {
+        Objects.requireNonNull(id, "id must not be null");
         Ticket existing = getById(id);
 
         // Allow updating the seat if the ticket isn't completed
@@ -94,7 +98,8 @@ public class TicketService {
 
     @Transactional
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'CUSTOMER')")
-    public Ticket cancelTicket(Integer id, Long requestingUserId, String role) {
+    public Ticket cancelTicket(@NonNull Integer id, Long requestingUserId, String role) {
+        Objects.requireNonNull(id, "id must not be null");
         Ticket ticket = getById(id);
 
         if (role.equals("CUSTOMER") && !ticket.getCustomer().getId().equals(requestingUserId)) {
@@ -129,7 +134,8 @@ public class TicketService {
 
 @Transactional
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'CUSTOMER')")
-    public Ticket updateStatus(Integer id, GenericStatus newStatus) {
+    public Ticket updateStatus(@NonNull Integer id, GenericStatus newStatus) {
+        Objects.requireNonNull(id, "id must not be null");
         
         // 1. If the user or admin is cancelling, delegate to the cancellation engine
         if (newStatus == GenericStatus.CANCELLED) {
@@ -157,7 +163,8 @@ public class TicketService {
     }
 @Transactional
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'CUSTOMER')")
-    public Ticket cancelTicket(Integer ticketId) {
+    public Ticket cancelTicket(@NonNull Integer ticketId) {
+        Objects.requireNonNull(ticketId, "ticketId must not be null");
         Ticket ticket = getById(ticketId);
 
         if (ticket.getTicketStatus() == TicketStatus.CANCELLED) {
@@ -236,12 +243,14 @@ public class TicketService {
         return ticketRepository.save(ticket);
     }
     @Transactional
-    public Ticket approveTicket(Integer id) {
+    public Ticket approveTicket(@NonNull Integer id) {
+        Objects.requireNonNull(id, "id must not be null");
         return updateStatus(id, GenericStatus.APPROVED);
     }
 
     @Transactional
-    public Ticket confirmTicket(Integer id) {
+    public Ticket confirmTicket(@NonNull Integer id) {
+        Objects.requireNonNull(id, "id must not be null");
         return updateStatus(id, GenericStatus.CONFIRMED);
     }
 

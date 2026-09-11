@@ -3,7 +3,9 @@ package com.server.server.services;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
+import org.springframework.lang.NonNull;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,7 +33,7 @@ public class UserRequestService {
     private final GenericTrackingService trackingService;
 
     @Transactional
-    public UserRequest create(UserRequest request) {
+    public UserRequest create(@NonNull UserRequest request) {
         if (request.getUser() == null || request.getUser().getId() == null) {
             throw new RuntimeException("Request must have a valid user.");
         }
@@ -41,7 +43,9 @@ public class UserRequestService {
         return saved;
     }
 
-    public UserRequest assignRequest(Integer requestId, Integer agentId) {
+    public UserRequest assignRequest(@NonNull Integer requestId, @NonNull Integer agentId) {
+        Objects.requireNonNull(requestId, "requestId must not be null");
+        Objects.requireNonNull(agentId, "agentId must not be null");
         UserRequest request = getById(requestId);
         User agent = userRepository.findById(agentId)
                 .orElseThrow(() -> new RuntimeException("Agent not found with ID: " + agentId));
@@ -50,7 +54,6 @@ public class UserRequestService {
         request.setStatus(UserRequestStatus.APPROVED);
         UserRequest updated = requestRepository.save(request);
 
-        // 2. Log the event
         trackingService.logEvent(
                 updated.getId(),
                 ReferenceType.USER_REQUEST,
@@ -63,7 +66,9 @@ public class UserRequestService {
     }
 
     @Transactional
-    public UserRequest solveRequest(Integer requestId, Integer solverId) {
+    public UserRequest solveRequest(@NonNull Integer requestId, @NonNull Integer solverId) {
+        Objects.requireNonNull(requestId, "requestId must not be null");
+        Objects.requireNonNull(solverId, "solverId must not be null");
         UserRequest request = getById(requestId);
         User solver = userRepository.findById(solverId)
                 .orElseThrow(() -> new RuntimeException("Solver not found with ID: " + solverId));
@@ -73,18 +78,15 @@ public class UserRequestService {
         request.setStatus(UserRequestStatus.COMPLETED);
         UserRequest updated = requestRepository.save(request);
 
-        // --- AUDIT LOG LOGIC ---
         String action = "SOLVED";
         String description;
 
-        // Check if the person solving it is the one who created it (The Requester)
         if (request.getUser().getId().equals(solverId)) {
             description = "The requester '" + solver.getName() + "' has closed the request";
         } else {
             description = "Request marked as completed by " + solver.getName();
         }
 
-        // Save to the Audit Log
         trackingService.logEvent(
                 updated.getId(),
                 ReferenceType.USER_REQUEST,
@@ -97,7 +99,9 @@ public class UserRequestService {
     }
 
     @Transactional
-    public UserRequest rejectRequest(Integer requestId, Integer rejectedById) {
+    public UserRequest rejectRequest(@NonNull Integer requestId, @NonNull Integer rejectedById) {
+        Objects.requireNonNull(requestId, "requestId must not be null");
+        Objects.requireNonNull(rejectedById, "rejectedById must not be null");
         UserRequest request = getById(requestId);
         User actor = userRepository.findById(rejectedById)
                 .orElseThrow(() -> new RuntimeException("Reviewer not found with ID: " + rejectedById));
@@ -107,7 +111,6 @@ public class UserRequestService {
         request.setSolvedAt(LocalDateTime.now());
         UserRequest updated = requestRepository.save(request);
 
-        // 4. Log the event
         trackingService.logEvent(
                 updated.getId(),
                 ReferenceType.USER_REQUEST,
@@ -120,8 +123,9 @@ public class UserRequestService {
     }
 
     @Transactional(readOnly = true)
-    public List<UserRequest> getFilteredRequests(Integer currentUserId, UserRequestStatus status, UserRequestType type,
+    public List<UserRequest> getFilteredRequests(@NonNull Integer currentUserId, UserRequestStatus status, UserRequestType type,
             Integer userIdFilter) {
+        Objects.requireNonNull(currentUserId, "currentUserId must not be null");
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new RuntimeException("User session invalid. Please log in again."));
 
@@ -140,16 +144,18 @@ public class UserRequestService {
             if (type != null)
                 predicates.add(criteriaBuilder.equal(root.get("type"), type));
 
-            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+            return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
         });
     }
 
-    public UserRequest getById(Integer id) {
+    public UserRequest getById(@NonNull Integer id) {
+        Objects.requireNonNull(id, "id must not be null");
         return requestRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Request #" + id + " not found."));
     }
 
-    public void delete(Integer id) {
+    public void delete(@NonNull Integer id) {
+        Objects.requireNonNull(id, "id must not be null");
         if (!requestRepository.existsById(id)) {
             throw new RuntimeException("Cannot delete: Request #" + id + " does not exist.");
         }

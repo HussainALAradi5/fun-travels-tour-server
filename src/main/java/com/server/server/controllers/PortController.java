@@ -3,6 +3,7 @@ package com.server.server.controllers;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -43,7 +44,7 @@ public class PortController {
 
     @PutMapping("/{id}/status")
     @PreAuthorize("hasAuthority('ADMIN')")
-    public ResponseEntity<ApiResponse<PortResponse>> updateStatus(@PathVariable Integer id, @RequestParam GenericStatus status) {
+    public ResponseEntity<ApiResponse<PortResponse>> updateStatus(@NonNull @PathVariable Integer id, @RequestParam GenericStatus status) {
         return ResponseEntity.ok(ApiResponse.ok("Status updated!", modelMapper.toPortResponse(portService.updateStatus(id, status))));
     }
 }

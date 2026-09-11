@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,19 +42,19 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable Integer id) {
+    public ResponseEntity<ApiResponse<UserResponse>> getUserById(@NonNull @PathVariable Integer id) {
         return ResponseEntity.ok(ApiResponse.ok(modelMapper.toUserResponse(userService.getUserById(id))));
     }
 
     @GetMapping("/agency/{agencyId}")
     public ResponseEntity<ApiResponse<List<UserResponse>>> getEmployeesByAgency(
-            @PathVariable Integer agencyId,
+            @NonNull @PathVariable Integer agencyId,
             @RequestParam(required = false) UserTypeEnum role) {
         return ResponseEntity.ok(ApiResponse.ok(modelMapper.toUserResponseList(userService.getAgencyUsers(agencyId, role))));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<UserResponse>> updateUser(@PathVariable Integer id, @Valid @RequestBody User user) {
+    public ResponseEntity<ApiResponse<UserResponse>> updateUser(@NonNull @PathVariable Integer id, @Valid @RequestBody User user) {
         return ResponseEntity.ok(ApiResponse.ok("User updated!", modelMapper.toUserResponse(userService.updateUser(id, user))));
     }
 
@@ -61,7 +62,7 @@ public class UserController {
     @PostMapping("/bulk-import")
     public ResponseEntity<ApiResponse<List<UserResponse>>> bulkImport(
             @RequestParam("file") MultipartFile file,
-            @RequestParam Integer agencyId) {
+            @NonNull @RequestParam Integer agencyId) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok("Bulk import successful!", modelMapper.toUserResponseList(userService.bulkImportEmployees(file, agencyId))));
     }
@@ -69,7 +70,7 @@ public class UserController {
     @PreAuthorize("hasAuthority('ADMIN')")
     @PutMapping("/permissions/{id}")
     public ResponseEntity<ApiResponse<UserResponse>> updatePermissions(
-            @PathVariable Integer id,
+            @NonNull @PathVariable Integer id,
             @RequestParam UserTypeEnum type,
             @RequestParam(required = false) Integer branchId) {
         return ResponseEntity.ok(ApiResponse.ok("Permissions updated!", modelMapper.toUserResponse(userService.updatePermissions(id, type, branchId))));
@@ -84,7 +85,7 @@ public class UserController {
 
     @PreAuthorize("hasAuthority('ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable Integer id) {
+    public ResponseEntity<ApiResponse<Void>> deleteUser(@NonNull @PathVariable Integer id) {
         userService.softDeleteUser(id);
         return ResponseEntity.ok(ApiResponse.ok("User deactivated successfully"));
     }

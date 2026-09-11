@@ -3,6 +3,7 @@ package com.server.server.controllers.tourmanagement;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -38,13 +39,13 @@ public class TourReservationController {
 
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
-    public ResponseEntity<ApiResponse<ReservationResponse>> updateStatus(@PathVariable Integer id, @RequestParam GenericStatus status) {
+    public ResponseEntity<ApiResponse<ReservationResponse>> updateStatus(@NonNull @PathVariable Integer id, @RequestParam GenericStatus status) {
         return ResponseEntity.ok(ApiResponse.ok(modelMapper.toReservationResponse(reservationService.updateStatus(id, status))));
     }
 
     @PatchMapping("/{id}/cancel")
     @PreAuthorize("hasAnyAuthority('CUSTOMER', 'ADMIN', 'MANAGER', 'EMPLOYEE', 'OWNER')")
-    public ResponseEntity<ApiResponse<ReservationResponse>> cancelReservation(@PathVariable Integer id) {
+    public ResponseEntity<ApiResponse<ReservationResponse>> cancelReservation(@NonNull @PathVariable Integer id) {
         return ResponseEntity.ok(ApiResponse.ok("Reservation cancelled!", modelMapper.toReservationResponse(reservationService.cancelReservation(id))));
     }
 
@@ -62,7 +63,7 @@ public class TourReservationController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<ReservationResponse>> getById(@PathVariable Integer id) {
+    public ResponseEntity<ApiResponse<ReservationResponse>> getById(@NonNull @PathVariable Integer id) {
         return ResponseEntity.ok(ApiResponse.ok(modelMapper.toReservationResponse(reservationService.getById(id))));
     }
 }

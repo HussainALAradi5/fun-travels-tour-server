@@ -1,8 +1,10 @@
 package com.server.server.services.tourmanagement;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.beans.BeanUtils;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,12 +26,14 @@ public class MealPlanService {
     }
 
     @Transactional(readOnly = true)
-    public MealPlan findById(Integer id) {
+    public MealPlan findById(@NonNull Integer id) {
+        Objects.requireNonNull(id, "id must not be null");
         return repository.findById(id).orElseThrow(() -> new IllegalArgumentException("Meal definition not found: " + id));
     }
 
     @Transactional(readOnly = true)
-    public List<MealPlan> getAgencyCatalog(Integer agencyId) {
+    public List<MealPlan> getAgencyCatalog(@NonNull Integer agencyId) {
+        Objects.requireNonNull(agencyId, "agencyId must not be null");
         return repository.findByAgencyIdAndStatus(agencyId, GenericStatus.ACTIVE);
     }
 
@@ -43,7 +47,8 @@ public class MealPlanService {
 
     @Transactional
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'OWNER')")
-    public MealPlan updateMeal(Integer id, MealPlan incomingData) {
+    public MealPlan updateMeal(@NonNull Integer id, MealPlan incomingData) {
+        Objects.requireNonNull(id, "id must not be null");
         MealPlan existing = findById(id);
         if (incomingData.getMealPrice() != null && incomingData.getMealPrice() < 0) {
             throw new IllegalArgumentException("Meal price cannot be negative.");
@@ -55,7 +60,8 @@ public class MealPlanService {
 
     @Transactional
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER')")
-    public void updateMealStatus(Integer id, GenericStatus status) {
+    public void updateMealStatus(@NonNull Integer id, GenericStatus status) {
+        Objects.requireNonNull(id, "id must not be null");
         MealPlan meal = findById(id);
         meal.setStatus(status);
         repository.save(meal);
@@ -63,7 +69,8 @@ public class MealPlanService {
 
     @Transactional
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'OWNER')")
-    public MealPlan updatePricing(Integer id, Double newPrice) {
+    public MealPlan updatePricing(@NonNull Integer id, Double newPrice) {
+        Objects.requireNonNull(id, "id must not be null");
         if (newPrice == null || newPrice < 0) throw new IllegalArgumentException("Meal price cannot be negative or null.");
         MealPlan meal = findById(id);
         meal.setMealPrice(newPrice);

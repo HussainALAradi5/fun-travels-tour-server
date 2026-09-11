@@ -2,7 +2,9 @@ package com.server.server.services.agency;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,7 +37,8 @@ public class AgencyService {
     }
 
     @Transactional(readOnly = true)
-    public Agency getAgencyById(Integer id) {
+    public Agency getAgencyById(@NonNull Integer id) {
+        Objects.requireNonNull(id, "id must not be null");
         return agencyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Agency", id));
     }
@@ -74,7 +77,8 @@ public class AgencyService {
     }
 
     @Transactional(readOnly = true)
-    public List<User> getEmployeesByAgencyId(Integer agencyId) {
+    public List<User> getEmployeesByAgencyId(@NonNull Integer agencyId) {
+        Objects.requireNonNull(agencyId, "agencyId must not be null");
         return userRepository.findByAgencyIdAndIsActiveTrue(agencyId);
     }
 

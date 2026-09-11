@@ -3,11 +3,13 @@ package com.server.server.services;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 import com.server.server.dto.notification.NotificationCounts;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.lang.NonNull;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -111,12 +113,14 @@ public class NotificationService {
     }
 
     @Transactional(readOnly = true)
-    public List<Notification> getUserNotifications(Integer userId) {
+    public List<Notification> getUserNotifications(@NonNull Integer userId) {
+        Objects.requireNonNull(userId, "userId must not be null");
         return notificationRepository.findByRecipientIdOrderByCreatedAtDesc(userId);
     }
 
     @Transactional
-    public Notification markAsRead(Integer notificationId) {
+    public Notification markAsRead(@NonNull Integer notificationId) {
+        Objects.requireNonNull(notificationId, "notificationId must not be null");
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new RuntimeException("Notification not found"));
         notification.setIsRead(true);
@@ -144,7 +148,8 @@ public class NotificationService {
     }
 
     @Transactional(readOnly = true)
-    public NotificationCounts getNotificationCounts(Integer userId) {
+    public NotificationCounts getNotificationCounts(@NonNull Integer userId) {
+        Objects.requireNonNull(userId, "userId must not be null");
         long unreadCount = notificationRepository.countByRecipientIdAndIsReadFalse(userId);
         return new NotificationCounts(unreadCount);
     }
@@ -209,9 +214,10 @@ public class NotificationService {
 
     @Transactional(readOnly = true)
     public List<Notification> filterUserNotifications(
-            Integer userId, String search, Boolean isRead,
+            @NonNull Integer userId, String search, Boolean isRead,
             NotificationType type, ReferenceType refType,
             LocalDate startDate, LocalDate endDate) {
+        Objects.requireNonNull(userId, "userId must not be null");
         LocalDateTime startDateTime = (startDate != null) ? startDate.atStartOfDay() : null;
         LocalDateTime endDateTime = (endDate != null) ? endDate.plusDays(1).atStartOfDay() : null;
         return notificationRepository.findFilteredNotifications(
