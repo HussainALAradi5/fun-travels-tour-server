@@ -102,7 +102,7 @@ public class TicketService {
         Objects.requireNonNull(id, "id must not be null");
         Ticket ticket = getById(id);
 
-        if (role.equals("CUSTOMER") && !ticket.getCustomer().getId().equals(requestingUserId)) {
+        if (role.equals("CUSTOMER") && !Objects.equals(ticket.getCustomer().getId().longValue(), requestingUserId)) {
             throw new WorkflowException("You are not authorized to cancel this ticket.");
         }
 

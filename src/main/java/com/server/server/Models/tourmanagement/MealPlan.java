@@ -2,7 +2,7 @@ package com.server.server.models.tourmanagement;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.server.server.enums.GenericStatus;
-import com.server.server.models.Agency.Agency;
+import com.server.server.models.agency.Agency;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -51,9 +51,10 @@ public class MealPlan {
     @NotNull(message = "Status is required")
     private GenericStatus status = GenericStatus.ACTIVE;
 
-    // FIX: Added the missing Agency relationship so the Repository can filter by Agency
+    // FIX: Added the missing Agency relationship so the Repository can filter by
+    // Agency
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "agency_id")
-    @JsonIgnoreProperties({"owner", "branches", "tours", "transportations"})
+    @JsonIgnoreProperties({ "owner", "branches", "tours", "transportations" })
     private Agency agency;
 }

@@ -11,8 +11,8 @@ import com.server.server.enums.Account.AccountStatus;
 import com.server.server.enums.Account.AccountType;
 import com.server.server.enums.UserTypeEnum;
 import com.server.server.models.Account;
-import com.server.server.models.Agency.Agency;
-import com.server.server.models.Agency.AgencyBranch;
+import com.server.server.models.agency.Agency;
+import com.server.server.models.agency.AgencyBranch;
 import com.server.server.models.User;
 import com.server.server.repositories.AccountRepository;
 import com.server.server.repositories.UserRepository;
@@ -80,23 +80,31 @@ public class DataSeeder implements CommandLineRunner {
         branch2 = branchRepository.save(branch2);
 
         // Create users
-        createUser("admin", "System Admin", "admin@funtravel.com", password, "+97310000001", 30, UserTypeEnum.ADMIN, null, null, 10000.00);
-        createUser("owner", "Ahmed Owner", "owner@funtravel.com", password, "+97310000002", 45, UserTypeEnum.OWNER, agency1, null, 5000.00);
-        createUser("manager", "Sara Manager", "manager@funtravel.com", password, "+97310000003", 35, UserTypeEnum.MANAGER, agency1, branch1, 1000.00);
-        createUser("employee", "Ali Employee", "employee@funtravel.com", password, "+97310000004", 28, UserTypeEnum.EMPLOYEE, agency1, branch1, 500.00);
-        createUser("customer", "John Customer", "customer@funtravel.com", password, "+97310000005", 25, UserTypeEnum.CUSTOMER, null, null, 2500.00);
-        createUser("support", "Fatima Support", "support@funtravel.com", password, "+97310000006", 32, UserTypeEnum.SUPPORT_AGENT, null, null, 500.00);
-        createUser("customer2", "Jane Traveler", "customer2@funtravel.com", password, "+97310000007", 29, UserTypeEnum.CUSTOMER, null, null, 3000.00);
-        createUser("employee2", "Khalid Staff", "employee2@funtravel.com", password, "+97310000008", 26, UserTypeEnum.EMPLOYEE, agency2, branch2, 500.00);
+        createUser("admin", "System Admin", "admin@funtravel.com", password, "+97310000001", 30, UserTypeEnum.ADMIN,
+                null, null, 10000.00);
+        createUser("owner", "Ahmed Owner", "owner@funtravel.com", password, "+97310000002", 45, UserTypeEnum.OWNER,
+                agency1, null, 5000.00);
+        createUser("manager", "Sara Manager", "manager@funtravel.com", password, "+97310000003", 35,
+                UserTypeEnum.MANAGER, agency1, branch1, 1000.00);
+        createUser("employee", "Ali Employee", "employee@funtravel.com", password, "+97310000004", 28,
+                UserTypeEnum.EMPLOYEE, agency1, branch1, 500.00);
+        createUser("customer", "John Customer", "customer@funtravel.com", password, "+97310000005", 25,
+                UserTypeEnum.CUSTOMER, null, null, 2500.00);
+        createUser("support", "Fatima Support", "support@funtravel.com", password, "+97310000006", 32,
+                UserTypeEnum.SUPPORT_AGENT, null, null, 500.00);
+        createUser("customer2", "Jane Traveler", "customer2@funtravel.com", password, "+97310000007", 29,
+                UserTypeEnum.CUSTOMER, null, null, 3000.00);
+        createUser("employee2", "Khalid Staff", "employee2@funtravel.com", password, "+97310000008", 26,
+                UserTypeEnum.EMPLOYEE, agency2, branch2, 500.00);
 
         log.info("Database seeded successfully with 8 test users!");
         log.info("Login credentials: username='admin', password='123456'");
     }
 
     private void createUser(String userName, String name, String email, String password,
-                            String mobile, int age, UserTypeEnum type,
-                            Agency agency, AgencyBranch branch, double balance) {
-        
+            String mobile, int age, UserTypeEnum type,
+            Agency agency, AgencyBranch branch, double balance) {
+
         if (userRepository.existsByEmail(email)) {
             log.info("User {} already exists. Skipping.", email);
             return;

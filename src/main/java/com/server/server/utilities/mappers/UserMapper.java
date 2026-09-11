@@ -9,14 +9,15 @@ import com.server.server.dto.user.UserResponse;
 import com.server.server.dto.agency.AgencyResponse;
 import com.server.server.dto.agency.AgencyBranchResponse;
 import com.server.server.models.User;
-import com.server.server.models.Agency.Agency;
-import com.server.server.models.Agency.AgencyBranch;
+import com.server.server.models.agency.Agency;
+import com.server.server.models.agency.AgencyBranch;
 
 @Component
 public class UserMapper {
 
     public UserResponse toUserResponse(User user) {
-        if (user == null) return null;
+        if (user == null)
+            return null;
         UserResponse dto = new UserResponse();
         dto.setId(user.getId());
         dto.setUserName(user.getUserName());
@@ -43,7 +44,8 @@ public class UserMapper {
     }
 
     public AgencyResponse toAgencyResponse(Agency agency) {
-        if (agency == null) return null;
+        if (agency == null)
+            return null;
         AgencyResponse dto = new AgencyResponse();
         dto.setId(agency.getId());
         dto.setAgencyName(agency.getAgencyName());
@@ -72,7 +74,8 @@ public class UserMapper {
     }
 
     public AgencyBranchResponse toBranchResponse(AgencyBranch branch) {
-        if (branch == null) return null;
+        if (branch == null)
+            return null;
         AgencyBranchResponse dto = new AgencyBranchResponse();
         dto.setId(branch.getId());
         dto.setBranchName(branch.getBranchName());

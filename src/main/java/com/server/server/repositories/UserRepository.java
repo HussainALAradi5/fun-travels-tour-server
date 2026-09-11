@@ -5,14 +5,12 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.QueryHints; // IMPORTANT IMPORT
-import org.springframework.stereotype.Repository;
 
 import com.server.server.enums.UserTypeEnum;
 import com.server.server.models.User;
 
 import jakarta.persistence.QueryHint; // IMPORTANT IMPORT
 
-@Repository
 public interface UserRepository extends JpaRepository<User, Integer> {
 
     boolean existsByEmailIgnoreCase(String email);

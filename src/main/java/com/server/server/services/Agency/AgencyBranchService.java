@@ -11,8 +11,8 @@ import com.server.server.enums.UserTypeEnum;
 import com.server.server.exceptions.DuplicateResourceException;
 import com.server.server.exceptions.ResourceNotFoundException;
 import com.server.server.models.User;
-import com.server.server.models.Agency.Agency;
-import com.server.server.models.Agency.AgencyBranch;
+import com.server.server.models.agency.Agency;
+import com.server.server.models.agency.AgencyBranch;
 import com.server.server.repositories.UserRepository;
 import com.server.server.repositories.agency.AgencyBranchRepository;
 import com.server.server.repositories.agency.AgencyRepository;
@@ -81,4 +81,3 @@ public class AgencyBranchService {
         return userRepository.findByAgencyBranchIdAndUserTypeAndIsActiveTrue(branchId, UserTypeEnum.EMPLOYEE);
     }
 }
-

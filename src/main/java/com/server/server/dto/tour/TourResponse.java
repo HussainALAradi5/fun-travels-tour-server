@@ -2,7 +2,6 @@ package com.server.server.dto.tour;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
 
 import com.server.server.enums.GenericStatus;
 

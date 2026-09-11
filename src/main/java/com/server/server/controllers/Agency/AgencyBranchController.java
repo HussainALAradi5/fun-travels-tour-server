@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.server.server.dto.agency.AgencyBranchResponse;
 import com.server.server.dto.user.UserResponse;
 import com.server.server.models.User;
-import com.server.server.models.Agency.AgencyBranch;
+import com.server.server.models.agency.AgencyBranch;
 import com.server.server.services.agency.AgencyBranchService;
 import com.server.server.utilities.ApiResponse;
 import com.server.server.utilities.ModelMapper;
@@ -35,18 +35,22 @@ public class AgencyBranchController {
     public ResponseEntity<ApiResponse<AgencyBranchResponse>> addBranch(
             @NonNull @PathVariable Integer agencyId,
             @RequestBody AgencyBranch branch) {
-        return ResponseEntity.ok(new ApiResponse<>(true, "Branch added", modelMapper.toBranchResponse(branchService.addBranch(agencyId, branch))));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Branch added",
+                modelMapper.toBranchResponse(branchService.addBranch(agencyId, branch))));
     }
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<AgencyBranchResponse>>> getAllBranches() {
-        return ResponseEntity.ok(new ApiResponse<>(true, "Fetched all branches", modelMapper.toBranchResponseList(branchService.getAllBranches())));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Fetched all branches",
+                modelMapper.toBranchResponseList(branchService.getAllBranches())));
     }
 
     @GetMapping("/agency/{agencyId}")
-    public ResponseEntity<ApiResponse<List<AgencyBranchResponse>>> getByAgency(@NonNull @PathVariable Integer agencyId) {
+    public ResponseEntity<ApiResponse<List<AgencyBranchResponse>>> getByAgency(
+            @NonNull @PathVariable Integer agencyId) {
         return ResponseEntity
-                .ok(new ApiResponse<>(true, "Fetched agency branches", modelMapper.toBranchResponseList(branchService.getBranchesByAgency(agencyId))));
+                .ok(new ApiResponse<>(true, "Fetched agency branches",
+                        modelMapper.toBranchResponseList(branchService.getBranchesByAgency(agencyId))));
     }
 
     @GetMapping("/agency/{agencyId}/branch/{branchId}/employees")
@@ -55,7 +59,7 @@ public class AgencyBranchController {
             @NonNull @PathVariable Integer branchId) {
 
         List<User> employees = branchService.getEmployeesByBranch(agencyId, branchId);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Fetched employees for specific agency branch", modelMapper.toUserResponseList(employees)));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Fetched employees for specific agency branch",
+                modelMapper.toUserResponseList(employees)));
     }
 }
-

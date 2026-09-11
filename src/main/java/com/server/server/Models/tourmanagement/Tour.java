@@ -20,8 +20,8 @@ import com.server.server.enums.GenericStatus;
 import com.server.server.models.City;
 import com.server.server.models.Country;
 import com.server.server.models.User;
-import com.server.server.models.Agency.Agency;
-import com.server.server.models.Agency.AgencyBranch;
+import com.server.server.models.agency.Agency;
+import com.server.server.models.agency.AgencyBranch;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;

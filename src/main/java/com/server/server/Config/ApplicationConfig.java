@@ -15,6 +15,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.server.server.repositories.UserRepository;
+import com.server.server.enums.UserTypeEnum;
 
 import lombok.RequiredArgsConstructor;
 
@@ -32,12 +33,16 @@ public class ApplicationConfig {
                 .findByEmailIgnoreCaseOrUserNameIgnoreCaseOrMobileNumber(identifier, identifier, identifier)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with identifier: " + identifier));
 
+            UserTypeEnum userType = user.getUserType() != null
+                    ? user.getUserType()
+                    : UserTypeEnum.CUSTOMER;
+
             return new org.springframework.security.core.userdetails.User(
                 user.getEmail(), // We keep email as the primary 'username' for the JWT
                 user.getPassword(),
                 user.isActive(), 
                 true, true, true,
-                Collections.singletonList(new SimpleGrantedAuthority(user.getUserType().name()))
+                Collections.singletonList(new SimpleGrantedAuthority(userType.name()))
             );
         };
     }

@@ -16,7 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.server.server.enums.UserTypeEnum;
 import com.server.server.models.User;
-import com.server.server.models.Agency.Agency;
+import com.server.server.models.agency.Agency;
 import com.server.server.repositories.UserRepository;
 import com.server.server.repositories.agency.AgencyRepository;
 import com.server.server.repositories.agency.AgencyBranchRepository;
@@ -53,17 +53,20 @@ public class UserService {
             throw new RuntimeException("Username taken");
 
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+        if (user.getUserType() == null) {
+            user.setUserType(UserTypeEnum.CUSTOMER);
+        }
         user.setActive(true);
-        
+
         // 1. Save the user first so they get an ID
         User savedUser = userRepository.save(user);
-        
+
         // 2. Automatically provision their digital wallet
         accountService.createAccountForUser(savedUser);
-        
+
         // 3. Re-fetch or link so the returned object is complete
         savedUser.setAccount(accountService.getAccountByUserId(savedUser.getId()));
-        
+
         return savedUser;
     }
 
@@ -140,7 +143,10 @@ public class UserService {
         Objects.requireNonNull(id, "id must not be null");
         User existing = getUserById(id);
         BeanUtils.copyProperties(incoming, existing, "id", "password", "userName", "profileImageUrl", "agency",
-                "agencyBranch");
+                "agencyBranch", "userType");
+        if (incoming.getUserType() != null) {
+            existing.setUserType(incoming.getUserType());
+        }
 
         Optional.ofNullable(incoming.getBase64Image())
                 .filter(img -> !img.isEmpty())
@@ -251,15 +257,14 @@ public class UserService {
         return userRepository.findByUserTypeAndIsActiveTrue(type);
     }
 
-
     public User getCurrentUser() {
-        org.springframework.security.core.Authentication auth = 
-            org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-            
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication();
+
         if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
             return null; // Public user (not logged in)
         }
-        
+
         return userRepository.findByEmailIgnoreCase(auth.getName())
                 .filter(User::isActive)
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found or inactive."));

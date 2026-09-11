@@ -5,7 +5,6 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
-import com.server.server.enums.tourmanagement.ChairType;
 import com.server.server.models.tourmanagement.MealPlan;
 import com.server.server.models.tourmanagement.Seat;
 

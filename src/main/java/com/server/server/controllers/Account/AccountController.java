@@ -20,20 +20,20 @@ import com.server.server.utilities.ModelMapper;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/accounts")
+@RequestMapping("/api/accounts/user/{userId}")
 @RequiredArgsConstructor
 public class AccountController {
 
     private final AccountService accountService;
     private final ModelMapper modelMapper;
 
-    @GetMapping("/user/{userId}/balance")
+    @GetMapping("/balance")
     @PreAuthorize("hasAnyAuthority('CUSTOMER', 'ADMIN', 'OWNER', 'MANAGER')")
     public ResponseEntity<ApiResponse<AccountResponse>> getAccountBalance(@NonNull @PathVariable Integer userId) {
         return ResponseEntity.ok(ApiResponse.ok(modelMapper.toAccountResponse(accountService.getAccountByUserId(userId))));
     }
 
-    @GetMapping("/user/{userId}/history")
+    @GetMapping("/history")
     @PreAuthorize("hasAnyAuthority('CUSTOMER', 'ADMIN')")
     public ResponseEntity<ApiResponse<List<TransactionResponse>>> getAccountHistory(@NonNull @PathVariable Integer userId) {
         Account account = accountService.getAccountByUserId(userId);

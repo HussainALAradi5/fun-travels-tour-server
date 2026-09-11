@@ -2,7 +2,6 @@ package com.server.server.services.Account;
 
 import java.math.BigDecimal;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,21 +21,18 @@ import com.server.server.services.TransactionService;
 import com.server.server.services.tourmanagement.SeatService;
 import com.server.server.services.tourmanagement.TourService;
 
+import lombok.RequiredArgsConstructor;
+
 @Service
+@RequiredArgsConstructor
 public class PaymentProcessingService {
 
-    @Autowired
-    private AccountService accountService;
-    @Autowired
-    private TransactionService transactionService;
-    @Autowired
-    private PaymentRepository paymentRepository;
-    @Autowired
-    private TourReservationRepository reservationRepository;
-    @Autowired
-    private TourService tourService;
-    @Autowired
-    private SeatService seatService;
+    private final AccountService accountService;
+    private final TransactionService transactionService;
+    private final PaymentRepository paymentRepository;
+    private final TourReservationRepository reservationRepository;
+    private final TourService tourService;
+    private final SeatService seatService;
 
     @Transactional
     public TourReservation processCheckout(TourReservation reservation, PaymentMethod chosenMethod, String externalTransactionId) {

@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,18 +18,18 @@ import com.server.server.repositories.AccountRepository;
 import com.server.server.repositories.TransactionRepository;
 import com.server.server.repositories.UserRepository; // <-- ADD THIS IMPORT
 
+import lombok.RequiredArgsConstructor;
+
 @Service
+@RequiredArgsConstructor
 public class AccountService {
 
-    @Autowired
-    private AccountRepository accountRepository;
+    private final AccountRepository accountRepository;
 
-    @Autowired
-    private TransactionRepository transactionRepository;
+    private final TransactionRepository transactionRepository;
 
     // 1. ADD USER REPOSITORY TO FETCH THE USER IF ACCOUNT IS MISSING
-    @Autowired
-    private UserRepository userRepository; 
+    private final UserRepository userRepository;
 
     @Transactional
     public Account createAccountForUser(User user) {

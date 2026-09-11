@@ -13,7 +13,7 @@ import com.server.server.exceptions.ResourceNotFoundException;
 import com.server.server.models.City;
 import com.server.server.models.Country;
 import com.server.server.models.User;
-import com.server.server.models.Agency.Agency;
+import com.server.server.models.agency.Agency;
 import com.server.server.repositories.CityRepository;
 import com.server.server.repositories.CountryRepository;
 import com.server.server.repositories.UserRepository;
@@ -84,7 +84,8 @@ public class AgencyService {
 
     private Integer extractId(Map<String, Object> map, String key) {
         Object value = map.get(key);
-        if (value == null) return null;
+        if (value == null)
+            return null;
         try {
             return Integer.parseInt(value.toString());
         } catch (NumberFormatException e) {
@@ -92,4 +93,3 @@ public class AgencyService {
         }
     }
 }
-

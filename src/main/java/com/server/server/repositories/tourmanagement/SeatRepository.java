@@ -6,13 +6,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
 import com.server.server.enums.tourmanagement.ChairType;
 import com.server.server.enums.tourmanagement.SeatStatus;
 import com.server.server.models.tourmanagement.Seat;
 
-@Repository
 public interface SeatRepository extends JpaRepository<Seat, Integer>, JpaSpecificationExecutor<Seat> {
 
     @Query("SELECT s FROM Seat s WHERE s.transportation.id = :transportId " +

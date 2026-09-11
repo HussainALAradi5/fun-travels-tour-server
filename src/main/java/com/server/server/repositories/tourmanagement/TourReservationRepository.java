@@ -8,12 +8,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
 import com.server.server.enums.GenericStatus;
 import com.server.server.models.tourmanagement.TourReservation;
 
-@Repository
 public interface TourReservationRepository
               extends JpaRepository<TourReservation, Integer>, JpaSpecificationExecutor<TourReservation> {
        List<TourReservation> findByStatus(GenericStatus status);

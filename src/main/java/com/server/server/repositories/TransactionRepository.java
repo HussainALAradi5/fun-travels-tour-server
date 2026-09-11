@@ -6,12 +6,10 @@ import java.util.List;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.stereotype.Repository;
 
 import com.server.server.enums.TransactionType;
 import com.server.server.models.Transaction;
 
-@Repository
 public interface TransactionRepository extends JpaRepository<Transaction, Integer>, JpaSpecificationExecutor<Transaction> {
     
     // Add this line to fix the "undefined" error

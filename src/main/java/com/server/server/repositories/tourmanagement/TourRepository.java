@@ -12,7 +12,6 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
 import com.beust.jcommander.internal.Nullable;
 import com.server.server.enums.GenericStatus;
@@ -20,14 +19,12 @@ import com.server.server.models.tourmanagement.Tour;
 
 import jakarta.persistence.LockModeType;
 
-@Repository
 public interface TourRepository extends JpaRepository<Tour, Integer>, JpaSpecificationExecutor<Tour> {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT t FROM Tour t WHERE t.id = :id")
     Optional<Tour> findByIdWithLock(@Param("id") Integer id);
 
-    // FIX: Removed existsByTourNumber to prevent application startup crash
     List<Tour> findByStatus(GenericStatus status);
 
     List<Tour> findByAgency_Id(Integer agencyId);

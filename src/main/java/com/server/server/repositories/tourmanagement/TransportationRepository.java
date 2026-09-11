@@ -6,14 +6,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
 import com.server.server.enums.GenericStatus;
 import com.server.server.enums.tourmanagement.TransportationStatus;
 import com.server.server.enums.tourmanagement.TransportationType;
 import com.server.server.models.tourmanagement.Transportation;
 
-@Repository
 public interface TransportationRepository extends JpaRepository<Transportation, Integer>, JpaSpecificationExecutor<Transportation> {
     boolean existsByCode(String code);
     boolean existsByProviderNameAndCode(String providerName, String code);

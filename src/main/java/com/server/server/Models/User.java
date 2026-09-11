@@ -3,8 +3,8 @@ package com.server.server.models;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.server.server.enums.UserTypeEnum;
-import com.server.server.models.Agency.Agency;
-import com.server.server.models.Agency.AgencyBranch;
+import com.server.server.models.agency.Agency;
+import com.server.server.models.agency.AgencyBranch;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -85,7 +85,6 @@ public class User {
     @Setter(onMethod_ = { @JsonProperty("base64Image") })
     private String base64Image;
 
-
     @Column(name = "reset_token")
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String resetToken;
@@ -95,7 +94,7 @@ public class User {
     private java.time.LocalDateTime resetTokenExpiry;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnoreProperties("user") 
+    @JsonIgnoreProperties("user")
     private Account account;
 
 }

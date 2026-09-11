@@ -59,7 +59,7 @@ public class CountryControllers {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('ADMIN')")
-    public ResponseEntity<ApiResponse<Void>> deleteCountry(@PathVariable Integer id) {
+    public ResponseEntity<ApiResponse<Void>> deleteCountry(@PathVariable @org.springframework.lang.NonNull Integer id) {
         countryService.deleteCountry(id);
         return ResponseEntity.ok(ApiResponse.ok("Country deleted successfully!"));
     }
