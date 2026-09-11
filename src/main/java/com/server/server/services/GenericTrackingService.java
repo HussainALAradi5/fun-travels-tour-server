@@ -24,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 public class GenericTrackingService {
 
     private final GenericCommentRepository commentRepository;
@@ -59,7 +60,8 @@ public class GenericTrackingService {
 
     // --- COMMENTS ---
     @Transactional
-    public GenericComment addComment(@NonNull Integer refId, ReferenceType refType, String content, @NonNull Integer authorId) {
+    public GenericComment addComment(@NonNull Integer refId, ReferenceType refType, String content,
+            @NonNull Integer authorId) {
         Objects.requireNonNull(refId, "refId must not be null");
         Objects.requireNonNull(authorId, "authorId must not be null");
         // Enforce state rule before saving

@@ -2,6 +2,7 @@ package com.server.server.services;
 
 import java.util.Date;
 import java.util.function.Function;
+
 import javax.crypto.SecretKey;
 
 import org.springframework.security.core.userdetails.UserDetails;
@@ -13,6 +14,7 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 
 @Service
+@SuppressWarnings("null")
 public class JwtService {
 
     private static final String SECRET_KEY = "YWRtaW5hZG1pbmFkbWluYWRtaW5hZG1pbmFkbWluYWRtaW5hZG1pbg==";

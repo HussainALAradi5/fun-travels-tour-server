@@ -5,8 +5,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 
-import com.server.server.dto.notification.NotificationCounts;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.lang.NonNull;
@@ -17,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.server.server.dto.notification.NotificationCounts;
 import com.server.server.enums.GenericStatus;
 import com.server.server.enums.Notification.NotificationType;
 import com.server.server.enums.Notification.ReferenceType;
@@ -37,6 +36,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
