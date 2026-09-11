@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.server.server.dto.tour.SeatResponse;
+import com.server.server.dto.filter.SeatFilterRequest;
 import com.server.server.enums.tourmanagement.ChairType;
 import com.server.server.enums.tourmanagement.SeatStatus;
 import com.server.server.models.tourmanagement.Seat;
@@ -48,12 +50,8 @@ public class SeatController {
     }
 
     @GetMapping("/filter")
-    public ResponseEntity<ApiResponse<List<SeatResponse>>> filter(
-            @NonNull @RequestParam Integer transportId,
-            @RequestParam(required = false) SeatStatus status,
-            @RequestParam(required = false) ChairType chairType,
-            @RequestParam(required = false) String keyword) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toSeatResponseList(seatService.filter(transportId, status, chairType, keyword))));
+    public ResponseEntity<ApiResponse<List<SeatResponse>>> filter(@ModelAttribute SeatFilterRequest filter) {
+        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toSeatResponseList(seatService.filter(filter))));
     }
 
     @PatchMapping("/{id}/status")

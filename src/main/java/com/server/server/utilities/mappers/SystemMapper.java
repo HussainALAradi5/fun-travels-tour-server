@@ -73,7 +73,8 @@ public class SystemMapper {
     public CountryResponse toCountryResponse(Country c) {
         if (c == null) return null;
         return new CountryResponse(c.getId(), c.getFamousName(), c.getOfficialName(),
-                c.getCountryCode(), c.getFlagPngUrl(), c.getFlagSvgUrl(), c.getDialCode());
+                c.getCountryCode(), c.getFlagPngUrl(), c.getFlagSvgUrl(), c.getDialCode(),
+                c.getMobileNumberLength());
     }
 
     public List<CountryResponse> toCountryResponseList(List<Country> countries) {

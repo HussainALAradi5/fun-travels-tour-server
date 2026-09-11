@@ -14,6 +14,7 @@ import com.server.server.enums.Notification.NotificationType;
 import com.server.server.enums.Notification.ReferenceType;
 import com.server.server.enums.UserRequest.UserRequestStatus;
 import com.server.server.enums.UserRequest.UserRequestType;
+import com.server.server.dto.filter.UserRequestFilterRequest;
 import com.server.server.enums.UserTypeEnum;
 import com.server.server.models.User;
 import com.server.server.models.UserRequest;
@@ -123,8 +124,8 @@ public class UserRequestService {
     }
 
     @Transactional(readOnly = true)
-    public List<UserRequest> getFilteredRequests(@NonNull Integer currentUserId, UserRequestStatus status, UserRequestType type,
-            Integer userIdFilter) {
+    public List<UserRequest> getFilteredRequests(UserRequestFilterRequest filter) {
+        Integer currentUserId = filter.getCurrentUserId();
         Objects.requireNonNull(currentUserId, "currentUserId must not be null");
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new RuntimeException("User session invalid. Please log in again."));
@@ -135,17 +136,27 @@ public class UserRequestService {
             if (currentUser.getUserType() != UserTypeEnum.ADMIN
                     && currentUser.getUserType() != UserTypeEnum.SUPPORT_AGENT) {
                 predicates.add(criteriaBuilder.equal(root.get("user").get("id"), currentUserId));
-            } else if (userIdFilter != null) {
-                predicates.add(criteriaBuilder.equal(root.get("user").get("id"), userIdFilter));
+            } else if (filter.getUserIdFilter() != null) {
+                predicates.add(criteriaBuilder.equal(root.get("user").get("id"), filter.getUserIdFilter()));
             }
 
-            if (status != null)
-                predicates.add(criteriaBuilder.equal(root.get("status"), status));
-            if (type != null)
-                predicates.add(criteriaBuilder.equal(root.get("type"), type));
+            if (filter.getStatus() != null)
+                predicates.add(criteriaBuilder.equal(root.get("status"), filter.getStatus()));
+            if (filter.getType() != null)
+                predicates.add(criteriaBuilder.equal(root.get("type"), filter.getType()));
+            if (filter.getSearch() != null && !filter.getSearch().isBlank()) {
+                String term = "%" + filter.getSearch().trim().toLowerCase() + "%";
+                predicates.add(criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), term),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("description")), term)));
+            }
 
             return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
-        });
+        }, org.springframework.data.domain.Sort.by(
+                "asc".equalsIgnoreCase(filter.getSortDir())
+                        ? org.springframework.data.domain.Sort.Direction.ASC
+                        : org.springframework.data.domain.Sort.Direction.DESC,
+                filter.getSortBy() == null || filter.getSortBy().isBlank() ? "createdAt" : filter.getSortBy()));
     }
 
     public UserRequest getById(@NonNull Integer id) {

@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.server.server.enums.GenericStatus;
 import com.server.server.enums.tourmanagement.TransportationStatus;
 import com.server.server.enums.tourmanagement.TransportationType;
+import com.server.server.dto.filter.TransportationFilterRequest;
 import com.server.server.exceptions.WorkflowException;
 import com.server.server.models.tourmanagement.Seat;
 import com.server.server.models.tourmanagement.Transportation;
@@ -124,8 +125,9 @@ public class TransportationService {
     }
 
     @Transactional(readOnly = true)
-    public List<Transportation> filter(TransportationType type, GenericStatus status, TransportationStatus unitStatus, String keyword) {
-        return repository.filterAndSearch(keyword, type, status, unitStatus);
+    public List<Transportation> filter(TransportationFilterRequest filter) {
+        String search = filter.getKeyword() != null ? filter.getKeyword() : filter.getSearch();
+        return repository.filterAndSearch(search, filter.getType(), filter.getStatus(), filter.getUnitStatus());
     }
 
     private Specification<Transportation> hasType(TransportationType t) {

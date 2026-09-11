@@ -16,6 +16,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.server.server.enums.GenericStatus;
+import com.server.server.dto.filter.ReservationFilterRequest;
+import com.server.server.services.filter.GenericFilterService;
+import java.util.Set;
 import com.server.server.enums.Notification.NotificationType;
 import com.server.server.enums.Notification.ReferenceType;
 import com.server.server.enums.Payment.PaymentMethod;
@@ -45,7 +48,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class TourReservationService {
+public class TourReservationService extends GenericFilterService<TourReservation> {
     private final TourReservationRepository repository;
     private final TourService tourService;
     private final SeatService seatService;
@@ -348,9 +351,13 @@ public class TourReservationService {
     }
 
     @Transactional(readOnly = true)
-    public List<TourReservation> filter(GenericStatus status, Long customerId, Long agencyId) {
-        return repository
-                .findAll(Specification.where(hasStatus(status)).and(hasCustomer(customerId)).and(hasAgency(agencyId)));
+    public List<TourReservation> filter(ReservationFilterRequest filter) {
+        Specification<TourReservation> spec = Specification.where(hasStatus(filter.getStatus()))
+                .and(hasCustomer(filter.getCustomerId()))
+                .and(hasAgency(filter.getAgencyId()))
+                .and(matchesSearch(filter.getSearch()));
+        return executeFilter(repository, spec, filter, "bookingDate",
+                Set.of("id", "reservationNumber", "requestedSlots", "totalPrice", "status", "bookingDate"));
     }
 
     private Specification<TourReservation> hasStatus(GenericStatus s) {
@@ -363,5 +370,16 @@ public class TourReservationService {
 
     private Specification<TourReservation> hasAgency(Long a) {
         return (r, q, cb) -> a == null ? cb.conjunction() : cb.equal(r.get("tour").get("agency").get("id"), a);
+    }
+
+    private Specification<TourReservation> matchesSearch(String search) {
+        return (root, query, cb) -> {
+            if (search == null || search.isBlank()) return cb.conjunction();
+            String term = normalizeSearch(search);
+            return cb.or(
+                    cb.like(cb.lower(root.get("reservationNumber")), term),
+                    cb.like(cb.lower(root.get("user").get("name")), term),
+                    cb.like(cb.lower(root.get("tour").get("title")), term));
+        };
     }
 }

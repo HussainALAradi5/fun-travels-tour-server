@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.server.server.dto.tour.TicketResponse;
+import com.server.server.dto.filter.TicketFilterRequest;
 import com.server.server.enums.GenericStatus;
 import com.server.server.enums.tourmanagement.TicketStatus;
 import com.server.server.models.tourmanagement.Ticket;
@@ -33,13 +35,8 @@ public class TicketController {
     private final ModelMapper modelMapper;
 
     @GetMapping("/filter")
-    public ResponseEntity<ApiResponse<List<TicketResponse>>> filter(
-            @RequestParam(required = false) TicketStatus status,
-            @RequestParam(required = false) Long customerId,
-            @RequestParam(required = false) Integer tourId,
-            @RequestParam(required = false) String sortBy,
-            @RequestParam(required = false) String sortDir) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTicketResponseList(ticketService.filter(status, customerId, tourId, sortBy, sortDir))));
+    public ResponseEntity<ApiResponse<List<TicketResponse>>> filter(@ModelAttribute TicketFilterRequest filter) {
+        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTicketResponseList(ticketService.filter(filter))));
     }
 
     @GetMapping

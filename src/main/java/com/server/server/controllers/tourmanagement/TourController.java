@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.server.server.dto.tour.TourResponse;
+import com.server.server.dto.filter.TourFilterRequest;
 import com.server.server.enums.GenericStatus;
 import com.server.server.models.tourmanagement.Tour;
 import com.server.server.services.tourmanagement.TourService;
@@ -43,23 +45,8 @@ public class TourController {
     }
 
     @GetMapping("/filter")
-    public ResponseEntity<ApiResponse<List<TourResponse>>> filter(
-            @RequestParam(required = false) GenericStatus status,
-            @RequestParam(required = false) Integer minSlots,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestParam(required = false) Long agencyId,
-            @RequestParam(required = false) Long branchId,
-            @RequestParam(required = false) Double minPrice,
-            @RequestParam(required = false) Double maxPrice,
-            @RequestParam(required = false) Integer countryId,
-            @RequestParam(required = false) Integer cityId,
-            @RequestParam(required = false) Integer createdById,
-            @RequestParam(required = false) String sortBy,
-            @RequestParam(required = false) String sortDir) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTourResponseList(tourService.filter(
-                status, minSlots, startDate, endDate, agencyId, branchId,
-                minPrice, maxPrice, countryId, cityId, createdById, sortBy, sortDir))));
+    public ResponseEntity<ApiResponse<List<TourResponse>>> filter(@ModelAttribute TourFilterRequest filter) {
+        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTourResponseList(tourService.filter(filter))));
     }
 
     @GetMapping

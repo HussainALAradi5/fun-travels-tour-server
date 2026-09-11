@@ -23,6 +23,10 @@ import com.server.server.enums.TransactionType;
 import com.server.server.enums.tourmanagement.ChairType;
 import com.server.server.enums.tourmanagement.SeatStatus;
 import com.server.server.enums.tourmanagement.TicketStatus;
+import com.server.server.dto.filter.TicketFilterRequest;
+import com.server.server.services.filter.GenericFilterService;
+import java.util.Set;
+import java.util.Map;
 import com.server.server.exceptions.WorkflowException;
 import com.server.server.models.Account;
 import com.server.server.models.tourmanagement.MealPlan;
@@ -43,7 +47,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class TicketService {
+public class TicketService extends GenericFilterService<Ticket> {
     private final TicketRepository ticketRepository;
     private final SeatService seatService;
     private final TourService tourService;
@@ -292,20 +296,15 @@ public class TicketService {
     }
 
     @Transactional(readOnly = true)
-    public List<Ticket> filter(TicketStatus status, Long customerId, Integer tourId, String sortBy, String sortDir) {
-        Specification<Ticket> spec = Specification.where(hasStatus(status)).and(hasCustomer(customerId))
-                .and(hasTour(tourId));
+    public List<Ticket> filter(TicketFilterRequest filter) {
+        Specification<Ticket> spec = Specification.where(hasStatus(filter.getStatus()))
+                .and(hasCustomer(filter.getCustomerId()))
+                .and(hasTour(filter.getTourId()))
+                .and(matchesSearch(filter.getSearch()));
 
-        Sort sort = Sort.unsorted();
-        if (sortBy != null && !sortBy.isBlank()) {
-            Sort.Direction direction = "desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
-            if (sortBy.equalsIgnoreCase("startDate"))
-                sortBy = "tour.startDate";
-            else if (sortBy.equalsIgnoreCase("startDate"))
-                sortBy = "tour.startDate";
-            sort = Sort.by(direction, sortBy);
-        }
-        return ticketRepository.findAll(spec, sort);
+        return executeFilter(ticketRepository, spec, filter, "bookingDate",
+                Set.of("id", "ticketNumber", "bookingDate", "totalPrice", "tour.startDate", "tour.endDate"),
+                Map.of("startDate", "tour.startDate", "endDate", "tour.endDate"));
     }
 
     private Specification<Ticket> hasStatus(TicketStatus s) {
@@ -318,6 +317,17 @@ public class TicketService {
 
     private Specification<Ticket> hasTour(Integer t) {
         return (r, q, cb) -> t == null ? cb.conjunction() : cb.equal(r.get("tour").get("id"), t);
+    }
+
+    private Specification<Ticket> matchesSearch(String search) {
+        return (root, query, cb) -> {
+            if (search == null || search.isBlank()) return cb.conjunction();
+            String term = normalizeSearch(search);
+            return cb.or(
+                    cb.like(cb.lower(root.get("ticketNumber")), term),
+                    cb.like(cb.lower(root.get("customer").get("name")), term),
+                    cb.like(cb.lower(root.get("tour").get("title")), term));
+        };
     }
 
 private void calculateAndSetPricing(Ticket ticket, Tour tour) {

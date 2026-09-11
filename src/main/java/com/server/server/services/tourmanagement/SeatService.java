@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.server.server.enums.tourmanagement.ChairType;
 import com.server.server.enums.tourmanagement.SeatStatus;
+import com.server.server.dto.filter.SeatFilterRequest;
 import com.server.server.models.tourmanagement.Seat;
 import com.server.server.repositories.tourmanagement.SeatRepository;
 
@@ -60,8 +61,9 @@ public class SeatService {
     }
     
     @Transactional(readOnly = true)
-    public List<Seat> filter(Integer transportId, SeatStatus status, ChairType chairType, String keyword) {
-        return seatRepository.filterAndSearch(transportId, keyword, status, chairType);
+    public List<Seat> filter(SeatFilterRequest filter) {
+        String search = filter.getKeyword() != null ? filter.getKeyword() : filter.getSearch();
+        return seatRepository.filterAndSearch(filter.getTransportId(), search, filter.getStatus(), filter.getChairType());
     }
     
     @Transactional

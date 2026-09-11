@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.server.server.dto.tour.TransportationResponse;
+import com.server.server.dto.filter.TransportationFilterRequest;
 import com.server.server.enums.GenericStatus;
 import com.server.server.enums.tourmanagement.TransportationStatus;
 import com.server.server.enums.tourmanagement.TransportationType;
@@ -66,10 +68,7 @@ public class TransportationController {
 
     @GetMapping("/filter")
     public ResponseEntity<ApiResponse<List<TransportationResponse>>> filter(
-            @RequestParam(required = false) TransportationType type,
-            @RequestParam(required = false) GenericStatus status,
-            @RequestParam(required = false) TransportationStatus unitStatus,
-            @RequestParam(required = false) String keyword) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTransportationResponseList(service.filter(type, status, unitStatus, keyword))));
+            @ModelAttribute TransportationFilterRequest filter) {
+        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTransportationResponseList(service.filter(filter))));
     }
 }

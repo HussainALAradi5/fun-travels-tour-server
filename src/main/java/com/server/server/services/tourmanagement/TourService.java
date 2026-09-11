@@ -12,6 +12,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.server.server.enums.GenericStatus;
+import com.server.server.dto.filter.TourFilterRequest;
+import com.server.server.services.filter.GenericFilterService;
+import java.util.Set;
+import java.util.Map;
 import com.server.server.enums.Notification.ReferenceType;
 import com.server.server.enums.UserTypeEnum;
 import com.server.server.exceptions.WorkflowException;
@@ -33,7 +37,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class TourService {
+public class TourService extends GenericFilterService<Tour> {
     private final TourRepository tourRepository;
     private final TransportationService transportationService;
     private final UserService userService;
@@ -368,11 +372,7 @@ public class TourService {
     }
 
     @Transactional(readOnly = true)
-    public List<Tour> filter(
-            GenericStatus status, Integer minSlots, LocalDate start, LocalDate end,
-            Long agencyId, Long branchId,
-            Double minPrice, Double maxPrice, Integer countryId, Integer cityId, Integer createdById,
-            String sortBy, String sortDir) {
+    public List<Tour> filter(TourFilterRequest filter) {
 
         // Use the centralized method
         User currentUser = userService.getCurrentUser();
@@ -381,34 +381,27 @@ public class TourService {
         if (currentUser != null) {
             if (currentUser.getUserType() == UserTypeEnum.EMPLOYEE
                     || currentUser.getUserType() == UserTypeEnum.MANAGER) {
-                agencyId = currentUser.getAgency() != null ? currentUser.getAgency().getId().longValue() : null;
-                branchId = currentUser.getAgencyBranch() != null ? currentUser.getAgencyBranch().getId().longValue()
-                        : null;
+                filter.setAgencyId(currentUser.getAgency() != null ? currentUser.getAgency().getId().longValue() : null);
+                filter.setBranchId(currentUser.getAgencyBranch() != null ? currentUser.getAgencyBranch().getId().longValue() : null);
             } else if (currentUser.getUserType() == UserTypeEnum.OWNER) {
-                agencyId = currentUser.getAgency() != null ? currentUser.getAgency().getId().longValue() : null;
+                filter.setAgencyId(currentUser.getAgency() != null ? currentUser.getAgency().getId().longValue() : null);
             }
         }
 
-        Specification<Tour> spec = Specification.where(hasStatus(status))
-                .and(hasMinSlots(minSlots))
-                .and(isBetweenDates(start, end))
-                .and(hasAgency(agencyId))
-                .and(hasBranch(branchId))
-                .and(hasPriceBetween(minPrice, maxPrice))
-                .and(hasCity(cityId))
-                .and(hasCountry(countryId))
-                .and(hasCreatedBy(createdById));
+        Specification<Tour> spec = Specification.where(hasStatus(filter.getStatus()))
+                .and(hasMinSlots(filter.getMinSlots()))
+                .and(isBetweenDates(filter.getStartDate(), filter.getEndDate()))
+                .and(hasAgency(filter.getAgencyId()))
+                .and(hasBranch(filter.getBranchId()))
+                .and(hasPriceBetween(filter.getMinPrice(), filter.getMaxPrice()))
+                .and(hasCity(filter.getCityId()))
+                .and(hasCountry(filter.getCountryId()))
+                .and(hasCreatedBy(filter.getCreatedById()))
+                .and(matchesSearch(filter.getSearch()));
 
-        Sort sort = Sort.unsorted();
-        if (sortBy != null && !sortBy.isBlank()) {
-            Sort.Direction direction = "desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
-            if (sortBy.equals("agency"))
-                sortBy = "agency.name";
-            if (sortBy.equals("branch"))
-                sortBy = "agencyBranch.name";
-            sort = Sort.by(direction, sortBy);
-        }
-        return tourRepository.findAll(spec, sort);
+        return executeFilter(tourRepository, spec, filter, "startDate",
+                Set.of("id", "tourNumber", "title", "startDate", "endDate", "totalPrice", "availableSlots", "agency.name", "agencyBranch.name"),
+                Map.of("agency", "agency.name", "branch", "agencyBranch.name"));
     }
 
     private Specification<Tour> hasBranch(Long b) {
@@ -466,6 +459,17 @@ public class TourService {
     private Specification<Tour> hasCreatedBy(Integer createdById) {
         return (r, q, cb) -> createdById == null ? cb.conjunction()
                 : cb.equal(r.get("createdBy").get("id"), createdById);
+    }
+
+    private Specification<Tour> matchesSearch(String search) {
+        return (root, query, cb) -> {
+            if (search == null || search.isBlank()) return cb.conjunction();
+            String term = normalizeSearch(search);
+            return cb.or(
+                    cb.like(cb.lower(root.get("tourNumber")), term),
+                    cb.like(cb.lower(root.get("title")), term),
+                    cb.like(cb.lower(root.get("description")), term));
+        };
     }
 
 }

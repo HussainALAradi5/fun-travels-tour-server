@@ -2,6 +2,8 @@ package com.server.server.services;
 
 import com.server.server.enums.Payment.PaymentMethod;
 import com.server.server.enums.Payment.PaymentStatus;
+import com.server.server.dto.filter.PaymentFilterRequest;
+import com.server.server.exceptions.ResourceNotFoundException;
 import com.server.server.models.Payment;
 import com.server.server.models.tourmanagement.TourReservation;
 import com.server.server.repositories.PaymentRepository;
@@ -16,11 +18,19 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.Set;
+import com.server.server.services.filter.GenericFilterService;
 
 @Service
 @RequiredArgsConstructor
-public class PaymentService {
+public class PaymentService extends GenericFilterService<Payment> {
     private final PaymentRepository paymentRepository;
+
+    @Transactional(readOnly = true)
+    public Payment getById(Integer id) {
+        return paymentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment", id));
+    }
 
     /**
      * Creates and executes a transaction.
@@ -53,25 +63,34 @@ public class PaymentService {
      * Dynamic filtering with Date support and DESC sorting.
      */
     @Transactional(readOnly = true)
-    public List<Payment> filter(Integer userId, PaymentStatus status, PaymentMethod method, LocalDate date) {
+    public List<Payment> filter(PaymentFilterRequest filter) {
         Specification<Payment> spec = Specification.where(null);
 
-        if (userId != null) {
+        if (filter.getUserId() != null) {
             spec = spec.and((root, query, cb) -> 
-                cb.equal(root.get("reservation").get("user").get("id"), userId));
+                cb.equal(root.get("reservation").get("user").get("id"), filter.getUserId()));
         }
-        if (status != null) {
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
+        if (filter.getStatus() != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), filter.getStatus()));
         }
-        if (method != null) {
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("method"), method));
+        if (filter.getMethod() != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("method"), filter.getMethod()));
         }
-        if (date != null) {
-            LocalDateTime start = date.atStartOfDay();
-            LocalDateTime end = date.atTime(LocalTime.MAX);
+        if (filter.getDate() != null) {
+            LocalDateTime start = filter.getDate().atStartOfDay();
+            LocalDateTime end = filter.getDate().atTime(LocalTime.MAX);
             spec = spec.and((root, query, cb) -> cb.between(root.get("paymentDate"), start, end));
         }
 
-        return paymentRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "paymentDate"));
+        if (filter.getSearch() != null && !filter.getSearch().isBlank()) {
+            String term = normalizeSearch(filter.getSearch());
+            spec = spec.and((root, query, cb) -> cb.or(
+                    cb.like(cb.lower(root.get("transactionId")), term),
+                    cb.like(cb.lower(root.get("currency")), term),
+                    cb.like(cb.lower(root.get("reservation").get("reservationNumber")), term)));
+        }
+
+        return executeFilter(paymentRepository, spec, filter, "paymentDate",
+                Set.of("id", "amount", "currency", "method", "status", "transactionId", "paymentDate"));
     }
 }

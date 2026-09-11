@@ -15,4 +15,5 @@ public class CountryResponse {
     private String flagPngUrl;
     private String flagSvgUrl;
     private String dialCode;
+    private Integer mobileNumberLength;
 }

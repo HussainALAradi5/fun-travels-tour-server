@@ -28,8 +28,9 @@ stripe.api.publishable-key=pk_test_your_stripe_publishable_key
 # ===============================
 # REST COUNTRIES API
 # ===============================
-api.restcountries.url=https://restcountries.com/v3.1/name/
-api.restcountries.all.url=https://restcountries.com/v3.1/all?fields=name,cca2,flags,idd
+api.restcountries.api-key=${REST_COUNTRIES_API_KEY:}
+api.restcountries.url=https://api.restcountries.com/countries/v5/name?q=
+api.restcountries.all.url=https://api.restcountries.com/countries/v5?limit=100&response_fields=names.common,names.official,codes.alpha_2,flag.url_png,flag.url_svg,calling_codes
 
 # ===============================
 # FILE STORAGE
