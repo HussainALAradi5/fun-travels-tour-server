@@ -43,6 +43,7 @@ import com.server.server.services.TransactionService;
 import com.server.server.services.UserService;
 import com.server.server.enums.UserTypeEnum;
 import com.server.server.utilities.PaginationUtils;
+import com.server.server.utilities.FilterUtils;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -282,6 +283,7 @@ public class TicketService extends GenericFilterService<Ticket> {
         Specification<Ticket> spec = Specification.where(hasStatus(filter.getStatus()))
                 .and(hasCustomer(filter.getCustomerId()))
                 .and(hasTour(filter.getTourId()))
+                .and(FilterUtils.localDateTimeRange("bookingDate", filter.getStartDate(), filter.getEndDate()))
                 .and(matchesSearch(filter.getSearch()));
 
         return executeFilter(ticketRepository, spec, filter, "bookingDate",

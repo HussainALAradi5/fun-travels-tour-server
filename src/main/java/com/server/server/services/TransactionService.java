@@ -15,6 +15,7 @@ import com.server.server.enums.TransactionType;
 import com.server.server.dto.filter.TransactionFilterRequest;
 import com.server.server.dto.PageResponse;
 import com.server.server.utilities.PaginationUtils;
+import com.server.server.utilities.FilterUtils;
 import java.util.Set;
 import org.springframework.data.jpa.domain.Specification;
 import com.server.server.enums.UserTypeEnum;
@@ -106,10 +107,7 @@ public class TransactionService {
 
         if (filter.getType() != null)
             spec = spec.and((root, query, cb) -> cb.equal(root.get("type"), filter.getType()));
-        if (filter.getStartDate() != null)
-            spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("timestamp"), filter.getStartDate()));
-        if (filter.getEndDate() != null)
-            spec = spec.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get("timestamp"), filter.getEndDate()));
+        spec = spec.and(FilterUtils.localDateTimeRange("timestamp", filter.getStartDate(), filter.getEndDate()));
         if (filter.getSearch() != null && !filter.getSearch().isBlank()) {
             String term = "%" + filter.getSearch().trim().toLowerCase() + "%";
             spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("description")), term));

@@ -30,6 +30,7 @@ import com.server.server.services.SystemSchedulingService;
 import com.server.server.services.UserService;
 import com.server.server.utilities.DomainWorkflowValidator;
 import com.server.server.utilities.PaginationUtils;
+import com.server.server.utilities.FilterUtils;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.criteria.Join;
@@ -433,7 +434,7 @@ public class TourService extends GenericFilterService<Tour> {
 
         Specification<Tour> spec = Specification.where(hasStatus(filter.getStatus()))
                 .and(hasMinSlots(filter.getMinSlots()))
-                .and(isBetweenDates(filter.getStartDate(), filter.getEndDate()))
+                .and(FilterUtils.localDateRange("startDate", filter.getStartDate(), filter.getEndDate()))
                 .and(hasAgency(filter.getAgencyId()))
                 .and(hasBranch(filter.getBranchId()))
                 .and(hasPriceBetween(filter.getMinPrice(), filter.getMaxPrice()))
@@ -457,10 +458,6 @@ public class TourService extends GenericFilterService<Tour> {
 
     private Specification<Tour> hasMinSlots(Integer m) {
         return (r, q, cb) -> m == null ? cb.conjunction() : cb.greaterThanOrEqualTo(r.get("availableSlots"), m);
-    }
-
-    private Specification<Tour> isBetweenDates(LocalDate s, LocalDate e) {
-        return (r, q, cb) -> (s == null || e == null) ? cb.conjunction() : cb.between(r.get("startDate"), s, e);
     }
 
     private Specification<Tour> hasAgency(Long a) {

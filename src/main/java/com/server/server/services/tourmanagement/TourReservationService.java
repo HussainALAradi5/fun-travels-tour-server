@@ -47,6 +47,7 @@ import com.server.server.services.UserService;
 import com.server.server.enums.UserTypeEnum;
 import com.server.server.utilities.DomainWorkflowValidator;
 import com.server.server.utilities.PaginationUtils;
+import com.server.server.utilities.FilterUtils;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -442,6 +443,7 @@ public class TourReservationService extends GenericFilterService<TourReservation
         Specification<TourReservation> spec = Specification.where(hasStatus(filter.getStatus()))
                 .and(hasCustomer(filter.getCustomerId()))
                 .and(hasAgency(filter.getAgencyId()))
+                .and(FilterUtils.localDateTimeRange("bookingDate", filter.getStartDate(), filter.getEndDate()))
                 .and(matchesSearch(filter.getSearch()));
         return executeFilter(repository, spec, filter, "bookingDate",
                 Set.of("id", "reservationNumber", "requestedSlots", "totalPrice", "status", "bookingDate"));

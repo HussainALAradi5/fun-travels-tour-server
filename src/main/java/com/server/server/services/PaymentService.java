@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.Set;
 import com.server.server.services.filter.GenericFilterService;
+import com.server.server.utilities.FilterUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -78,6 +79,10 @@ public class PaymentService extends GenericFilterService<Payment> {
      */
     @Transactional(readOnly = true)
     public PageResponse<Payment> filter(PaymentFilterRequest filter) {
+        FilterUtils.validateRange(filter.getStartDate(), filter.getEndDate(), "startDate", "endDate");
+        if (filter.getDate() != null && (filter.getStartDate() != null || filter.getEndDate() != null)) {
+            throw new IllegalArgumentException("Use either date or startDate/endDate, not both.");
+        }
         Specification<Payment> spec = Specification.where(null);
 
         if (filter.getUserId() != null) {
@@ -94,6 +99,15 @@ public class PaymentService extends GenericFilterService<Payment> {
             LocalDateTime start = filter.getDate().atStartOfDay();
             LocalDateTime end = filter.getDate().atTime(LocalTime.MAX);
             spec = spec.and((root, query, cb) -> cb.between(root.get("paymentDate"), start, end));
+        } else {
+            if (filter.getStartDate() != null) {
+                LocalDateTime start = filter.getStartDate().atStartOfDay();
+                spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("paymentDate"), start));
+            }
+            if (filter.getEndDate() != null) {
+                LocalDateTime endExclusive = filter.getEndDate().plusDays(1).atStartOfDay();
+                spec = spec.and((root, query, cb) -> cb.lessThan(root.get("paymentDate"), endExclusive));
+            }
         }
 
         if (filter.getSearch() != null && !filter.getSearch().isBlank()) {
