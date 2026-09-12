@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.server.server.dto.tour.TransportationResponse;
+import com.server.server.dto.PageResponse;
 import com.server.server.dto.filter.TransportationFilterRequest;
 import com.server.server.enums.GenericStatus;
 import com.server.server.enums.tourmanagement.TransportationStatus;
@@ -45,8 +46,13 @@ public class TransportationController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<TransportationResponse>>> getAll() {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTransportationResponseList(service.getAll())));
+    public ResponseEntity<ApiResponse<PageResponse<TransportationResponse>>> getAll(
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "20") Integer size,
+            @RequestParam(defaultValue = "transportationNumber") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+        return ResponseEntity.ok(ApiResponse.ok(service.getAll(page, size, sortBy, sortDir)
+                .map(modelMapper::toTransportationResponse)));
     }
 
     @GetMapping("/{id}")
@@ -66,9 +72,9 @@ public class TransportationController {
         return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTransportationResponse(service.updateStatus(id, status))));
     }
 
-    @GetMapping("/filter")
-    public ResponseEntity<ApiResponse<List<TransportationResponse>>> filter(
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<PageResponse<TransportationResponse>>> search(
             @ModelAttribute TransportationFilterRequest filter) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTransportationResponseList(service.filter(filter))));
+        return ResponseEntity.ok(ApiResponse.ok(service.filter(filter).map(modelMapper::toTransportationResponse)));
     }
 }

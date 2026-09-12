@@ -14,6 +14,9 @@ import com.server.server.enums.GenericStatus;
 import com.server.server.enums.tourmanagement.TransportationStatus;
 import com.server.server.enums.tourmanagement.TransportationType;
 import com.server.server.dto.filter.TransportationFilterRequest;
+import com.server.server.dto.PageResponse;
+import com.server.server.utilities.PaginationUtils;
+import java.util.Set;
 import com.server.server.exceptions.WorkflowException;
 import com.server.server.models.tourmanagement.Seat;
 import com.server.server.models.tourmanagement.Transportation;
@@ -28,8 +31,9 @@ public class TransportationService {
 
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'OWNER')")
-    public List<Transportation> getAll() {
-        return repository.findAll();
+    public PageResponse<Transportation> getAll(Integer page, Integer size, String sortBy, String sortDir) {
+        return PageResponse.from(repository.findAll(PaginationUtils.pageable(page, size, sortBy, sortDir,
+                "transportationNumber", Set.of("id", "transportationNumber", "code", "providerName", "type", "unitStatus"))));
     }
 
     @Transactional(readOnly = true)
@@ -125,9 +129,14 @@ public class TransportationService {
     }
 
     @Transactional(readOnly = true)
-    public List<Transportation> filter(TransportationFilterRequest filter) {
+    public PageResponse<Transportation> filter(TransportationFilterRequest filter) {
         String search = filter.getKeyword() != null ? filter.getKeyword() : filter.getSearch();
-        return repository.filterAndSearch(search, filter.getType(), filter.getStatus(), filter.getUnitStatus());
+        Specification<Transportation> spec = Specification.where(hasType(filter.getType()))
+                .and(hasStatus(filter.getStatus())).and(hasUnitStatus(filter.getUnitStatus()))
+                .and(hasProvider(search));
+        return PageResponse.from(repository.findAll(spec, PaginationUtils.pageable(filter,
+                "transportationNumber", Set.of("id", "transportationNumber", "code", "providerName", "type", "unitStatus"),
+                java.util.Map.of())));
     }
 
     private Specification<Transportation> hasType(TransportationType t) {

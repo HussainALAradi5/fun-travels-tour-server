@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.server.server.dto.tour.SeatResponse;
+import com.server.server.dto.PageResponse;
 import com.server.server.dto.filter.SeatFilterRequest;
 import com.server.server.enums.tourmanagement.ChairType;
 import com.server.server.enums.tourmanagement.SeatStatus;
@@ -34,8 +35,11 @@ public class SeatController {
     private final ModelMapper modelMapper;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<SeatResponse>>> getAll() {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toSeatResponseList(seatService.getAll())));
+    public ResponseEntity<ApiResponse<PageResponse<SeatResponse>>> getAll(
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "20") Integer size,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+        return ResponseEntity.ok(ApiResponse.ok(seatService.getAll(page, size, sortDir).map(modelMapper::toSeatResponse)));
     }
 
     @GetMapping("/{id}")
@@ -49,9 +53,9 @@ public class SeatController {
         return ResponseEntity.ok(ApiResponse.ok(modelMapper.toSeatResponse(seatService.updateSeat(id, seat))));
     }
 
-    @GetMapping("/filter")
-    public ResponseEntity<ApiResponse<List<SeatResponse>>> filter(@ModelAttribute SeatFilterRequest filter) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toSeatResponseList(seatService.filter(filter))));
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<PageResponse<SeatResponse>>> search(@ModelAttribute SeatFilterRequest filter) {
+        return ResponseEntity.ok(ApiResponse.ok(seatService.filter(filter).map(modelMapper::toSeatResponse)));
     }
 
     @PatchMapping("/{id}/status")

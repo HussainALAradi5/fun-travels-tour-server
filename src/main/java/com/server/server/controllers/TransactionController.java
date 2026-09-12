@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.server.server.dto.payment.TransactionResponse;
+import com.server.server.dto.PageResponse;
 import com.server.server.dto.filter.TransactionFilterRequest;
 import com.server.server.enums.TransactionType;
 import com.server.server.models.Account;
@@ -36,12 +37,12 @@ public class TransactionController {
     private final AccountService accountService;
     private final ModelMapper modelMapper;
 
-    @GetMapping("/filter")
+    @GetMapping
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'CUSTOMER', 'OWNER')")
-    public ResponseEntity<ApiResponse<List<TransactionResponse>>> filterTransactions(
+    public ResponseEntity<ApiResponse<PageResponse<TransactionResponse>>> getTransactions(
             @ModelAttribute TransactionFilterRequest filter) {
         return ResponseEntity.ok(ApiResponse.ok(
-                modelMapper.toTransactionResponseList(transactionService.filterTransactions(filter))));
+                transactionService.filterTransactions(filter).map(modelMapper::toTransactionResponse)));
     }
 
     @PostMapping("/manual-credit/{userId}")

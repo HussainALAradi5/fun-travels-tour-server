@@ -11,6 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.server.server.enums.tourmanagement.ChairType;
 import com.server.server.enums.tourmanagement.SeatStatus;
 import com.server.server.dto.filter.SeatFilterRequest;
+import com.server.server.dto.PageResponse;
+import com.server.server.utilities.PaginationUtils;
+import java.util.Set;
 import com.server.server.models.tourmanagement.Seat;
 import com.server.server.repositories.tourmanagement.SeatRepository;
 
@@ -22,8 +25,9 @@ public class SeatService {
     private final SeatRepository seatRepository;
 
     @Transactional(readOnly = true)
-    public List<Seat> getAll() {
-        return seatRepository.findAll();
+    public PageResponse<Seat> getAll(Integer page, Integer size, String sortDir) {
+        return PageResponse.from(seatRepository.findAll(PaginationUtils.pageable(page, size, "seatCode", sortDir,
+                "seatCode", Set.of("seatCode"))));
     }
 
     @Transactional(readOnly = true)
@@ -61,9 +65,14 @@ public class SeatService {
     }
     
     @Transactional(readOnly = true)
-    public List<Seat> filter(SeatFilterRequest filter) {
+    public PageResponse<Seat> filter(SeatFilterRequest filter) {
         String search = filter.getKeyword() != null ? filter.getKeyword() : filter.getSearch();
-        return seatRepository.filterAndSearch(filter.getTransportId(), search, filter.getStatus(), filter.getChairType());
+        Specification<Seat> spec = Specification.where(hasTransportId(filter.getTransportId()))
+                .and(hasStatus(filter.getStatus())).and(hasChairType(filter.getChairType()))
+                .and((r, q, cb) -> search == null || search.isBlank() ? cb.conjunction()
+                        : cb.like(cb.lower(r.get("seatCode")), "%" + search.toLowerCase() + "%"));
+        return PageResponse.from(seatRepository.findAll(spec, PaginationUtils.pageable(filter,
+                "seatCode", Set.of("id", "seatCode", "chairType", "status", "seatPriceModifier"), java.util.Map.of())));
     }
     
     @Transactional

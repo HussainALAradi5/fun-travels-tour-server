@@ -12,6 +12,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.server.server.enums.GenericStatus;
 import com.server.server.models.tourmanagement.MealPlan;
 import com.server.server.repositories.tourmanagement.MealPlanRepository;
+import com.server.server.dto.PageResponse;
+import com.server.server.utilities.PaginationUtils;
+import java.util.Set;
 
 import lombok.RequiredArgsConstructor;
 
@@ -21,8 +24,9 @@ public class MealPlanService {
     private final MealPlanRepository repository;
 
     @Transactional(readOnly = true)
-    public List<MealPlan> findAll() {
-        return repository.findAll();
+    public PageResponse<MealPlan> findAll(Integer page, Integer size, String sortDir) {
+        return PageResponse.from(repository.findAll(PaginationUtils.pageable(page, size, "mealName", sortDir,
+                "mealName", Set.of("mealName"))));
     }
 
     @Transactional(readOnly = true)
@@ -32,9 +36,10 @@ public class MealPlanService {
     }
 
     @Transactional(readOnly = true)
-    public List<MealPlan> getAgencyCatalog(@NonNull Integer agencyId) {
+    public PageResponse<MealPlan> getAgencyCatalog(@NonNull Integer agencyId, Integer page, Integer size) {
         Objects.requireNonNull(agencyId, "agencyId must not be null");
-        return repository.findByAgencyIdAndStatus(agencyId, GenericStatus.ACTIVE);
+        return PageResponse.from(repository.findByAgencyIdAndStatus(agencyId, GenericStatus.ACTIVE,
+                PaginationUtils.pageable(page, size, "mealName", "asc", "mealName", Set.of("mealName"))));
     }
 
     @Transactional

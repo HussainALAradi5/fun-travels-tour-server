@@ -13,6 +13,9 @@ import com.server.server.enums.Notification.NotificationType;
 import com.server.server.enums.Notification.ReferenceType;
 import com.server.server.enums.TransactionType;
 import com.server.server.dto.filter.TransactionFilterRequest;
+import com.server.server.dto.PageResponse;
+import com.server.server.utilities.PaginationUtils;
+import java.util.Set;
 import org.springframework.data.jpa.domain.Specification;
 import com.server.server.enums.UserTypeEnum;
 import com.server.server.models.Account;
@@ -78,13 +81,12 @@ public class TransactionService {
     }
 
     @Transactional(readOnly = true)
-    public List<Transaction> filterTransactions(TransactionFilterRequest filter) {
+    public PageResponse<Transaction> filterTransactions(TransactionFilterRequest filter) {
 
         User currentUser = userService.getCurrentUser();
 
-        // Default sorting by timestamp if none provided
-        Sort sort = Sort.by("asc".equalsIgnoreCase(filter.getSortDir()) ? Sort.Direction.ASC : Sort.Direction.DESC,
-                (filter.getSortBy() == null || filter.getSortBy().isBlank()) ? "timestamp" : filter.getSortBy());
+        var pageable = PaginationUtils.pageable(filter, "timestamp",
+                Set.of("id", "timestamp", "amount", "type"), java.util.Map.of());
 
         Specification<Transaction> spec = (root, query, cb) -> cb.conjunction();
 
@@ -102,7 +104,7 @@ public class TransactionService {
         // 1. Customer Security: They can only see their own transactions
         if (currentUser.getUserType() == UserTypeEnum.CUSTOMER) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("account").get("user").get("id"), currentUser.getId()));
-            return transactionRepository.findAll(spec, sort);
+            return PageResponse.from(transactionRepository.findAll(spec, pageable));
         }
 
         // 2. Branch/Agency Filtering for Staff/Managers
@@ -114,6 +116,6 @@ public class TransactionService {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("account").get("user").get("id"), filter.getUserId()));
 
         // 3. Fallback for Admin/General view
-        return transactionRepository.findAll(spec, sort);
+        return PageResponse.from(transactionRepository.findAll(spec, pageable));
     }
 }

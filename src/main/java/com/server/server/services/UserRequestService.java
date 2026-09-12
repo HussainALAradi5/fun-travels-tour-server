@@ -4,22 +4,24 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
-import org.springframework.lang.NonNull;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.server.server.dto.PageResponse;
+import com.server.server.dto.filter.UserRequestFilterRequest;
 import com.server.server.enums.Notification.NotificationType;
 import com.server.server.enums.Notification.ReferenceType;
 import com.server.server.enums.UserRequest.UserRequestStatus;
-import com.server.server.enums.UserRequest.UserRequestType;
-import com.server.server.dto.filter.UserRequestFilterRequest;
 import com.server.server.enums.UserTypeEnum;
 import com.server.server.models.User;
 import com.server.server.models.UserRequest;
 import com.server.server.repositories.UserRepository;
 import com.server.server.repositories.UserRequestRepository;
+import com.server.server.utilities.PaginationUtils;
 
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -124,13 +126,13 @@ public class UserRequestService {
     }
 
     @Transactional(readOnly = true)
-    public List<UserRequest> getFilteredRequests(UserRequestFilterRequest filter) {
+    public PageResponse<UserRequest> getFilteredRequests(UserRequestFilterRequest filter) {
         Integer currentUserId = filter.getCurrentUserId();
         Objects.requireNonNull(currentUserId, "currentUserId must not be null");
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new RuntimeException("User session invalid. Please log in again."));
 
-        return requestRepository.findAll((Specification<UserRequest>) (root, query, criteriaBuilder) -> {
+        Specification<UserRequest> specification = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
             if (currentUser.getUserType() != UserTypeEnum.ADMIN
@@ -152,11 +154,10 @@ public class UserRequestService {
             }
 
             return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
-        }, org.springframework.data.domain.Sort.by(
-                "asc".equalsIgnoreCase(filter.getSortDir())
-                        ? org.springframework.data.domain.Sort.Direction.ASC
-                        : org.springframework.data.domain.Sort.Direction.DESC,
-                filter.getSortBy() == null || filter.getSortBy().isBlank() ? "createdAt" : filter.getSortBy()));
+        };
+        return PageResponse.from(requestRepository.findAll(specification,
+                PaginationUtils.pageable(filter, "createdAt",
+                        Set.of("id", "createdAt", "updatedAt", "status", "type"), java.util.Map.of())));
     }
 
     public UserRequest getById(@NonNull Integer id) {

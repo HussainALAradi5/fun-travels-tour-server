@@ -67,10 +67,7 @@ public class PaymentProcessingService {
         if (isPaid && reservation.getStatus() == GenericStatus.PENDING) {
             reservation.setStatus(GenericStatus.CONFIRMED);
             
-            // 1. Decrease available slots on the tour
-            tourService.restoreInventory(reservation.getTour().getId(), -reservation.getRequestedSlots());
-
-            // 2. Approve all tickets and lock their specific seats
+            // Inventory is held when the reservation is created; payment only confirms it.
             if (reservation.getTickets() != null) {
                 for (Ticket ticket : reservation.getTickets()) {
                     ticket.setTicketStatus(TicketStatus.CONFIRMED);

@@ -3,6 +3,7 @@ package com.server.server.services;
 import com.server.server.enums.Payment.PaymentMethod;
 import com.server.server.enums.Payment.PaymentStatus;
 import com.server.server.dto.filter.PaymentFilterRequest;
+import com.server.server.dto.PageResponse;
 import com.server.server.exceptions.ResourceNotFoundException;
 import com.server.server.models.Payment;
 import com.server.server.models.tourmanagement.TourReservation;
@@ -63,7 +64,7 @@ public class PaymentService extends GenericFilterService<Payment> {
      * Dynamic filtering with Date support and DESC sorting.
      */
     @Transactional(readOnly = true)
-    public List<Payment> filter(PaymentFilterRequest filter) {
+    public PageResponse<Payment> filter(PaymentFilterRequest filter) {
         Specification<Payment> spec = Specification.where(null);
 
         if (filter.getUserId() != null) {

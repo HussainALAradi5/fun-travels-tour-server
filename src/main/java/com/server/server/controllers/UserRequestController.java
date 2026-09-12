@@ -42,8 +42,7 @@ public class UserRequestController {
     }
 
     @GetMapping
-    public ResponseEntity<List<UserRequest>> getRequests(@ModelAttribute UserRequestFilterRequest filter) {
-        // GET lists usually return the array directly for performance
+    public ResponseEntity<?> getRequests(@ModelAttribute UserRequestFilterRequest filter) {
         return ResponseEntity.ok(service.getFilteredRequests(filter));
     }
 

@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.server.server.dto.payment.PaymentResponse;
+import com.server.server.dto.PageResponse;
 import com.server.server.dto.filter.PaymentFilterRequest;
 import com.server.server.dto.tour.ReservationResponse;
 import com.server.server.enums.Payment.PaymentMethod;
@@ -45,10 +46,10 @@ public class PaymentController {
         return ResponseEntity.ok(ApiResponse.ok("Payment processed!", modelMapper.toReservationResponse(result)));
     }
 
-    @GetMapping("/filter")
+    @GetMapping
     @PreAuthorize("hasAnyAuthority('CUSTOMER', 'ADMIN', 'MANAGER')")
-    public ResponseEntity<ApiResponse<List<PaymentResponse>>> getPayments(@ModelAttribute PaymentFilterRequest filter) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toPaymentResponseList(paymentService.filter(filter))));
+    public ResponseEntity<ApiResponse<PageResponse<PaymentResponse>>> getPayments(@ModelAttribute PaymentFilterRequest filter) {
+        return ResponseEntity.ok(ApiResponse.ok(paymentService.filter(filter).map(modelMapper::toPaymentResponse)));
     }
 
     @GetMapping("/{id}")

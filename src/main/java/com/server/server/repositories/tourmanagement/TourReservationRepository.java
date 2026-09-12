@@ -22,9 +22,11 @@ public interface TourReservationRepository
 
        @Query("SELECT COUNT(r) > 0 FROM TourReservation r " +
                      "WHERE r.user.id = :userId " +
-                     "AND r.status != com.server.server.enums.GenericStatus.CANCELLED " +
+                     "AND r.status IN (com.server.server.enums.GenericStatus.PENDING, " +
+                     "com.server.server.enums.GenericStatus.APPROVED, " +
+                     "com.server.server.enums.GenericStatus.CONFIRMED) " +
                      "AND r.tour.startDate <= :newEndDate " +
-                     "AND r.tour.endDate >= :newStartDate")
+                     "AND COALESCE(r.tour.endDate, r.tour.startDate) >= :newStartDate")
        boolean hasOverlappingReservations(
                      @Param("userId") Integer userId,
                      @Param("newStartDate") LocalDate newStartDate,

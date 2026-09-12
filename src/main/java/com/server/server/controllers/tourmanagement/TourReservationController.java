@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.server.server.dto.tour.ReservationResponse;
+import com.server.server.dto.PageResponse;
 import com.server.server.dto.filter.ReservationFilterRequest;
 import com.server.server.enums.GenericStatus;
 import com.server.server.models.tourmanagement.TourReservation;
@@ -51,15 +52,19 @@ public class TourReservationController {
         return ResponseEntity.ok(ApiResponse.ok("Reservation cancelled!", modelMapper.toReservationResponse(reservationService.cancelReservation(id))));
     }
 
-    @GetMapping("/filter")
-    public ResponseEntity<ApiResponse<List<ReservationResponse>>> filter(
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<PageResponse<ReservationResponse>>> search(
             @ModelAttribute ReservationFilterRequest filter) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toReservationResponseList(reservationService.filter(filter))));
+        return ResponseEntity.ok(ApiResponse.ok(reservationService.filter(filter).map(modelMapper::toReservationResponse)));
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<ReservationResponse>>> getAll() {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toReservationResponseList(reservationService.getAll())));
+    public ResponseEntity<ApiResponse<PageResponse<ReservationResponse>>> getAll(
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "20") Integer size,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+        return ResponseEntity.ok(ApiResponse.ok(reservationService.getAll(page, size, sortDir)
+                .map(modelMapper::toReservationResponse)));
     }
 
     @GetMapping("/{id}")

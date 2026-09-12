@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.server.server.enums.GenericStatus;
 import com.server.server.dto.filter.ReservationFilterRequest;
+import com.server.server.dto.PageResponse;
 import com.server.server.services.filter.GenericFilterService;
 import java.util.Set;
 import com.server.server.enums.Notification.NotificationType;
@@ -41,6 +42,10 @@ import com.server.server.services.CodeGenerationService;
 import com.server.server.services.NotificationService;
 import com.server.server.services.PaymentService;
 import com.server.server.services.TransactionService;
+import com.server.server.services.UserService;
+import com.server.server.enums.UserTypeEnum;
+import com.server.server.utilities.DomainWorkflowValidator;
+import com.server.server.utilities.PaginationUtils;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -58,23 +63,37 @@ public class TourReservationService extends GenericFilterService<TourReservation
     private final CodeGenerationService codeGenerationService;
     private final AccountService accountService;
     private final TransactionService transactionService;
+    private final InventoryService inventoryService;
+    private final UserService userService;
 
     @Transactional(readOnly = true)
-    public List<TourReservation> getAll() {
-        return repository.findAll();
+    public PageResponse<TourReservation> getAll(Integer page, Integer size, String sortDir) {
+        var currentUser = userService.getCurrentUser();
+        Specification<TourReservation> scope = currentUser.getUserType() == UserTypeEnum.CUSTOMER
+                ? (root, query, cb) -> cb.equal(root.get("user").get("id"), currentUser.getId())
+                : (root, query, cb) -> cb.conjunction();
+        return PageResponse.from(repository.findAll(scope, PaginationUtils.pageable(page, size, "bookingDate", sortDir,
+                "bookingDate", Set.of("bookingDate"))));
     }
 
     @Transactional(readOnly = true)
     public TourReservation getById(@NonNull Integer id) {
         Objects.requireNonNull(id, "id must not be null");
-        return repository.findById(id).orElseThrow(() -> new IllegalArgumentException("Reservation not found"));
+        TourReservation reservation = repository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Reservation not found"));
+        var currentUser = userService.getCurrentUser();
+        if (currentUser.getUserType() == UserTypeEnum.CUSTOMER
+                && !Objects.equals(reservation.getUser().getId(), currentUser.getId())) {
+            throw new WorkflowException("You are not authorized to access this reservation.");
+        }
+        return reservation;
     }
 
     @Transactional(readOnly = true)
     public void sendTravelReminders() {
         LocalDate reminderDate = LocalDate.now().plusWeeks(1);
         List<TourReservation> upcoming = repository.findAllByTourStartDateAndStatus(
-                reminderDate, GenericStatus.APPROVED);
+                reminderDate, GenericStatus.CONFIRMED);
 
         for (TourReservation res : upcoming) {
             String reminderMsg = String.format(
@@ -95,6 +114,11 @@ public class TourReservationService extends GenericFilterService<TourReservation
     @Transactional
     @PreAuthorize("hasAnyAuthority('CUSTOMER', 'EMPLOYEE', 'ADMIN', 'MANAGER')")
     public TourReservation create(TourReservation res) {
+        var currentUser = userService.getCurrentUser();
+        if (currentUser.getUserType() == UserTypeEnum.CUSTOMER) res.setUser(currentUser);
+        if (res.getUser() == null || res.getUser().getId() == null) {
+            throw new WorkflowException("A reservation customer is required.");
+        }
         Tour tour = tourService.getById(res.getTour().getId());
 
         // --- FIXED: Enforce the Date Conflict Validation ---
@@ -103,9 +127,7 @@ public class TourReservationService extends GenericFilterService<TourReservation
         int requestedSlots = (res.getTickets() != null && !res.getTickets().isEmpty()) ? res.getTickets().size()
                 : (res.getRequestedSlots() != null ? res.getRequestedSlots() : 1);
 
-        if (tour.getAvailableSlots() < requestedSlots) {
-            throw new WorkflowException("Not enough available slots on this tour.");
-        }
+        if (requestedSlots <= 0) throw new WorkflowException("At least one ticket is required.");
 
         if (res.getReservationNumber() == null || res.getReservationNumber().isEmpty()) {
             res.setReservationNumber("RES-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
@@ -115,6 +137,9 @@ public class TourReservationService extends GenericFilterService<TourReservation
 
         // Process tickets (This now correctly handles BigDecimal math)
         double reservationGrandTotal = processTicketsAndCalculateTotal(res, tour);
+
+        // Capacity and selected seats are atomically held while payment is pending.
+        inventoryService.reserve(tour.getId(), requestedSlots, res.getTickets());
 
         if (res.getTickets() != null && !res.getTickets().isEmpty()) {
             res.setTotalPrice(BigDecimal.valueOf(reservationGrandTotal));
@@ -239,6 +264,11 @@ public class TourReservationService extends GenericFilterService<TourReservation
     public TourReservation finalizeReservationWithPayment(@NonNull Integer reservationId, PaymentMethod method) {
         Objects.requireNonNull(reservationId, "reservationId must not be null");
         TourReservation res = getById(reservationId);
+        var currentUser = userService.getCurrentUser();
+        if (currentUser.getUserType() == UserTypeEnum.CUSTOMER
+                && !Objects.equals(res.getUser().getId(), currentUser.getId())) {
+            throw new WorkflowException("You are not authorized to pay for this reservation.");
+        }
 
         if (res.getStatus() == GenericStatus.APPROVED || res.getStatus() == GenericStatus.ACTIVE) {
             throw new WorkflowException("Reservation is already processed.");
@@ -248,11 +278,17 @@ public class TourReservationService extends GenericFilterService<TourReservation
         Payment paymentResult = paymentService.executeTransaction(res, method);
 
         if (paymentResult.getStatus() == PaymentStatus.COMPLETED) {
-            res.setStatus(GenericStatus.APPROVED);
+            DomainWorkflowValidator.validateReservation(res.getStatus(), GenericStatus.CONFIRMED);
+            res.setStatus(GenericStatus.CONFIRMED);
+            inventoryService.confirmSeats(res.getTickets());
 
             // Confirm all tickets
             if (res.getTickets() != null) {
-                res.getTickets().forEach(t -> t.setApprovalStatus(GenericStatus.APPROVED));
+                res.getTickets().forEach(t -> {
+                    t.setApprovalStatus(GenericStatus.APPROVED);
+                    t.setTicketStatus(TicketStatus.CONFIRMED);
+                    t.setPaid(true);
+                });
             }
 
             notificationService.sendNotification(
@@ -276,6 +312,11 @@ public class TourReservationService extends GenericFilterService<TourReservation
         Objects.requireNonNull(reservationId, "reservationId must not be null");
         TourReservation res = repository.findById(reservationId)
                 .orElseThrow(() -> new WorkflowException("Reservation not found"));
+        var currentUser = userService.getCurrentUser();
+        if (currentUser.getUserType() == UserTypeEnum.CUSTOMER
+                && !Objects.equals(res.getUser().getId(), currentUser.getId())) {
+            throw new WorkflowException("You are not authorized to cancel this reservation.");
+        }
 
         if (res.getStatus() == GenericStatus.CANCELLED) {
             throw new WorkflowException("Reservation is already cancelled.");
@@ -288,7 +329,8 @@ public class TourReservationService extends GenericFilterService<TourReservation
             throw new WorkflowException("Cannot cancel a reservation for a tour that is already completed.");
         }
 
-        // If they already paid, we need to calculate refunds and restore inventory
+        GenericStatus previousStatus = res.getStatus();
+        // If they already paid, calculate the refund. Inventory was held at creation time.
         if (res.getStatus() == GenericStatus.CONFIRMED) {
             long daysUntilTour = ChronoUnit.DAYS.between(LocalDate.now(), tour.getStartDate());
             BigDecimal totalPaid = res.getTotalPrice();
@@ -312,20 +354,16 @@ public class TourReservationService extends GenericFilterService<TourReservation
                 transactionService.creditAccount(userAccount, refundAmount, TransactionType.REFUND, refundReason, res);
             }
 
-            // Restore tour inventory since the seats are freed up
-            tourService.restoreInventory(tour.getId(), res.getRequestedSlots());
-
-            // Free up the specific seats and cancel tickets
-            if (res.getTickets() != null) {
-                for (Ticket ticket : res.getTickets()) {
-                    if (ticket.getAssignedSeat() != null) {
-                        seatService.updateStatus(ticket.getAssignedSeat().getId(), SeatStatus.AVAILABLE);
-                    }
-                    ticket.setTicketStatus(TicketStatus.CANCELLED);
-                    ticket.setApprovalStatus(GenericStatus.CANCELLED);
-                }
-            }
         }
+
+        if (previousStatus == GenericStatus.PENDING || previousStatus == GenericStatus.APPROVED
+                || previousStatus == GenericStatus.CONFIRMED) {
+            inventoryService.release(tour.getId(), res.getRequestedSlots(), res.getTickets());
+        }
+        if (res.getTickets() != null) res.getTickets().forEach(ticket -> {
+            ticket.setTicketStatus(TicketStatus.CANCELLED);
+            ticket.setApprovalStatus(GenericStatus.CANCELLED);
+        });
 
         res.setStatus(GenericStatus.CANCELLED);
 
@@ -346,12 +384,17 @@ public class TourReservationService extends GenericFilterService<TourReservation
             return cancelReservation(id);
         }
         TourReservation res = getById(id);
+        DomainWorkflowValidator.validateReservation(res.getStatus(), newStatus);
         res.setStatus(newStatus);
         return repository.save(res);
     }
 
     @Transactional(readOnly = true)
-    public List<TourReservation> filter(ReservationFilterRequest filter) {
+    public PageResponse<TourReservation> filter(ReservationFilterRequest filter) {
+        var currentUser = userService.getCurrentUser();
+        if (currentUser.getUserType() == UserTypeEnum.CUSTOMER) {
+            filter.setCustomerId(currentUser.getId().longValue());
+        }
         Specification<TourReservation> spec = Specification.where(hasStatus(filter.getStatus()))
                 .and(hasCustomer(filter.getCustomerId()))
                 .and(hasAgency(filter.getAgencyId()))

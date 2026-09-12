@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.server.server.enums.GenericStatus;
 import com.server.server.dto.filter.TourFilterRequest;
+import com.server.server.dto.PageResponse;
 import com.server.server.services.filter.GenericFilterService;
 import java.util.Set;
 import java.util.Map;
@@ -27,6 +28,8 @@ import com.server.server.services.GenericTrackingService;
 import com.server.server.services.NotificationService;
 import com.server.server.services.SystemSchedulingService;
 import com.server.server.services.UserService;
+import com.server.server.utilities.DomainWorkflowValidator;
+import com.server.server.utilities.PaginationUtils;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.criteria.Join;
@@ -123,8 +126,9 @@ public class TourService extends GenericFilterService<Tour> {
     }
 
     @Transactional(readOnly = true)
-    public List<Tour> getAll() {
-        return tourRepository.findAllWithDetails();
+    public PageResponse<Tour> getAll(Integer page, Integer size, String sortBy, String sortDir) {
+        return PageResponse.from(tourRepository.findAll(PaginationUtils.pageable(page, size, sortBy, sortDir,
+                "startDate", Set.of("id", "tourNumber", "title", "startDate", "endDate", "totalPrice"))));
     }
 
     @Transactional(readOnly = true)
@@ -156,6 +160,8 @@ public class TourService extends GenericFilterService<Tour> {
         }
 
         validateTourDates(tour.getStartDate(), tour.getEndDate());
+        validateCapacity(tour);
+        validateTransportationAvailability(tour, null);
         double base = tour.getBasePrice() != null ? tour.getBasePrice() : 0.0;
         double discount = tour.getDiscountPrice() != null ? tour.getDiscountPrice() : 0.0;
         tour.setTotalPrice(base - discount);
@@ -247,6 +253,9 @@ public class TourService extends GenericFilterService<Tour> {
             existing.setHasTransportation(true);
         }
 
+        validateCapacity(existing);
+        validateTransportationAvailability(existing, existing.getId());
+
         if (incomingData.getDestinationCountries() != null) {
             existing.getDestinationCountries().clear();
             existing.getDestinationCountries().addAll(incomingData.getDestinationCountries());
@@ -274,8 +283,10 @@ public class TourService extends GenericFilterService<Tour> {
     }
 
     @Transactional(readOnly = true)
-    public List<Tour> getCatalogTours(Integer startCountryId, Integer endCountryId, LocalDate start, LocalDate end) {
-        return tourRepository.findToursForCatalog(startCountryId, endCountryId, start, end);
+    public PageResponse<Tour> getCatalogTours(Integer startCountryId, Integer endCountryId, LocalDate start,
+            LocalDate end, Integer page, Integer size) {
+        return PageResponse.from(tourRepository.findToursForCatalog(startCountryId, endCountryId, start, end,
+                PaginationUtils.pageable(page, size, "startDate", "asc", "startDate", Set.of("startDate"))));
     }
 
     private void validateTourDates(LocalDate start, LocalDate end) {
@@ -299,6 +310,7 @@ public class TourService extends GenericFilterService<Tour> {
 
         if (currentStatus == newStatus)
             return tour;
+        DomainWorkflowValidator.validateTour(currentStatus, newStatus);
 
         // 1. Terminal State Protection
         if (currentStatus == GenericStatus.COMPLETED) {
@@ -367,12 +379,39 @@ public class TourService extends GenericFilterService<Tour> {
             throw new WorkflowException("Tour is completed. Inventory cannot be modified.");
         }
 
-        tour.setAvailableSlots(tour.getAvailableSlots() + slotsToRestore);
+        int next = tour.getAvailableSlots() + slotsToRestore;
+        if (next < 0 || next > tour.getMaxCapacity()) {
+            throw new WorkflowException("Inventory must remain between zero and tour capacity.");
+        }
+        tour.setAvailableSlots(next);
         tourRepository.save(tour);
     }
 
+    private void validateCapacity(Tour tour) {
+        if (tour.getMaxCapacity() == null || tour.getMaxCapacity() <= 0) {
+            throw new WorkflowException("Tour capacity must be greater than zero.");
+        }
+        if (tour.getTransportation() != null && tour.getTransportation().getTotalCapacity() != null
+                && tour.getMaxCapacity() > tour.getTransportation().getTotalCapacity()) {
+            throw new WorkflowException("Tour capacity cannot exceed transportation capacity.");
+        }
+        if (tour.getBasePrice() != null && tour.getDiscountPrice() != null
+                && tour.getDiscountPrice() > tour.getBasePrice()) {
+            throw new WorkflowException("Discount cannot exceed the base price.");
+        }
+    }
+
+    private void validateTransportationAvailability(Tour tour, Integer excludedTourId) {
+        if (tour.getTransportation() == null || tour.getTransportation().getId() == null) return;
+        LocalDate end = tour.getEndDate() == null ? tour.getStartDate() : tour.getEndDate();
+        if (tourRepository.hasTransportationConflict(tour.getTransportation().getId(), excludedTourId,
+                tour.getStartDate(), end)) {
+            throw new WorkflowException("Transportation is already assigned to an overlapping tour.");
+        }
+    }
+
     @Transactional(readOnly = true)
-    public List<Tour> filter(TourFilterRequest filter) {
+    public PageResponse<Tour> filter(TourFilterRequest filter) {
 
         // Use the centralized method
         User currentUser = userService.getCurrentUser();

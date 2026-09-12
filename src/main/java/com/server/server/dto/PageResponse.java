@@ -1,6 +1,7 @@
 package com.server.server.dto;
 
 import java.util.List;
+import java.util.function.Function;
 
 import org.springframework.data.domain.Page;
 
@@ -25,5 +26,9 @@ public class PageResponse<T> {
                 page.getSize(),
                 page.getTotalElements(),
                 page.getTotalPages());
+    }
+
+    public <R> PageResponse<R> map(Function<T, R> mapper) {
+        return new PageResponse<>(content.stream().map(mapper).toList(), page, size, totalElements, totalPages);
     }
 }

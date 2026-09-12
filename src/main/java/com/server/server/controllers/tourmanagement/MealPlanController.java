@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.server.server.dto.tour.MealPlanResponse;
+import com.server.server.dto.PageResponse;
 import com.server.server.enums.GenericStatus;
 import com.server.server.models.tourmanagement.MealPlan;
 import com.server.server.services.tourmanagement.MealPlanService;
@@ -33,13 +34,17 @@ public class MealPlanController {
     private final ModelMapper modelMapper;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<MealPlanResponse>>> getAllMeals() {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toMealPlanResponseList(service.findAll())));
+    public ResponseEntity<ApiResponse<PageResponse<MealPlanResponse>>> getAllMeals(
+            @RequestParam(defaultValue = "0") Integer page, @RequestParam(defaultValue = "20") Integer size,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+        return ResponseEntity.ok(ApiResponse.ok(service.findAll(page, size, sortDir).map(modelMapper::toMealPlanResponse)));
     }
 
     @GetMapping("/agency/{agencyId}")
-    public ResponseEntity<ApiResponse<List<MealPlanResponse>>> getMenu(@NonNull @PathVariable Integer agencyId) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toMealPlanResponseList(service.getAgencyCatalog(agencyId))));
+    public ResponseEntity<ApiResponse<PageResponse<MealPlanResponse>>> getMenu(@NonNull @PathVariable Integer agencyId,
+            @RequestParam(defaultValue = "0") Integer page, @RequestParam(defaultValue = "20") Integer size) {
+        return ResponseEntity.ok(ApiResponse.ok(service.getAgencyCatalog(agencyId, page, size)
+                .map(modelMapper::toMealPlanResponse)));
     }
 
     @PostMapping

@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.server.server.dto.tour.TourResponse;
+import com.server.server.dto.PageResponse;
 import com.server.server.dto.filter.TourFilterRequest;
 import com.server.server.enums.GenericStatus;
 import com.server.server.models.tourmanagement.Tour;
@@ -36,22 +37,30 @@ public class TourController {
     private final ModelMapper modelMapper;
 
     @GetMapping("/catalog")
-    public ResponseEntity<ApiResponse<List<TourResponse>>> getCatalog(
+    public ResponseEntity<ApiResponse<PageResponse<TourResponse>>> getCatalog(
             @RequestParam(required = false) Integer startCountryId,
             @RequestParam(required = false) Integer endCountryId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTourResponseList(tourService.getCatalogTours(startCountryId, endCountryId, startDate, endDate))));
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "20") Integer size) {
+        return ResponseEntity.ok(ApiResponse.ok(tourService.getCatalogTours(startCountryId, endCountryId,
+                startDate, endDate, page, size).map(modelMapper::toTourResponse)));
     }
 
-    @GetMapping("/filter")
-    public ResponseEntity<ApiResponse<List<TourResponse>>> filter(@ModelAttribute TourFilterRequest filter) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTourResponseList(tourService.filter(filter))));
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<PageResponse<TourResponse>>> search(@ModelAttribute TourFilterRequest filter) {
+        return ResponseEntity.ok(ApiResponse.ok(tourService.filter(filter).map(modelMapper::toTourResponse)));
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<TourResponse>>> getAll() {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTourResponseList(tourService.getAll())));
+    public ResponseEntity<ApiResponse<PageResponse<TourResponse>>> getAll(
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "20") Integer size,
+            @RequestParam(defaultValue = "startDate") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+        return ResponseEntity.ok(ApiResponse.ok(tourService.getAll(page, size, sortBy, sortDir)
+                .map(modelMapper::toTourResponse)));
     }
 
     @GetMapping("/{id}")
