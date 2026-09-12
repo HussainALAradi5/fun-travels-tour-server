@@ -229,9 +229,13 @@ public class TourService extends GenericFilterService<Tour> {
         validateTourDates(finalStart, finalEnd);
 
         if (incomingData.getMaxCapacity() != null) {
-            int capacityDifference = incomingData.getMaxCapacity() - existing.getMaxCapacity();
+            int bookedOrHeld = existing.getMaxCapacity() - existing.getAvailableSlots();
+            if (incomingData.getMaxCapacity() < bookedOrHeld) {
+                throw new WorkflowException("CAPACITY_BELOW_BOOKINGS",
+                        "Capacity cannot be lower than the number of reserved or sold places.");
+            }
             existing.setMaxCapacity(incomingData.getMaxCapacity());
-            existing.setAvailableSlots(existing.getAvailableSlots() + capacityDifference);
+            existing.setAvailableSlots(incomingData.getMaxCapacity() - bookedOrHeld);
         }
 
         if (incomingData.getBasePrice() != null) {

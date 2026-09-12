@@ -7,6 +7,9 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
+import java.time.LocalDateTime;
 import org.springframework.data.repository.query.Param;
 
 import com.server.server.enums.GenericStatus;
@@ -17,6 +20,12 @@ public interface TourReservationRepository
        List<TourReservation> findByStatus(GenericStatus status);
 
        Optional<TourReservation> findByReservationNumber(String reservationNumber);
+
+       @Lock(LockModeType.PESSIMISTIC_WRITE)
+       @Query("SELECT r FROM TourReservation r WHERE r.id = :id")
+       Optional<TourReservation> findByIdWithLock(@Param("id") Integer id);
+
+       List<TourReservation> findByStatusAndHoldExpiresAtBefore(GenericStatus status, LocalDateTime expiresAt);
 
        List<TourReservation> findByUser_Id(Integer userId); // Fixed mapping
 

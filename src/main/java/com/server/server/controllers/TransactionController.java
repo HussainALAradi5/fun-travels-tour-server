@@ -45,6 +45,12 @@ public class TransactionController {
                 transactionService.filterTransactions(filter).map(modelMapper::toTransactionResponse)));
     }
 
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'CUSTOMER', 'OWNER')")
+    public ResponseEntity<ApiResponse<TransactionResponse>> getById(@PathVariable Integer id) {
+        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTransactionResponse(transactionService.getById(id))));
+    }
+
     @PostMapping("/manual-credit/{userId}")
     @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<ApiResponse<TransactionResponse>> manualCredit(

@@ -24,6 +24,8 @@ import com.server.server.models.User;
 import com.server.server.models.tourmanagement.TourReservation;
 import com.server.server.repositories.AccountRepository;
 import com.server.server.repositories.TransactionRepository;
+import com.server.server.exceptions.ResourceNotFoundException;
+import com.server.server.exceptions.AccessDeniedException;
 
 @Service
 public class TransactionService {
@@ -36,6 +38,18 @@ public class TransactionService {
     private NotificationService notificationService;
     @Autowired
     private UserService userService;
+
+    @Transactional(readOnly = true)
+    public Transaction getById(Integer id) {
+        Transaction transaction = transactionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Transaction", id));
+        User currentUser = userService.getCurrentUser();
+        if (currentUser.getUserType() == UserTypeEnum.CUSTOMER
+                && !transaction.getAccount().getUser().getId().equals(currentUser.getId())) {
+            throw new AccessDeniedException("You do not have permission to view this transaction.");
+        }
+        return transaction;
+    }
 
     @Transactional
     public Transaction creditAccount(Account account, BigDecimal amount, TransactionType type, String description,

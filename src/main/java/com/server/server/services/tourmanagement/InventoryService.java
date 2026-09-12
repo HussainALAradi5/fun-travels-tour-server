@@ -30,10 +30,11 @@ public class InventoryService {
         Tour tour = lockTour(tourId);
         requirePositive(quantity);
         if (tour.getStatus() != GenericStatus.ACTIVE) {
-            throw new WorkflowException("Only active tours can be booked.");
+            throw new WorkflowException("TOUR_NOT_BOOKABLE", "This tour is not available for booking.");
         }
         int available = Objects.requireNonNullElse(tour.getAvailableSlots(), 0);
-        if (available < quantity) throw new WorkflowException("Not enough available slots on this tour.");
+        if (available < quantity) throw new WorkflowException("INSUFFICIENT_CAPACITY",
+                "There are not enough places available for this booking.");
         validateAndHoldSeats(tour, tickets);
         tour.setAvailableSlots(available - quantity);
         return tourRepository.save(tour);
@@ -75,14 +76,17 @@ public class InventoryService {
         for (Ticket ticket : safeTickets(tickets)) {
             if (ticket.getAssignedSeat() == null || ticket.getAssignedSeat().getId() == null) continue;
             Integer seatId = ticket.getAssignedSeat().getId();
-            if (!selected.add(seatId)) throw new WorkflowException("The same seat cannot be selected twice.");
+            if (!selected.add(seatId)) throw new WorkflowException("DUPLICATE_SEAT",
+                    "Each traveler must have a different seat.");
             Seat seat = lockSeat(seatId);
             if (seat.getStatus() != SeatStatus.AVAILABLE) {
-                throw new WorkflowException("Seat " + seat.getSeatCode() + " is no longer available.");
+                throw new WorkflowException("SEAT_NOT_AVAILABLE",
+                        "Seat " + seat.getSeatCode() + " is no longer available. Please choose another seat.");
             }
             if (tour.getTransportation() == null || seat.getTransportation() == null
                     || !Objects.equals(tour.getTransportation().getId(), seat.getTransportation().getId())) {
-                throw new WorkflowException("Selected seat does not belong to the tour transportation.");
+                throw new WorkflowException("INVALID_SEAT_FOR_TOUR",
+                        "The selected seat does not belong to this tour's transportation.");
             }
             seat.setStatus(SeatStatus.RESERVED);
             seatRepository.save(seat);

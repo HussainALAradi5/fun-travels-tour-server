@@ -21,6 +21,7 @@ public class ReservationResponse {
     private BigDecimal totalPrice;
     private GenericStatus status;
     private LocalDateTime bookingDate;
+    private LocalDateTime holdExpiresAt;
 
     @Data @AllArgsConstructor @NoArgsConstructor
     public static class TourSummary {

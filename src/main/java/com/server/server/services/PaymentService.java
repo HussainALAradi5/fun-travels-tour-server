@@ -8,6 +8,8 @@ import com.server.server.exceptions.ResourceNotFoundException;
 import com.server.server.models.Payment;
 import com.server.server.models.tourmanagement.TourReservation;
 import com.server.server.repositories.PaymentRepository;
+import com.server.server.services.Account.AccountService;
+import com.server.server.enums.TransactionType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -26,6 +28,8 @@ import com.server.server.services.filter.GenericFilterService;
 @RequiredArgsConstructor
 public class PaymentService extends GenericFilterService<Payment> {
     private final PaymentRepository paymentRepository;
+    private final AccountService accountService;
+    private final TransactionService transactionService;
 
     @Transactional(readOnly = true)
     public Payment getById(Integer id) {
@@ -38,6 +42,11 @@ public class PaymentService extends GenericFilterService<Payment> {
      */
     @Transactional
     public Payment executeTransaction(TourReservation res, PaymentMethod method) {
+        return paymentRepository.findFirstByReservationIdAndStatus(res.getId(), PaymentStatus.COMPLETED)
+                .orElseGet(() -> createPayment(res, method));
+    }
+
+    private Payment createPayment(TourReservation res, PaymentMethod method) {
         Payment payment = Payment.builder()
                 .reservation(res)
                 .amount(res.getTotalPrice())
@@ -47,14 +56,18 @@ public class PaymentService extends GenericFilterService<Payment> {
                 .transactionId("TRX-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
                 .build();
 
-        // 90% Success simulation
-        boolean isSuccessful = Math.random() > 0.1;
-
-        if (isSuccessful) {
+        if (method == PaymentMethod.WALLET) {
+            var account = accountService.getAccountByUserId(res.getUser().getId());
+            transactionService.debitAccount(account, res.getTotalPrice(), TransactionType.PAYMENT,
+                    "Payment for reservation " + res.getReservationNumber(), res);
+            payment.setStatus(PaymentStatus.COMPLETED);
+            payment.setPaymentDate(LocalDateTime.now());
+        } else if (method == PaymentMethod.CREDIT_CARD || method == PaymentMethod.PAYPAL) {
+            // Deterministic demo provider. Replace with a signed provider webhook in production.
             payment.setStatus(PaymentStatus.COMPLETED);
             payment.setPaymentDate(LocalDateTime.now());
         } else {
-            payment.setStatus(PaymentStatus.FAILED);
+            payment.setStatus(PaymentStatus.PENDING);
         }
 
         return paymentRepository.save(payment);

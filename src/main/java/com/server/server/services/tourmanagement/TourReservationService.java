@@ -14,6 +14,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import com.server.server.enums.GenericStatus;
 import com.server.server.dto.filter.ReservationFilterRequest;
@@ -134,6 +135,7 @@ public class TourReservationService extends GenericFilterService<TourReservation
         }
         res.setRequestedSlots(requestedSlots);
         res.setStatus(GenericStatus.PENDING);
+        res.setHoldExpiresAt(LocalDateTime.now().plusMinutes(15));
 
         // Process tickets (This now correctly handles BigDecimal math)
         double reservationGrandTotal = processTicketsAndCalculateTotal(res, tour);
@@ -263,15 +265,26 @@ public class TourReservationService extends GenericFilterService<TourReservation
     @PreAuthorize("hasAnyAuthority('CUSTOMER', 'ADMIN', 'MANAGER')")
     public TourReservation finalizeReservationWithPayment(@NonNull Integer reservationId, PaymentMethod method) {
         Objects.requireNonNull(reservationId, "reservationId must not be null");
-        TourReservation res = getById(reservationId);
+        TourReservation res = repository.findByIdWithLock(reservationId)
+                .orElseThrow(() -> new WorkflowException("RESERVATION_NOT_FOUND", "Reservation was not found."));
         var currentUser = userService.getCurrentUser();
         if (currentUser.getUserType() == UserTypeEnum.CUSTOMER
                 && !Objects.equals(res.getUser().getId(), currentUser.getId())) {
             throw new WorkflowException("You are not authorized to pay for this reservation.");
         }
 
-        if (res.getStatus() == GenericStatus.APPROVED || res.getStatus() == GenericStatus.ACTIVE) {
-            throw new WorkflowException("Reservation is already processed.");
+        if (res.getStatus() != GenericStatus.PENDING) {
+            throw new WorkflowException("RESERVATION_NOT_PAYABLE",
+                    "This reservation can no longer be paid because it is " + res.getStatus().name().toLowerCase() + ".");
+        }
+        if (res.getHoldExpiresAt() != null && !res.getHoldExpiresAt().isAfter(LocalDateTime.now())) {
+            expireReservation(res);
+            throw new WorkflowException("RESERVATION_HOLD_EXPIRED",
+                    "Your reservation hold expired. Please select your seats again.");
+        }
+        if (res.getTour().getStartDate().isBefore(LocalDate.now())
+                || res.getTour().getStatus() != GenericStatus.ACTIVE) {
+            throw new WorkflowException("TOUR_NOT_BOOKABLE", "This tour is no longer available for booking.");
         }
 
         // Process the payment (This is the ONLY place this should be called)
@@ -280,6 +293,7 @@ public class TourReservationService extends GenericFilterService<TourReservation
         if (paymentResult.getStatus() == PaymentStatus.COMPLETED) {
             DomainWorkflowValidator.validateReservation(res.getStatus(), GenericStatus.CONFIRMED);
             res.setStatus(GenericStatus.CONFIRMED);
+            res.setHoldExpiresAt(null);
             inventoryService.confirmSeats(res.getTickets());
 
             // Confirm all tickets
@@ -299,12 +313,42 @@ public class TourReservationService extends GenericFilterService<TourReservation
                     NotificationType.BOOKING_CONFIRMED,
                     res.getId(),
                     ReferenceType.RESERVATION);
+        } else if (paymentResult.getStatus() == PaymentStatus.PENDING) {
+            log.info("Payment awaiting confirmation for reservation {}", res.getReservationNumber());
+            return repository.save(res);
         } else {
-            log.warn("Payment failed for Reservation: {}", res.getReservationNumber());
-            throw new WorkflowException("Payment failed. Please try a different method.");
+            throw new WorkflowException("PAYMENT_FAILED",
+                    "We could not complete the payment. Please try another payment method.");
         }
 
         return repository.save(res);
+    }
+
+    @Scheduled(fixedDelayString = "${booking.hold-cleanup-ms:60000}")
+    @Transactional
+    public void expirePendingReservations() {
+        repository.findByStatusAndHoldExpiresAtBefore(GenericStatus.PENDING, LocalDateTime.now())
+                .forEach(this::expireReservation);
+    }
+
+    private void expireReservation(TourReservation reservation) {
+        if (reservation.getStatus() != GenericStatus.PENDING) return;
+        inventoryService.release(reservation.getTour().getId(), reservation.getRequestedSlots(),
+                reservation.getTickets());
+        reservation.getTickets().forEach(ticket -> {
+            ticket.setTicketStatus(TicketStatus.CANCELLED);
+            ticket.setApprovalStatus(GenericStatus.CANCELLED);
+        });
+        reservation.getPayments().stream()
+                .filter(payment -> payment.getStatus() == PaymentStatus.PENDING)
+                .forEach(payment -> payment.setStatus(PaymentStatus.FAILED));
+        reservation.setStatus(GenericStatus.CANCELLED);
+        reservation.setHoldExpiresAt(null);
+        repository.save(reservation);
+        notificationService.sendNotification(reservation.getUser(), "Reservation Expired",
+                "Your reservation hold for '" + reservation.getTour().getTitle()
+                        + "' expired. No payment was taken.",
+                NotificationType.CANCELLATION_ALERT, reservation.getId(), ReferenceType.RESERVATION);
     }
 
     @Transactional

@@ -1,6 +1,8 @@
 package com.server.server.exceptions;
 
 import java.util.stream.Collectors;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import com.server.server.utilities.ApiResponse;
 
 import jakarta.validation.ConstraintViolationException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -46,8 +49,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(WorkflowException.class)
-    public ResponseEntity<ApiResponse<Void>> handleWorkflow(WorkflowException ex) {
-        return buildResponse(ex.getMessage(), HttpStatus.CONFLICT);
+    public ResponseEntity<ApiResponse<Void>> handleWorkflow(WorkflowException ex, HttpServletRequest request) {
+        return buildResponse(ex.getCode(), ex.getMessage(), HttpStatus.CONFLICT, Map.of(), request);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -56,11 +59,13 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Void>> handleValidation(MethodArgumentNotValidException ex) {
-        String errors = ex.getBindingResult().getFieldErrors().stream()
-                .map(e -> e.getField() + ": " + e.getDefaultMessage())
-                .collect(Collectors.joining(", "));
-        return buildResponse("Validation failed: " + errors, HttpStatus.BAD_REQUEST);
+    public ResponseEntity<ApiResponse<Void>> handleValidation(MethodArgumentNotValidException ex,
+            HttpServletRequest request) {
+        Map<String, String> errors = new LinkedHashMap<>();
+        ex.getBindingResult().getFieldErrors().forEach(error ->
+                errors.putIfAbsent(error.getField(), error.getDefaultMessage()));
+        return buildResponse("VALIDATION_FAILED", "Please correct the highlighted fields.",
+                HttpStatus.BAD_REQUEST, errors, request);
     }
 
     @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
@@ -117,5 +122,11 @@ public class GlobalExceptionHandler {
 
     private ResponseEntity<ApiResponse<Void>> buildResponse(String message, HttpStatus status) {
         return ResponseEntity.status(status).body(ApiResponse.error(message));
+    }
+
+    private ResponseEntity<ApiResponse<Void>> buildResponse(String code, String message, HttpStatus status,
+            Map<String, String> fieldErrors, HttpServletRequest request) {
+        return ResponseEntity.status(status)
+                .body(ApiResponse.error(code, message, fieldErrors, request.getRequestURI()));
     }
 }

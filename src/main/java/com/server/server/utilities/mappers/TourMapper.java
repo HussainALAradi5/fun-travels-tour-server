@@ -125,6 +125,7 @@ public class TourMapper {
         dto.setTotalPrice(res.getTotalPrice());
         dto.setStatus(res.getStatus());
         dto.setBookingDate(res.getBookingDate());
+        dto.setHoldExpiresAt(res.getHoldExpiresAt());
         if (res.getTour() != null) {
             dto.setTour(new ReservationResponse.TourSummary(
                     res.getTour().getId(), res.getTour().getTourNumber(), res.getTour().getTitle()));
