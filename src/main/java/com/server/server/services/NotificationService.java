@@ -2,12 +2,12 @@ package com.server.server.services;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.lang.NonNull;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.server.server.dto.notification.NotificationCounts;
 import com.server.server.enums.GenericStatus;
 import com.server.server.enums.Notification.NotificationType;
 import com.server.server.enums.Notification.ReferenceType;
@@ -35,6 +36,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
@@ -102,7 +104,7 @@ public class NotificationService {
 
             // --- NEW REAL-TIME BROADCAST ---
             // Grab the new counts and send them directly to this specific user's topic
-            Map<String, Long> counts = getNotificationCounts(managedUser.getId());
+            NotificationCounts counts = getNotificationCounts(managedUser.getId());
             messagingTemplate.convertAndSend("/topic/notifications/" + managedUser.getId(), counts);
 
         } catch (Exception e) {
@@ -111,17 +113,19 @@ public class NotificationService {
     }
 
     @Transactional(readOnly = true)
-    public List<Notification> getUserNotifications(Integer userId) {
+    public List<Notification> getUserNotifications(@NonNull Integer userId) {
+        Objects.requireNonNull(userId, "userId must not be null");
         return notificationRepository.findByRecipientIdOrderByCreatedAtDesc(userId);
     }
 
     @Transactional
-    public void markAsRead(Integer notificationId) {
+    public Notification markAsRead(@NonNull Integer notificationId) {
+        Objects.requireNonNull(notificationId, "notificationId must not be null");
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new RuntimeException("Notification not found"));
         notification.setIsRead(true);
         notification.setReadAt(LocalDateTime.now());
-        notificationRepository.save(notification);
+        return notificationRepository.save(notification);
     }
 
     @Scheduled(cron = "0 0 9 * * ?")
@@ -144,11 +148,10 @@ public class NotificationService {
     }
 
     @Transactional(readOnly = true)
-    public Map<String, Long> getNotificationCounts(Integer userId) {
-        Map<String, Long> counts = new HashMap<>();
-        counts.put("unread", notificationRepository.countByRecipientIdAndIsReadFalse(userId));
-        counts.put("read", notificationRepository.countByRecipientIdAndIsReadTrue(userId));
-        return counts;
+    public NotificationCounts getNotificationCounts(@NonNull Integer userId) {
+        Objects.requireNonNull(userId, "userId must not be null");
+        long unreadCount = notificationRepository.countByRecipientIdAndIsReadFalse(userId);
+        return new NotificationCounts(unreadCount);
     }
 
     public void sendTicketAutoCancellationNotification(Ticket ticket) {
@@ -211,9 +214,10 @@ public class NotificationService {
 
     @Transactional(readOnly = true)
     public List<Notification> filterUserNotifications(
-            Integer userId, String search, Boolean isRead,
+            @NonNull Integer userId, String search, Boolean isRead,
             NotificationType type, ReferenceType refType,
             LocalDate startDate, LocalDate endDate) {
+        Objects.requireNonNull(userId, "userId must not be null");
         LocalDateTime startDateTime = (startDate != null) ? startDate.atStartOfDay() : null;
         LocalDateTime endDateTime = (endDate != null) ? endDate.plusDays(1).atStartOfDay() : null;
         return notificationRepository.findFilteredNotifications(

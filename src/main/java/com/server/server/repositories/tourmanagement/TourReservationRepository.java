@@ -7,26 +7,35 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
+import java.time.LocalDateTime;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
 import com.server.server.enums.GenericStatus;
 import com.server.server.models.tourmanagement.TourReservation;
 
-@Repository
 public interface TourReservationRepository
               extends JpaRepository<TourReservation, Integer>, JpaSpecificationExecutor<TourReservation> {
        List<TourReservation> findByStatus(GenericStatus status);
 
        Optional<TourReservation> findByReservationNumber(String reservationNumber);
 
+       @Lock(LockModeType.PESSIMISTIC_WRITE)
+       @Query("SELECT r FROM TourReservation r WHERE r.id = :id")
+       Optional<TourReservation> findByIdWithLock(@Param("id") Integer id);
+
+       List<TourReservation> findByStatusAndHoldExpiresAtBefore(GenericStatus status, LocalDateTime expiresAt);
+
        List<TourReservation> findByUser_Id(Integer userId); // Fixed mapping
 
        @Query("SELECT COUNT(r) > 0 FROM TourReservation r " +
                      "WHERE r.user.id = :userId " +
-                     "AND r.status != com.server.server.enums.GenericStatus.CANCELLED " +
+                     "AND r.status IN (com.server.server.enums.GenericStatus.PENDING, " +
+                     "com.server.server.enums.GenericStatus.APPROVED, " +
+                     "com.server.server.enums.GenericStatus.CONFIRMED) " +
                      "AND r.tour.startDate <= :newEndDate " +
-                     "AND r.tour.endDate >= :newStartDate")
+                     "AND COALESCE(r.tour.endDate, r.tour.startDate) >= :newStartDate")
        boolean hasOverlappingReservations(
                      @Param("userId") Integer userId,
                      @Param("newStartDate") LocalDate newStartDate,

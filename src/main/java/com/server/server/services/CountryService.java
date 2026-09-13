@@ -3,123 +3,131 @@ package com.server.server.services;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
+import com.server.server.exceptions.DuplicateResourceException;
+import com.server.server.exceptions.ResourceNotFoundException;
 import com.server.server.models.Country;
 import com.server.server.repositories.CountryRepository;
 
+import lombok.RequiredArgsConstructor;
+
 @Service
+@RequiredArgsConstructor
 public class CountryService {
 
-    @Autowired
-    private CountryRepository countryRepository;
+    private final CountryRepository countryRepository;
 
     @Value("${api.restcountries.url}")
     private String restCountriesUrl;
 
     @Value("${api.restcountries.all.url}")
-    private String allCountriesUrl;
+    private String restCountriesAllUrl;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    @Value("${api.restcountries.api-key:}")
+    private String restCountriesApiKey;
 
+    private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
+
+    @Transactional(readOnly = true)
     public List<Country> getAllCountries() {
         return countryRepository.findAll();
     }
 
-    public Country getCountryById(Integer id) {
+    @Transactional(readOnly = true)
+    public Country getCountryById(@NonNull Integer id) {
+        Objects.requireNonNull(id, "id must not be null");
         return countryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Country not found with ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Country", id));
     }
 
-    public Country createCountry(Country country, String userType) {
-        validateAdmin(userType);
+    @Transactional
+    public Country createCountry(Country country) {
         if (countryRepository.existsByCountryCodeIgnoreCase(country.getCountryCode())) {
-            throw new RuntimeException("Country code " + country.getCountryCode() + " already exists.");
+            throw new DuplicateResourceException("Country code " + country.getCountryCode() + " already exists.");
         }
         return countryRepository.save(country);
     }
 
-    @SuppressWarnings("unchecked")
-    public Country syncFromExternal(String name, String userType) {
-        validateAdmin(userType);
+    @Transactional
+    public Country syncFromExternal(String name) {
         String fullUrl = restCountriesUrl + name;
         try {
-            List<Map<String, Object>> response = restTemplate.getForObject(fullUrl, List.class);
+            List<Map<String, Object>> response = getCountryRecords(fullUrl);
             if (response == null || response.isEmpty()) {
-                throw new RuntimeException("No country found with name: " + name);
+                throw new ResourceNotFoundException("Country not found with name: " + name);
             }
             Map<String, Object> data = response.get(0);
-            String code = String.valueOf(data.get("cca2"));
+            String code = getNestedString(data, "codes", "alpha_2");
 
-            // Check if it exists to UPDATE rather than throw an error
             Optional<Country> existingCountry = countryRepository.findByCountryCodeIgnoreCase(code);
             Country country = existingCountry.orElseGet(Country::new);
 
-            Map<String, Object> nameObj = (Map<String, Object>) data.get("name");
-            Map<String, Object> flagsObj = (Map<String, Object>) data.get("flags");
-            Map<String, Object> iddObj = (Map<String, Object>) data.get("idd");
-
-            country.setFamousName(String.valueOf(nameObj.get("common")));
-            country.setOfficialName(String.valueOf(nameObj.get("official")));
-            country.setCountryCode(code);
-            country.setFlagPngUrl(String.valueOf(flagsObj.get("png")));
-            country.setFlagSvgUrl(String.valueOf(flagsObj.get("svg")));
-            country.setDialCode(extractDialCode(iddObj));
+            populateCountry(country, data, code);
 
             return countryRepository.save(country);
+        } catch (ResourceNotFoundException e) {
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException("External Sync Failed: " + e.getMessage());
         }
     }
 
-    @SuppressWarnings("unchecked")
-    public Map<String, Integer> syncAllCountries(String userType) {
-        validateAdmin(userType);
-        String allUrl = "https://restcountries.com/v3.1/all?fields=name,cca2,flags,idd";
+    @Transactional
+    public Map<String, Integer> syncAllCountries() {
         int addedCount = 0;
-        int updatedCount = 0; // Let's track updates too!
+        int updatedCount = 0;
 
         try {
-            List<Map<String, Object>> response = restTemplate.getForObject(allUrl, List.class);
-            if (response != null) {
+            // v5 limits free-plan list requests to 100 records, so fetch every page.
+            int offset = 0;
+            while (true) {
+                List<Map<String, Object>> response = getCountryRecords(restCountriesAllUrl + "&offset=" + offset);
                 for (Map<String, Object> data : response) {
-                    String code = String.valueOf(data.get("cca2"));
+                String code = getNestedString(data, "codes", "alpha_2");
 
-                    // Fetch existing or create new
-                    Optional<Country> existingOpt = countryRepository.findByCountryCodeIgnoreCase(code);
-                    Country country;
-                    boolean isNew = false;
+                Optional<Country> existingOpt = countryRepository.findByCountryCodeIgnoreCase(code);
+                Country country;
+                boolean isNew = false;
 
-                    if (existingOpt.isPresent()) {
-                        country = existingOpt.get();
-                    } else {
-                        country = new Country();
-                        country.setCountryCode(code);
-                        isNew = true;
-                    }
-
-                    Map<String, Object> nameObj = (Map<String, Object>) data.get("name");
-                    Map<String, Object> flagsObj = (Map<String, Object>) data.get("flags");
-                    Map<String, Object> iddObj = (Map<String, Object>) data.get("idd");
-
-                    country.setFamousName(String.valueOf(nameObj.get("common")));
-                    country.setOfficialName(String.valueOf(nameObj.get("official")));
-                    country.setFlagPngUrl(String.valueOf(flagsObj.get("png")));
-                    country.setDialCode(extractDialCode(iddObj));
-
-                    countryRepository.save(country);
-
-                    if (isNew) {
-                        addedCount++;
-                    } else {
-                        updatedCount++;
-                    }
+                if (existingOpt.isPresent()) {
+                    country = existingOpt.get();
+                } else {
+                    country = new Country();
+                    country.setCountryCode(code);
+                    isNew = true;
                 }
+
+                populateCountry(country, data, code);
+
+                countryRepository.save(country);
+
+                if (isNew) {
+                    addedCount++;
+                } else {
+                    updatedCount++;
+                }
+                }
+
+                if (response.size() < 100) {
+                    break;
+                }
+                offset += response.size();
             }
             Map<String, Integer> result = new HashMap<>();
             result.put("added", addedCount);
@@ -130,18 +138,55 @@ public class CountryService {
         }
     }
 
-    public void deleteCountry(Integer id, String userType) {
-        validateAdmin(userType);
-        if (!countryRepository.existsById(id)) {
-            throw new RuntimeException("Cannot delete: Country not found with ID: " + id);
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> getCountryRecords(String url) throws Exception {
+        if (restCountriesApiKey == null || restCountriesApiKey.isBlank()) {
+            throw new IllegalStateException("REST_COUNTRIES_API_KEY is not configured");
         }
-        countryRepository.deleteById(id);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(restCountriesApiKey);
+        String responseBody = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class).getBody();
+        if (responseBody == null || responseBody.isBlank()) {
+            throw new IllegalStateException("Rest Countries returned an empty response");
+        }
+
+        JsonNode responseJson = objectMapper.readTree(responseBody);
+        JsonNode records = responseJson.path("data").path("objects");
+        if (!records.isArray()) {
+            String message = responseJson.path("message").asText(responseJson.toString());
+            throw new IllegalStateException("Rest Countries returned an error response: " + message);
+        }
+        return objectMapper.readValue(records.toString(), new TypeReference<List<Map<String, Object>>>() {});
     }
 
-    private void validateAdmin(String userType) {
-        if (!"ADMIN".equalsIgnoreCase(userType)) {
-            throw new RuntimeException("Access Denied: Only ADMINs can perform this action.");
+    @SuppressWarnings("unchecked")
+    private void populateCountry(Country country, Map<String, Object> data, String code) {
+        Map<String, Object> names = (Map<String, Object>) data.get("names");
+        Map<String, Object> flag = (Map<String, Object>) data.get("flag");
+        List<String> callingCodes = (List<String>) data.get("calling_codes");
+
+        country.setFamousName(String.valueOf(names.get("common")));
+        country.setOfficialName(String.valueOf(names.get("official")));
+        country.setCountryCode(code);
+        country.setFlagPngUrl(String.valueOf(flag.get("url_png")));
+        country.setFlagSvgUrl(String.valueOf(flag.get("url_svg")));
+        country.setDialCode(callingCodes == null || callingCodes.isEmpty() ? null : "+" + callingCodes.get(0));
+    }
+
+    @SuppressWarnings("unchecked")
+    private String getNestedString(Map<String, Object> data, String objectName, String valueName) {
+        Map<String, Object> object = (Map<String, Object>) data.get(objectName);
+        return String.valueOf(object.get(valueName));
+    }
+
+    @Transactional
+    public void deleteCountry(@NonNull Integer id) {
+        Objects.requireNonNull(id, "id must not be null");
+        if (!countryRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Country", id);
         }
+        countryRepository.deleteById(id);
     }
 
     @SuppressWarnings("unchecked")

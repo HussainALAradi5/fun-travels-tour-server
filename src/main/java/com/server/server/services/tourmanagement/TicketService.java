@@ -6,10 +6,12 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +23,11 @@ import com.server.server.enums.TransactionType;
 import com.server.server.enums.tourmanagement.ChairType;
 import com.server.server.enums.tourmanagement.SeatStatus;
 import com.server.server.enums.tourmanagement.TicketStatus;
+import com.server.server.dto.filter.TicketFilterRequest;
+import com.server.server.dto.PageResponse;
+import com.server.server.services.filter.GenericFilterService;
+import java.util.Set;
+import java.util.Map;
 import com.server.server.exceptions.WorkflowException;
 import com.server.server.models.Account;
 import com.server.server.models.tourmanagement.MealPlan;
@@ -33,6 +40,10 @@ import com.server.server.services.CodeGenerationService;
 import com.server.server.services.NotificationService;
 import com.server.server.services.SystemSchedulingService;
 import com.server.server.services.TransactionService;
+import com.server.server.services.UserService;
+import com.server.server.enums.UserTypeEnum;
+import com.server.server.utilities.PaginationUtils;
+import com.server.server.utilities.FilterUtils;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -41,7 +52,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class TicketService {
+public class TicketService extends GenericFilterService<Ticket> {
     private final TicketRepository ticketRepository;
     private final SeatService seatService;
     private final TourService tourService;
@@ -51,24 +62,39 @@ public class TicketService {
     private final SystemSchedulingService schedulingService;
     private final AccountService accountService;
     private final TransactionService transactionService;
+    private final InventoryService inventoryService;
+    private final UserService userService;
 
 
 
 
     @Transactional(readOnly = true)
-    public List<Ticket> getAll() {
-        return ticketRepository.findAll();
+    public PageResponse<Ticket> getAll(Integer page, Integer size, String sortDir) {
+        var currentUser = userService.getCurrentUser();
+        Specification<Ticket> scope = currentUser.getUserType() == UserTypeEnum.CUSTOMER
+                ? (root, query, cb) -> cb.equal(root.get("customer").get("id"), currentUser.getId())
+                : (root, query, cb) -> cb.conjunction();
+        return PageResponse.from(ticketRepository.findAll(scope, PaginationUtils.pageable(page, size, "bookingDate", sortDir,
+                "bookingDate", Set.of("bookingDate"))));
     }
 
     @Transactional(readOnly = true)
-    public Ticket getById(Integer id) {
-        return ticketRepository.findByIdWithDetails(id)
+    public Ticket getById(@NonNull Integer id) {
+        Objects.requireNonNull(id, "id must not be null");
+        Ticket ticket = ticketRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new IllegalArgumentException("Ticket not found"));
+        var currentUser = userService.getCurrentUser();
+        if (currentUser.getUserType() == UserTypeEnum.CUSTOMER
+                && !Objects.equals(ticket.getCustomer().getId(), currentUser.getId())) {
+            throw new WorkflowException("You are not authorized to access this ticket.");
+        }
+        return ticket;
     }
 
     @Transactional
     @PreAuthorize("hasAnyAuthority('CUSTOMER')")
-    public Ticket update(Integer id, Ticket incomingData) {
+    public Ticket update(@NonNull Integer id, Ticket incomingData) {
+        Objects.requireNonNull(id, "id must not be null");
         Ticket existing = getById(id);
 
         // Allow updating the seat if the ticket isn't completed
@@ -92,44 +118,10 @@ public class TicketService {
         return ticketRepository.save(existing);
     }
 
-    @Transactional
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'CUSTOMER')")
-    public Ticket cancelTicket(Integer id, Long requestingUserId, String role) {
-        Ticket ticket = getById(id);
-
-        if (role.equals("CUSTOMER") && !ticket.getCustomer().getId().equals(requestingUserId)) {
-            throw new WorkflowException("You are not authorized to cancel this ticket.");
-        }
-
-        if (ticket.getTicketStatus() == TicketStatus.CANCELLED)
-            throw new WorkflowException("Ticket is already cancelled.");
-        if (ticket.getTicketStatus() == TicketStatus.COMPLETED)
-            throw new WorkflowException("Cannot cancel a completed ticket.");
-
-        Tour tour = ticket.getTour();
-        if (tour.getStatus() == GenericStatus.COMPLETED)
-            throw new WorkflowException("Cannot cancel a ticket for a completed tour.");
-
-        if (ticket.getAssignedSeat() != null) {
-            seatService.updateStatus(ticket.getAssignedSeat().getId(), SeatStatus.AVAILABLE);
-        }
-
-        tourService.restoreInventory(tour.getId(), 1);
-
-        ticket.setTicketStatus(TicketStatus.CANCELLED);
-        ticket.setApprovalStatus(GenericStatus.CANCELLED);
-        Ticket savedTicket = ticketRepository.save(ticket);
-
-        notificationService.sendNotification(ticket.getCustomer(), "Ticket Cancelled",
-                "Your ticket for '" + tour.getTitle() + "' has been successfully cancelled.",
-                NotificationType.CANCELLATION_ALERT, savedTicket.getId(), ReferenceType.TICKET);
-
-        return savedTicket;
-    }
-
 @Transactional
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'CUSTOMER')")
-    public Ticket updateStatus(Integer id, GenericStatus newStatus) {
+    public Ticket updateStatus(@NonNull Integer id, GenericStatus newStatus) {
+        Objects.requireNonNull(id, "id must not be null");
         
         // 1. If the user or admin is cancelling, delegate to the cancellation engine
         if (newStatus == GenericStatus.CANCELLED) {
@@ -157,8 +149,14 @@ public class TicketService {
     }
 @Transactional
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'CUSTOMER')")
-    public Ticket cancelTicket(Integer ticketId) {
+    public Ticket cancelTicket(@NonNull Integer ticketId) {
+        Objects.requireNonNull(ticketId, "ticketId must not be null");
         Ticket ticket = getById(ticketId);
+        var currentUser = userService.getCurrentUser();
+        if (currentUser.getUserType() == UserTypeEnum.CUSTOMER
+                && !Objects.equals(ticket.getCustomer().getId(), currentUser.getId())) {
+            throw new WorkflowException("You are not authorized to cancel this ticket.");
+        }
 
         if (ticket.getTicketStatus() == TicketStatus.CANCELLED) {
             throw new WorkflowException("Ticket is already cancelled.");
@@ -201,23 +199,10 @@ public class TicketService {
                 );
             }
 
-            // Restore exactly ONE inventory slot to the Tour
-            tourService.restoreInventory(tour.getId(), 1);
-
-            // Release the physical seat back to the public
-            if (ticket.getAssignedSeat() != null) {
-                seatService.updateStatus(ticket.getAssignedSeat().getId(), SeatStatus.AVAILABLE);
-            }
-        } 
-        // SCENARIO B: The ticket was PENDING and NEVER paid for
-        else {
-            // Because they never paid, we never deducted inventory in PaymentProcessingService.
-            // So we do not refund money, and we do not restore inventory.
-            // We just release the seat if it was somehow temporarily held.
-            if (ticket.getAssignedSeat() != null) {
-                seatService.updateStatus(ticket.getAssignedSeat().getId(), SeatStatus.AVAILABLE);
-            }
         }
+
+        // Both pending holds and sold tickets consumed one inventory unit.
+        inventoryService.release(tour.getId(), 1, List.of(ticket));
 
         // Finalize the cancellation statuses
         ticket.setTicketStatus(TicketStatus.CANCELLED);
@@ -236,20 +221,27 @@ public class TicketService {
         return ticketRepository.save(ticket);
     }
     @Transactional
-    public Ticket approveTicket(Integer id) {
+    public Ticket approveTicket(@NonNull Integer id) {
+        Objects.requireNonNull(id, "id must not be null");
         return updateStatus(id, GenericStatus.APPROVED);
     }
 
     @Transactional
-    public Ticket confirmTicket(Integer id) {
+    public Ticket confirmTicket(@NonNull Integer id) {
+        Objects.requireNonNull(id, "id must not be null");
         return updateStatus(id, GenericStatus.CONFIRMED);
     }
 
     @Transactional
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'CUSTOMER')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'OWNER')")
     public Ticket create(Ticket ticket) {
         // 1. Fetch required relations
         Tour tour = tourService.getById(ticket.getTour().getId());
+        var currentUser = userService.getCurrentUser();
+        if (currentUser.getUserType() == UserTypeEnum.CUSTOMER) ticket.setCustomer(currentUser);
+        if (ticket.getCustomer() == null || ticket.getCustomer().getId() == null) {
+            throw new WorkflowException("A ticket customer is required.");
+        }
 
         // 2. Initialize Core Fields
         String uniqueTicketNumber = "TKT-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
@@ -277,26 +269,26 @@ public class TicketService {
         calculateAndSetPricing(ticket, tour);
 
         // 5. Inventory Management
-        tourService.restoreInventory(tour.getId(), -1);
+        inventoryService.reserve(tour.getId(), 1, List.of(ticket));
 
         return ticketRepository.save(ticket);
     }
 
     @Transactional(readOnly = true)
-    public List<Ticket> filter(TicketStatus status, Long customerId, Integer tourId, String sortBy, String sortDir) {
-        Specification<Ticket> spec = Specification.where(hasStatus(status)).and(hasCustomer(customerId))
-                .and(hasTour(tourId));
-
-        Sort sort = Sort.unsorted();
-        if (sortBy != null && !sortBy.isBlank()) {
-            Sort.Direction direction = "desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
-            if (sortBy.equalsIgnoreCase("startDate"))
-                sortBy = "tour.startDate";
-            else if (sortBy.equalsIgnoreCase("startDate"))
-                sortBy = "tour.startDate";
-            sort = Sort.by(direction, sortBy);
+    public PageResponse<Ticket> filter(TicketFilterRequest filter) {
+        var currentUser = userService.getCurrentUser();
+        if (currentUser.getUserType() == UserTypeEnum.CUSTOMER) {
+            filter.setCustomerId(currentUser.getId().longValue());
         }
-        return ticketRepository.findAll(spec, sort);
+        Specification<Ticket> spec = hasStatus(filter.getStatus())
+                .and(hasCustomer(filter.getCustomerId()))
+                .and(hasTour(filter.getTourId()))
+                .and(FilterUtils.localDateTimeRange("bookingDate", filter.getStartDate(), filter.getEndDate()))
+                .and(matchesSearch(filter.getSearch()));
+
+        return executeFilter(ticketRepository, spec, filter, "bookingDate",
+                Set.of("id", "ticketNumber", "bookingDate", "totalPrice", "tour.startDate", "tour.endDate"),
+                Map.of("startDate", "tour.startDate", "endDate", "tour.endDate"));
     }
 
     private Specification<Ticket> hasStatus(TicketStatus s) {
@@ -309,6 +301,17 @@ public class TicketService {
 
     private Specification<Ticket> hasTour(Integer t) {
         return (r, q, cb) -> t == null ? cb.conjunction() : cb.equal(r.get("tour").get("id"), t);
+    }
+
+    private Specification<Ticket> matchesSearch(String search) {
+        return (root, query, cb) -> {
+            if (search == null || search.isBlank()) return cb.conjunction();
+            String term = normalizeSearch(search);
+            return cb.or(
+                    cb.like(cb.lower(root.get("ticketNumber")), term),
+                    cb.like(cb.lower(root.get("customer").get("name")), term),
+                    cb.like(cb.lower(root.get("tour").get("title")), term));
+        };
     }
 
 private void calculateAndSetPricing(Ticket ticket, Tour tour) {
@@ -377,13 +380,7 @@ private void calculateAndSetPricing(Ticket ticket, Tour tour) {
                 ticket.setTicketStatus(TicketStatus.CANCELLED);
                 ticket.setApprovalStatus(GenericStatus.CANCELLED);
                 
-                // Release seat
-                if (ticket.getAssignedSeat() != null) {
-                    seatService.updateStatus(ticket.getAssignedSeat().getId(), SeatStatus.AVAILABLE);
-                }
-                
-                // Restore inventory
-                tourService.restoreInventory(ticket.getTour().getId(), 1);
+                inventoryService.release(ticket.getTour().getId(), 1, List.of(ticket));
                 
                 ticketRepository.save(ticket);
                 

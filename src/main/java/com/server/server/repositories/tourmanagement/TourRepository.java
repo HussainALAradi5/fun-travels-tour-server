@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,7 +14,6 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
 import com.beust.jcommander.internal.Nullable;
 import com.server.server.enums.GenericStatus;
@@ -20,14 +21,12 @@ import com.server.server.models.tourmanagement.Tour;
 
 import jakarta.persistence.LockModeType;
 
-@Repository
 public interface TourRepository extends JpaRepository<Tour, Integer>, JpaSpecificationExecutor<Tour> {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT t FROM Tour t WHERE t.id = :id")
     Optional<Tour> findByIdWithLock(@Param("id") Integer id);
 
-    // FIX: Removed existsByTourNumber to prevent application startup crash
     List<Tour> findByStatus(GenericStatus status);
 
     List<Tour> findByAgency_Id(Integer agencyId);
@@ -74,7 +73,7 @@ public interface TourRepository extends JpaRepository<Tour, Integer>, JpaSpecifi
     })
     List<Tour> findAll(@Nullable Specification<Tour> spec, Sort sort);
 
-    @Query("SELECT t FROM Tour t " +
+    @Query(value = "SELECT t FROM Tour t " +
             "LEFT JOIN FETCH t.startCountry " +
             "LEFT JOIN FETCH t.endCountry " +
             "LEFT JOIN FETCH t.startCity " +
@@ -84,15 +83,31 @@ public interface TourRepository extends JpaRepository<Tour, Integer>, JpaSpecifi
             "AND (CAST(:start AS date) IS NULL OR t.startDate >= :start) " +
             "AND (CAST(:end AS date) IS NULL OR t.endDate <= :end) " +
             "AND t.status = 'ACTIVE' " +
-            "ORDER BY t.startDate ASC")
-    List<Tour> findToursForCatalog(
+            "ORDER BY t.startDate ASC",
+            countQuery = "SELECT COUNT(t) FROM Tour t " +
+                    "WHERE (:startCountryId IS NULL OR t.startCountry.id = :startCountryId) " +
+                    "AND (:endCountryId IS NULL OR t.endCountry.id = :endCountryId) " +
+                    "AND (CAST(:start AS date) IS NULL OR t.startDate >= :start) " +
+                    "AND (CAST(:end AS date) IS NULL OR t.endDate <= :end) " +
+                    "AND t.status = 'ACTIVE'")
+    Page<Tour> findToursForCatalog(
             @Param("startCountryId") Integer startCountryId,
             @Param("endCountryId") Integer endCountryId,
             @Param("start") LocalDate start,
-            @Param("end") LocalDate end);
+            @Param("end") LocalDate end, Pageable pageable);
 
     List<Tour> findByStartDateBeforeAndStatus(LocalDate date, GenericStatus status);
 
     List<Tour> findByEndDateBeforeAndStatusIn(LocalDate date, List<GenericStatus> statuses);
+
+    @Query("SELECT COUNT(t) > 0 FROM Tour t WHERE t.transportation.id = :transportationId " +
+            "AND (:excludedTourId IS NULL OR t.id <> :excludedTourId) " +
+            "AND t.status <> com.server.server.enums.GenericStatus.CANCELLED " +
+            "AND t.startDate <= :endDate " +
+            "AND COALESCE(t.endDate, t.startDate) >= :startDate")
+    boolean hasTransportationConflict(@Param("transportationId") Integer transportationId,
+            @Param("excludedTourId") Integer excludedTourId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate);
 
 }

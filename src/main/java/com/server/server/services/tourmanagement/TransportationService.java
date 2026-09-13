@@ -1,9 +1,17 @@
 package com.server.server.services.tourmanagement;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,9 +19,21 @@ import org.springframework.transaction.annotation.Transactional;
 import com.server.server.enums.GenericStatus;
 import com.server.server.enums.tourmanagement.TransportationStatus;
 import com.server.server.enums.tourmanagement.TransportationType;
+import com.server.server.dto.filter.TransportationFilterRequest;
+import com.server.server.dto.importing.ImportResult;
+import com.server.server.dto.tour.TransportationCreateRequest;
+import com.server.server.dto.PageResponse;
+import com.server.server.utilities.PaginationUtils;
+import com.server.server.utilities.ExcelImportUtils;
+import java.util.Set;
 import com.server.server.exceptions.WorkflowException;
+import com.server.server.exceptions.ResourceNotFoundException;
+import com.server.server.models.agency.Agency;
+import com.server.server.models.agency.AgencyBranch;
 import com.server.server.models.tourmanagement.Seat;
 import com.server.server.models.tourmanagement.Transportation;
+import com.server.server.repositories.agency.AgencyRepository;
+import com.server.server.repositories.agency.AgencyBranchRepository;
 import com.server.server.repositories.tourmanagement.TransportationRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -22,23 +42,29 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TransportationService {
     private final TransportationRepository repository;
+    private final AgencyRepository agencyRepository;
+    private final AgencyBranchRepository branchRepository;
 
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'OWNER')")
-    public List<Transportation> getAll() {
-        return repository.findAll();
+    public PageResponse<Transportation> getAll(Integer page, Integer size, String sortBy, String sortDir) {
+        return PageResponse.from(repository.findAll(PaginationUtils.pageable(page, size, sortBy, sortDir,
+                "transportationNumber", Set.of("id", "transportationNumber", "code", "providerName", "type", "unitStatus"))));
     }
 
     @Transactional(readOnly = true)
-    public Transportation getById(Integer id) {
-        return repository.findById(id)
+    public Transportation getById(@NonNull Integer id) {
+        Objects.requireNonNull(id, "id must not be null");
+        return repository.findWithSeatsById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Transportation unit not found."));
     }
 
 // Inside TransportationService.java
     @Transactional
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'OWNER')")
-    public Transportation create(Transportation transportation) {
+    public Transportation create(TransportationCreateRequest request) {
+        Transportation transportation = toEntity(request);
+        validateUniqueIdentifiers(transportation);
         transportation.setStatus(GenericStatus.ACTIVE);
         transportation.setUnitStatus(TransportationStatus.AVAILABLE);
         transportation.setRemainingSeats(transportation.getTotalCapacity());
@@ -52,6 +78,112 @@ public class TransportationService {
             }
         }
         return repository.save(transportation);
+    }
+
+    public ImportResult importExcel(InputStream input) throws IOException {
+        List<Map<String, String>> rows = ExcelImportUtils.readRows(input);
+        List<String> errors = new ArrayList<>();
+        int imported = 0;
+        for (Map<String, String> row : rows) {
+            try {
+                create(toRequest(row));
+                imported++;
+            } catch (RuntimeException exception) {
+                errors.add("Row " + row.get("_row") + ": " + exception.getMessage());
+            }
+        }
+        return new ImportResult(imported, errors.size(), errors);
+    }
+
+    private Transportation toEntity(TransportationCreateRequest request) {
+        Agency agency = agencyRepository.findById(request.getAgencyId())
+                .orElseThrow(() -> new ResourceNotFoundException("Agency", request.getAgencyId()));
+        AgencyBranch branch = null;
+        if (request.getBranchId() != null) {
+            branch = branchRepository.findById(request.getBranchId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Agency branch", request.getBranchId()));
+            if (branch.getAgency() == null || !branch.getAgency().getId().equals(agency.getId())) {
+                throw new IllegalArgumentException("The selected branch does not belong to the selected agency.");
+            }
+        }
+        Transportation transportation = new Transportation();
+        transportation.setTransportationNumber(request.getTransportationNumber().trim());
+        transportation.setCode(request.getCode().trim());
+        transportation.setType(request.getType());
+        transportation.setProviderName(request.getProviderName().trim());
+        transportation.setTotalCapacity(request.getTotalCapacity());
+        transportation.setAgency(agency);
+        transportation.setAgencyBranch(branch);
+        transportation.setSeatConfig(request.getSeatConfig());
+        return transportation;
+    }
+
+    private void validateUniqueIdentifiers(Transportation transportation) {
+        if (repository.existsByCode(transportation.getCode())) {
+            throw new IllegalArgumentException("Transportation code already exists: " + transportation.getCode());
+        }
+        if (repository.existsByProviderNameAndTransportationNumber(
+                transportation.getProviderName(), transportation.getTransportationNumber())) {
+            throw new IllegalArgumentException("This registration already exists for the selected provider.");
+        }
+    }
+
+    private TransportationCreateRequest toRequest(Map<String, String> row) {
+        TransportationCreateRequest request = new TransportationCreateRequest();
+        request.setTransportationNumber(required(row, "transportationnumber"));
+        request.setCode(required(row, "code"));
+        request.setType(parseEnum(TransportationType.class, required(row, "type"), "type"));
+        request.setProviderName(required(row, "providername"));
+        request.setTotalCapacity(positiveInteger(row, "totalcapacity"));
+        request.setAgencyId(positiveInteger(row, "agencyid"));
+        request.setBranchId(optionalInteger(row, "branchid"));
+        Map<String, Integer> seats = new LinkedHashMap<>();
+        putSeatCount(seats, "PREMIUM_RECLINER", row.get("premiumseats"));
+        putSeatCount(seats, "WHEELCHAIR_ACCESSIBLE", row.get("accessibleseats"));
+        putSeatCount(seats, "KIDS_CHAIR", row.get("kidsseats"));
+        request.setSeatConfig(seats);
+        return request;
+    }
+
+    private String required(Map<String, String> row, String key) {
+        String value = row.get(key);
+        if (value == null || value.isBlank()) throw new IllegalArgumentException(key + " is required.");
+        return value;
+    }
+
+    private Integer positiveInteger(Map<String, String> row, String key) {
+        Integer value = optionalInteger(row, key);
+        if (value == null || value < 1) throw new IllegalArgumentException(key + " must be a positive integer.");
+        return value;
+    }
+
+    private Integer optionalInteger(Map<String, String> row, String key) {
+        String value = row.get(key);
+        if (value == null || value.isBlank()) return null;
+        try {
+            return new java.math.BigDecimal(value).intValueExact();
+        } catch (ArithmeticException | NumberFormatException exception) {
+            throw new IllegalArgumentException(key + " must be a whole number.");
+        }
+    }
+
+    private void putSeatCount(Map<String, Integer> seats, String type, String rawValue) {
+        if (rawValue == null || rawValue.isBlank()) return;
+        try {
+            int count = new java.math.BigDecimal(rawValue).intValueExact();
+            if (count < 0) throw new IllegalArgumentException(type + " seat count cannot be negative.");
+            seats.put(type, count);
+        } catch (ArithmeticException | NumberFormatException exception) {
+            throw new IllegalArgumentException(type + " seat count must be a whole number.");
+        }
+    }
+
+    private <E extends Enum<E>> E parseEnum(Class<E> enumType, String value, String field) {
+        try {
+            return Enum.valueOf(enumType, value.trim().toUpperCase(Locale.ROOT).replace(' ', '_'));
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("Invalid " + field + ": " + value);
+        }
     }
 
     // --- THE DRY HELPER METHOD ---
@@ -92,19 +224,84 @@ public class TransportationService {
     }
     @Transactional
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'OWNER')")
-    public Transportation update(Integer id, Transportation incomingData) {
+    public Transportation update(@NonNull Integer id, Transportation incomingData) {
+        Objects.requireNonNull(id, "id must not be null");
         Transportation existing = getById(id);
 
         // Efficient update ignoring managed relationships and status fields
         BeanUtils.copyProperties(incomingData, existing,
-                "id", "status", "unitStatus", "seats", "remainingSeats", "calculatedAvailable", "agency", "tours");
+                "id", "status", "unitStatus", "seats", "remainingSeats", "calculatedAvailable",
+                "agency", "agencyBranch", "tours");
+
+        if (incomingData.getSeatConfig() != null) {
+            applySeatLayout(existing, incomingData.getSeatConfig());
+        }
 
         return repository.save(existing);
     }
 
+    private void applySeatLayout(Transportation transportation, Map<String, Integer> requestedLayout) {
+        List<Seat> seats = transportation.getSeats();
+        if (seats == null || seats.isEmpty()) {
+            transportation.setSeats(generateSeatLayout(transportation, requestedLayout));
+            return;
+        }
+
+        boolean hasUnavailableSeats = seats.stream()
+                .anyMatch(seat -> seat.getStatus() != com.server.server.enums.tourmanagement.SeatStatus.AVAILABLE);
+        if (hasUnavailableSeats) {
+            throw new WorkflowException(
+                    "Seat layout cannot be changed while seats are reserved, booked, or under maintenance.");
+        }
+
+        if (transportation.getTours() != null && transportation.getTours().stream()
+                .anyMatch(tour -> tour.getStatus() == GenericStatus.APPROVED
+                        || tour.getStatus() == GenericStatus.ACTIVE)) {
+            throw new WorkflowException(
+                    "Seat layout cannot be changed while this transportation is assigned to an approved or active tour.");
+        }
+
+        Map<com.server.server.enums.tourmanagement.ChairType, Integer> counts = new LinkedHashMap<>();
+        int configuredSeats = 0;
+        for (Map.Entry<String, Integer> entry : requestedLayout.entrySet()) {
+            com.server.server.enums.tourmanagement.ChairType chairType;
+            try {
+                chairType = com.server.server.enums.tourmanagement.ChairType.valueOf(entry.getKey());
+            } catch (IllegalArgumentException exception) {
+                throw new IllegalArgumentException("Unsupported chair type: " + entry.getKey());
+            }
+            int count = entry.getValue() == null ? 0 : entry.getValue();
+            if (count < 0) throw new IllegalArgumentException("Seat counts cannot be negative.");
+            if (chairType != com.server.server.enums.tourmanagement.ChairType.STANDARD) {
+                counts.put(chairType, count);
+                configuredSeats += count;
+            }
+        }
+
+        if (configuredSeats > seats.size()) {
+            throw new WorkflowException(
+                    "Configured seat counts exceed the transportation capacity of " + seats.size() + ".");
+        }
+
+        List<Seat> orderedSeats = seats.stream()
+                .sorted(java.util.Comparator.comparing(Seat::getId))
+                .toList();
+        int index = 0;
+        for (Map.Entry<com.server.server.enums.tourmanagement.ChairType, Integer> entry : counts.entrySet()) {
+            for (int count = 0; count < entry.getValue(); count++) {
+                orderedSeats.get(index++).setChairType(entry.getKey());
+            }
+        }
+        while (index < orderedSeats.size()) {
+            orderedSeats.get(index++).setChairType(
+                    com.server.server.enums.tourmanagement.ChairType.STANDARD);
+        }
+    }
+
     @Transactional
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER')")
-    public Transportation updateStatus(Integer id, TransportationStatus newUnitStatus) {
+    public Transportation updateStatus(@NonNull Integer id, TransportationStatus newUnitStatus) {
+        Objects.requireNonNull(id, "id must not be null");
         Transportation transport = getById(id);
         validateStatusTransition(transport.getUnitStatus(), newUnitStatus);
         transport.setUnitStatus(newUnitStatus);
@@ -119,8 +316,14 @@ public class TransportationService {
     }
 
     @Transactional(readOnly = true)
-    public List<Transportation> filter(TransportationType type, GenericStatus status, TransportationStatus unitStatus, String keyword) {
-        return repository.filterAndSearch(keyword, type, status, unitStatus);
+    public PageResponse<Transportation> filter(TransportationFilterRequest filter) {
+        String search = filter.getKeyword() != null ? filter.getKeyword() : filter.getSearch();
+        Specification<Transportation> spec = hasType(filter.getType())
+                .and(hasStatus(filter.getStatus())).and(hasUnitStatus(filter.getUnitStatus()))
+                .and(hasProvider(search));
+        return PageResponse.from(repository.findAll(spec, PaginationUtils.pageable(filter,
+                "transportationNumber", Set.of("id", "transportationNumber", "code", "providerName", "type", "unitStatus"),
+                java.util.Map.of())));
     }
 
     private Specification<Transportation> hasType(TransportationType t) {

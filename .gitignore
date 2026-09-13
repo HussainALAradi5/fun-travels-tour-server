@@ -31,3 +31,29 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Generated / local runtime output ###
+*.log
+*.pid
+*.tmp
+*.bak
+*.swp
+*.class
+*.orig
+.
+/.m2-repository/
+.mvn/wrapper/*.jar
+
+### Build and IDE metadata ###
+out/
+.idea/
+*.iml
+*.ipr
+*.iws
+
+### Application Properties (contains credentials) ###
+src/main/resources/application.properties
+FunTravelsTour.insomnia_export.json
+FunTravelsTour.postman_collection.json
+FunTravelsTour.postman_environment.json
+server.log

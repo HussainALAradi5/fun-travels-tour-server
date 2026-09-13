@@ -1,7 +1,9 @@
 package com.server.server.services;
 
 import java.util.List;
+import java.util.Objects;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,7 +24,8 @@ public class PortService {
     }
 
     @Transactional(readOnly = true)
-    public Port getById(Integer id) {
+    public Port getById(@NonNull Integer id) {
+        Objects.requireNonNull(id, "id must not be null");
         return portRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Port not found"));
     }
@@ -34,7 +37,8 @@ public class PortService {
     }
 
     @Transactional
-    public Port updateStatus(Integer id, GenericStatus status) {
+    public Port updateStatus(@NonNull Integer id, GenericStatus status) {
+        Objects.requireNonNull(id, "id must not be null");
         Port port = getById(id);
         port.setStatus(status);
         return portRepository.save(port);

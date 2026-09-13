@@ -10,13 +10,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 
 import com.server.server.enums.GenericStatus;
 import com.server.server.enums.tourmanagement.TicketStatus;
 import com.server.server.models.tourmanagement.Ticket;
 
-@Repository
 public interface TicketRepository extends JpaRepository<Ticket, Integer>, JpaSpecificationExecutor<Ticket> {
     List<Ticket> findByTicketStatus(TicketStatus status);
 
@@ -44,11 +44,11 @@ public interface TicketRepository extends JpaRepository<Ticket, Integer>, JpaSpe
     List<Ticket> findByTourIdAndTicketStatus(Integer tourId, TicketStatus status);
 
     @EntityGraph(attributePaths = { "customer", "assignedSeat", "tour" })
-    List<Ticket> findAll(Specification<Ticket> spec, Sort sort);
+    List<Ticket> findAll(@Nullable Specification<Ticket> spec, @NonNull Sort sort);
 
     @Override
     @EntityGraph(attributePaths = { "customer", "assignedSeat", "tour" })
-    List<Ticket> findAll(Specification<Ticket> spec);
+    List<Ticket> findAll(@Nullable Specification<Ticket> spec);
 
 
 @Query("SELECT t FROM Ticket t JOIN t.tour tour " +

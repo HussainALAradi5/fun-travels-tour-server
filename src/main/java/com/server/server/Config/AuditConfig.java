@@ -24,14 +24,16 @@ public class AuditConfig {
     public AuditorAware<User> auditorProvider() {
         return () -> {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            
-            if (authentication == null || !authentication.isAuthenticated() || 
-                authentication.getPrincipal().equals("anonymousUser")) {
-                return Optional.empty();
+
+            if (authentication == null || !authentication.isAuthenticated()
+                    || authentication.getPrincipal() == null
+                    || "anonymousUser".equals(authentication.getPrincipal().toString())) {
+                return Optional.<User>empty();
             }
+
             String email;
-            if (authentication.getPrincipal() instanceof UserDetails) {
-                email = ((UserDetails) authentication.getPrincipal()).getUsername();
+            if (authentication.getPrincipal() instanceof UserDetails userDetails) {
+                email = userDetails.getUsername();
             } else {
                 email = authentication.getPrincipal().toString();
             }

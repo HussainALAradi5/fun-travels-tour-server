@@ -2,14 +2,21 @@ package com.server.server.services.tourmanagement;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.server.server.enums.GenericStatus;
+import com.server.server.dto.filter.TourFilterRequest;
+import com.server.server.dto.PageResponse;
+import com.server.server.services.filter.GenericFilterService;
+import java.util.Set;
+import java.util.Map;
 import com.server.server.enums.Notification.ReferenceType;
 import com.server.server.enums.UserTypeEnum;
 import com.server.server.exceptions.WorkflowException;
@@ -21,6 +28,9 @@ import com.server.server.services.GenericTrackingService;
 import com.server.server.services.NotificationService;
 import com.server.server.services.SystemSchedulingService;
 import com.server.server.services.UserService;
+import com.server.server.utilities.DomainWorkflowValidator;
+import com.server.server.utilities.PaginationUtils;
+import com.server.server.utilities.FilterUtils;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.criteria.Join;
@@ -31,7 +41,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class TourService {
+public class TourService extends GenericFilterService<Tour> {
     private final TourRepository tourRepository;
     private final TransportationService transportationService;
     private final UserService userService;
@@ -117,12 +127,14 @@ public class TourService {
     }
 
     @Transactional(readOnly = true)
-    public List<Tour> getAll() {
-        return tourRepository.findAllWithDetails();
+    public PageResponse<Tour> getAll(Integer page, Integer size, String sortBy, String sortDir) {
+        return PageResponse.from(tourRepository.findAll(PaginationUtils.pageable(page, size, sortBy, sortDir,
+                "startDate", Set.of("id", "tourNumber", "title", "startDate", "endDate", "totalPrice"))));
     }
 
     @Transactional(readOnly = true)
-    public Tour getById(Integer id) {
+    public Tour getById(@NonNull Integer id) {
+        Objects.requireNonNull(id, "id must not be null");
         return tourRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new IllegalArgumentException("Tour not found with id: " + id));
     }
@@ -149,6 +161,8 @@ public class TourService {
         }
 
         validateTourDates(tour.getStartDate(), tour.getEndDate());
+        validateCapacity(tour);
+        validateTransportationAvailability(tour, null);
         double base = tour.getBasePrice() != null ? tour.getBasePrice() : 0.0;
         double discount = tour.getDiscountPrice() != null ? tour.getDiscountPrice() : 0.0;
         tour.setTotalPrice(base - discount);
@@ -169,7 +183,8 @@ public class TourService {
 
     @Transactional
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'OWNER')")
-    public Tour updateTour(Integer id, Tour incomingData) {
+    public Tour updateTour(@NonNull Integer id, Tour incomingData) {
+        Objects.requireNonNull(id, "id must not be null");
         Tour existing = getById(id);
         User currentUser = userService.getCurrentUser();
         boolean canEdit = false;
@@ -215,9 +230,13 @@ public class TourService {
         validateTourDates(finalStart, finalEnd);
 
         if (incomingData.getMaxCapacity() != null) {
-            int capacityDifference = incomingData.getMaxCapacity() - existing.getMaxCapacity();
+            int bookedOrHeld = existing.getMaxCapacity() - existing.getAvailableSlots();
+            if (incomingData.getMaxCapacity() < bookedOrHeld) {
+                throw new WorkflowException("CAPACITY_BELOW_BOOKINGS",
+                        "Capacity cannot be lower than the number of reserved or sold places.");
+            }
             existing.setMaxCapacity(incomingData.getMaxCapacity());
-            existing.setAvailableSlots(existing.getAvailableSlots() + capacityDifference);
+            existing.setAvailableSlots(incomingData.getMaxCapacity() - bookedOrHeld);
         }
 
         if (incomingData.getBasePrice() != null) {
@@ -238,6 +257,9 @@ public class TourService {
             existing.setTransportation(transportationService.getById(incomingData.getTransportation().getId()));
             existing.setHasTransportation(true);
         }
+
+        validateCapacity(existing);
+        validateTransportationAvailability(existing, existing.getId());
 
         if (incomingData.getDestinationCountries() != null) {
             existing.getDestinationCountries().clear();
@@ -266,8 +288,10 @@ public class TourService {
     }
 
     @Transactional(readOnly = true)
-    public List<Tour> getCatalogTours(Integer startCountryId, Integer endCountryId, LocalDate start, LocalDate end) {
-        return tourRepository.findToursForCatalog(startCountryId, endCountryId, start, end);
+    public PageResponse<Tour> getCatalogTours(Integer startCountryId, Integer endCountryId, LocalDate start,
+            LocalDate end, Integer page, Integer size) {
+        return PageResponse.from(tourRepository.findToursForCatalog(startCountryId, endCountryId, start, end,
+                PaginationUtils.pageable(page, size, "startDate", "asc", "startDate", Set.of("startDate"))));
     }
 
     private void validateTourDates(LocalDate start, LocalDate end) {
@@ -284,12 +308,14 @@ public class TourService {
 
     @Transactional
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE')")
-    public Tour updateStatus(Integer id, GenericStatus newStatus) {
+    public Tour updateStatus(@NonNull Integer id, GenericStatus newStatus) {
+        Objects.requireNonNull(id, "id must not be null");
         Tour tour = getById(id);
         GenericStatus currentStatus = tour.getStatus();
 
         if (currentStatus == newStatus)
             return tour;
+        DomainWorkflowValidator.validateTour(currentStatus, newStatus);
 
         // 1. Terminal State Protection
         if (currentStatus == GenericStatus.COMPLETED) {
@@ -349,7 +375,8 @@ public class TourService {
     }
 
     @Transactional
-    public void restoreInventory(Integer tourId, int slotsToRestore) {
+    public void restoreInventory(@NonNull Integer tourId, int slotsToRestore) {
+        Objects.requireNonNull(tourId, "tourId must not be null");
         Tour tour = tourRepository.findByIdWithLock(tourId)
                 .orElseThrow(() -> new IllegalArgumentException("Tour not found"));
 
@@ -357,16 +384,39 @@ public class TourService {
             throw new WorkflowException("Tour is completed. Inventory cannot be modified.");
         }
 
-        tour.setAvailableSlots(tour.getAvailableSlots() + slotsToRestore);
+        int next = tour.getAvailableSlots() + slotsToRestore;
+        if (next < 0 || next > tour.getMaxCapacity()) {
+            throw new WorkflowException("Inventory must remain between zero and tour capacity.");
+        }
+        tour.setAvailableSlots(next);
         tourRepository.save(tour);
     }
 
+    private void validateCapacity(Tour tour) {
+        if (tour.getMaxCapacity() == null || tour.getMaxCapacity() <= 0) {
+            throw new WorkflowException("Tour capacity must be greater than zero.");
+        }
+        if (tour.getTransportation() != null && tour.getTransportation().getTotalCapacity() != null
+                && tour.getMaxCapacity() > tour.getTransportation().getTotalCapacity()) {
+            throw new WorkflowException("Tour capacity cannot exceed transportation capacity.");
+        }
+        if (tour.getBasePrice() != null && tour.getDiscountPrice() != null
+                && tour.getDiscountPrice() > tour.getBasePrice()) {
+            throw new WorkflowException("Discount cannot exceed the base price.");
+        }
+    }
+
+    private void validateTransportationAvailability(Tour tour, Integer excludedTourId) {
+        if (tour.getTransportation() == null || tour.getTransportation().getId() == null) return;
+        LocalDate end = tour.getEndDate() == null ? tour.getStartDate() : tour.getEndDate();
+        if (tourRepository.hasTransportationConflict(tour.getTransportation().getId(), excludedTourId,
+                tour.getStartDate(), end)) {
+            throw new WorkflowException("Transportation is already assigned to an overlapping tour.");
+        }
+    }
+
     @Transactional(readOnly = true)
-    public List<Tour> filter(
-            GenericStatus status, Integer minSlots, LocalDate start, LocalDate end,
-            Long agencyId, Long branchId,
-            Double minPrice, Double maxPrice, Integer countryId, Integer cityId, Integer createdById,
-            String sortBy, String sortDir) {
+    public PageResponse<Tour> filter(TourFilterRequest filter) {
 
         // Use the centralized method
         User currentUser = userService.getCurrentUser();
@@ -375,34 +425,27 @@ public class TourService {
         if (currentUser != null) {
             if (currentUser.getUserType() == UserTypeEnum.EMPLOYEE
                     || currentUser.getUserType() == UserTypeEnum.MANAGER) {
-                agencyId = currentUser.getAgency() != null ? currentUser.getAgency().getId().longValue() : null;
-                branchId = currentUser.getAgencyBranch() != null ? currentUser.getAgencyBranch().getId().longValue()
-                        : null;
+                filter.setAgencyId(currentUser.getAgency() != null ? currentUser.getAgency().getId().longValue() : null);
+                filter.setBranchId(currentUser.getAgencyBranch() != null ? currentUser.getAgencyBranch().getId().longValue() : null);
             } else if (currentUser.getUserType() == UserTypeEnum.OWNER) {
-                agencyId = currentUser.getAgency() != null ? currentUser.getAgency().getId().longValue() : null;
+                filter.setAgencyId(currentUser.getAgency() != null ? currentUser.getAgency().getId().longValue() : null);
             }
         }
 
-        Specification<Tour> spec = Specification.where(hasStatus(status))
-                .and(hasMinSlots(minSlots))
-                .and(isBetweenDates(start, end))
-                .and(hasAgency(agencyId))
-                .and(hasBranch(branchId))
-                .and(hasPriceBetween(minPrice, maxPrice))
-                .and(hasCity(cityId))
-                .and(hasCountry(countryId))
-                .and(hasCreatedBy(createdById));
+        Specification<Tour> spec = hasStatus(filter.getStatus())
+                .and(hasMinSlots(filter.getMinSlots()))
+                .and(FilterUtils.localDateRange("startDate", filter.getStartDate(), filter.getEndDate()))
+                .and(hasAgency(filter.getAgencyId()))
+                .and(hasBranch(filter.getBranchId()))
+                .and(hasPriceBetween(filter.getMinPrice(), filter.getMaxPrice()))
+                .and(hasCity(filter.getCityId()))
+                .and(hasCountry(filter.getCountryId()))
+                .and(hasCreatedBy(filter.getCreatedById()))
+                .and(matchesSearch(filter.getSearch()));
 
-        Sort sort = Sort.unsorted();
-        if (sortBy != null && !sortBy.isBlank()) {
-            Sort.Direction direction = "desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
-            if (sortBy.equals("agency"))
-                sortBy = "agency.name";
-            if (sortBy.equals("branch"))
-                sortBy = "agencyBranch.name";
-            sort = Sort.by(direction, sortBy);
-        }
-        return tourRepository.findAll(spec, sort);
+        return executeFilter(tourRepository, spec, filter, "startDate",
+                Set.of("id", "tourNumber", "title", "startDate", "endDate", "totalPrice", "availableSlots", "agency.name", "agencyBranch.name"),
+                Map.of("agency", "agency.name", "branch", "agencyBranch.name"));
     }
 
     private Specification<Tour> hasBranch(Long b) {
@@ -415,10 +458,6 @@ public class TourService {
 
     private Specification<Tour> hasMinSlots(Integer m) {
         return (r, q, cb) -> m == null ? cb.conjunction() : cb.greaterThanOrEqualTo(r.get("availableSlots"), m);
-    }
-
-    private Specification<Tour> isBetweenDates(LocalDate s, LocalDate e) {
-        return (r, q, cb) -> (s == null || e == null) ? cb.conjunction() : cb.between(r.get("startDate"), s, e);
     }
 
     private Specification<Tour> hasAgency(Long a) {
@@ -460,6 +499,17 @@ public class TourService {
     private Specification<Tour> hasCreatedBy(Integer createdById) {
         return (r, q, cb) -> createdById == null ? cb.conjunction()
                 : cb.equal(r.get("createdBy").get("id"), createdById);
+    }
+
+    private Specification<Tour> matchesSearch(String search) {
+        return (root, query, cb) -> {
+            if (search == null || search.isBlank()) return cb.conjunction();
+            String term = normalizeSearch(search);
+            return cb.or(
+                    cb.like(cb.lower(root.get("tourNumber")), term),
+                    cb.like(cb.lower(root.get("title")), term),
+                    cb.like(cb.lower(root.get("description")), term));
+        };
     }
 
 }

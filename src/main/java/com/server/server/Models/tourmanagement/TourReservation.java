@@ -82,4 +82,7 @@ public class TourReservation {
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime bookingDate;
+
+    @Column(name = "hold_expires_at")
+    private LocalDateTime holdExpiresAt;
 }

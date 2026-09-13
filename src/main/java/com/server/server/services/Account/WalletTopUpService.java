@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,20 +23,19 @@ import com.stripe.exception.CardException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Charge;
 
+import lombok.RequiredArgsConstructor;
+
 @Service
+@RequiredArgsConstructor
 public class WalletTopUpService {
 
-    @Autowired
-    private AccountService accountService;
+    private final AccountService accountService;
     
-    @Autowired
-    private TransactionService transactionService;
+    private final TransactionService transactionService;
     
-    @Autowired
-    private PaymentRepository paymentRepository;
+    private final PaymentRepository paymentRepository;
     
-    @Autowired
-    private UserService userService;
+    private final UserService userService;
 
     @Transactional
     public Transaction processWalletTopUp(BigDecimal amount, PaymentMethod method, String stripeToken) {

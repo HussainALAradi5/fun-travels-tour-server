@@ -1,0 +1,53 @@
+# ===============================
+# DATABASE CONFIGURATION
+# ===============================
+spring.datasource.url=jdbc:postgresql://localhost:5432/fun_travels_tour
+spring.datasource.username=your_username
+spring.datasource.password=your_password
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+# ===============================
+# JPA / HIBERNATE
+# ===============================
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=false
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+
+# ===============================
+# JWT CONFIGURATION
+# ===============================
+jwt.secret=your_jwt_secret_key_here
+jwt.expiration=86400000
+
+# ===============================
+# STRIPE CONFIGURATION
+# ===============================
+stripe.api.secret-key=sk_test_your_stripe_secret_key
+stripe.api.publishable-key=pk_test_your_stripe_publishable_key
+
+# ===============================
+# REST COUNTRIES API
+# ===============================
+api.restcountries.api-key=${REST_COUNTRIES_API_KEY:}
+api.restcountries.url=https://api.restcountries.com/countries/v5/name?q=
+api.restcountries.all.url=https://api.restcountries.com/countries/v5?limit=100&response_fields=names.common,names.official,codes.alpha_2,flag.url_png,flag.url_svg,calling_codes
+
+# ===============================
+# FILE STORAGE
+# ===============================
+file.upload-dir=./uploads
+
+# ===============================
+# SERVER CONFIGURATION
+# ===============================
+server.port=8080
+
+# ===============================
+# EMAIL CONFIGURATION
+# ===============================
+spring.mail.host=smtp.gmail.com
+spring.mail.port=587
+spring.mail.username=your_email@gmail.com
+spring.mail.password=your_app_password
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true

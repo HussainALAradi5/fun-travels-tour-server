@@ -1,13 +1,19 @@
 package com.server.server.services.tourmanagement;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.server.server.enums.tourmanagement.ChairType;
 import com.server.server.enums.tourmanagement.SeatStatus;
+import com.server.server.dto.filter.SeatFilterRequest;
+import com.server.server.dto.PageResponse;
+import com.server.server.utilities.PaginationUtils;
+import java.util.Set;
 import com.server.server.models.tourmanagement.Seat;
 import com.server.server.repositories.tourmanagement.SeatRepository;
 
@@ -19,18 +25,21 @@ public class SeatService {
     private final SeatRepository seatRepository;
 
     @Transactional(readOnly = true)
-    public List<Seat> getAll() {
-        return seatRepository.findAll();
+    public PageResponse<Seat> getAll(Integer page, Integer size, String sortDir) {
+        return PageResponse.from(seatRepository.findAll(PaginationUtils.pageable(page, size, "seatCode", sortDir,
+                "seatCode", Set.of("seatCode"))));
     }
 
     @Transactional(readOnly = true)
-    public Seat getById(Integer id) {
+    public Seat getById(@NonNull Integer id) {
+        Objects.requireNonNull(id, "id must not be null");
         return seatRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Seat not found"));
     }
 
 
 @Transactional
-    public Seat updateSeat(Integer id, Seat updatedData) {
+    public Seat updateSeat(@NonNull Integer id, Seat updatedData) {
+        Objects.requireNonNull(id, "id must not be null");
         Seat seat = getById(id);
         
         // --- STRICT RULE: Cannot modify if booked ---
@@ -56,12 +65,19 @@ public class SeatService {
     }
     
     @Transactional(readOnly = true)
-    public List<Seat> filter(Integer transportId, SeatStatus status, ChairType chairType, String keyword) {
-        return seatRepository.filterAndSearch(transportId, keyword, status, chairType);
+    public PageResponse<Seat> filter(SeatFilterRequest filter) {
+        String search = filter.getKeyword() != null ? filter.getKeyword() : filter.getSearch();
+        Specification<Seat> spec = hasTransportId(filter.getTransportId())
+                .and(hasStatus(filter.getStatus())).and(hasChairType(filter.getChairType()))
+                .and((r, q, cb) -> search == null || search.isBlank() ? cb.conjunction()
+                        : cb.like(cb.lower(r.get("seatCode")), "%" + search.toLowerCase() + "%"));
+        return PageResponse.from(seatRepository.findAll(spec, PaginationUtils.pageable(filter,
+                "seatCode", Set.of("id", "seatCode", "chairType", "status", "seatPriceModifier"), java.util.Map.of())));
     }
     
     @Transactional
-    public Seat updateStatus(Integer id, SeatStatus status) {
+    public Seat updateStatus(@NonNull Integer id, SeatStatus status) {
+        Objects.requireNonNull(id, "id must not be null");
         Seat seat = getById(id);
         seat.setStatus(status);
         return seatRepository.save(seat);
@@ -69,7 +85,7 @@ public class SeatService {
 
     @Transactional(readOnly = true)
     public List<Seat> filter(Integer transportId, SeatStatus status, ChairType chairType) {
-        return seatRepository.findAll(Specification.where(hasTransportId(transportId))
+        return seatRepository.findAll(hasTransportId(transportId)
                 .and(hasStatus(status))
                 .and(hasChairType(chairType)));
     }

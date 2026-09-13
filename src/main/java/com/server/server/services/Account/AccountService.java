@@ -2,9 +2,10 @@ package com.server.server.services.Account;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,18 +18,18 @@ import com.server.server.repositories.AccountRepository;
 import com.server.server.repositories.TransactionRepository;
 import com.server.server.repositories.UserRepository; // <-- ADD THIS IMPORT
 
+import lombok.RequiredArgsConstructor;
+
 @Service
+@RequiredArgsConstructor
 public class AccountService {
 
-    @Autowired
-    private AccountRepository accountRepository;
+    private final AccountRepository accountRepository;
 
-    @Autowired
-    private TransactionRepository transactionRepository;
+    private final TransactionRepository transactionRepository;
 
     // 1. ADD USER REPOSITORY TO FETCH THE USER IF ACCOUNT IS MISSING
-    @Autowired
-    private UserRepository userRepository; 
+    private final UserRepository userRepository;
 
     @Transactional
     public Account createAccountForUser(User user) {
@@ -51,7 +52,8 @@ public class AccountService {
 
     // 2. THE AUTO-HEAL FIX
     @Transactional
-    public Account getAccountByUserId(Integer userId) {
+    public Account getAccountByUserId(@NonNull Integer userId) {
+        Objects.requireNonNull(userId, "userId must not be null");
         return accountRepository.findByUserId(userId)
                 .orElseGet(() -> {
                     // If account is missing, find the user and generate an account instantly!
@@ -61,7 +63,8 @@ public class AccountService {
                 });
     }
 
-    public List<Transaction> getTransactionHistory(Integer accountId) {
+    public List<Transaction> getTransactionHistory(@NonNull Integer accountId) {
+        Objects.requireNonNull(accountId, "accountId must not be null");
         return transactionRepository.findByAccountIdOrderByTimestampDesc(accountId);
     }
 }

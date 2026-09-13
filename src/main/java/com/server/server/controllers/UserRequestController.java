@@ -6,9 +6,11 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.server.server.enums.UserRequest.UserRequestStatus;
 import com.server.server.enums.UserRequest.UserRequestType;
+import com.server.server.dto.filter.UserRequestFilterRequest;
 import com.server.server.models.UserRequest;
 import com.server.server.services.UserRequestService;
 
@@ -39,13 +42,8 @@ public class UserRequestController {
     }
 
     @GetMapping
-    public ResponseEntity<List<UserRequest>> getRequests(
-            @RequestParam Integer currentUserId,
-            @RequestParam(required = false) UserRequestStatus status,
-            @RequestParam(required = false) UserRequestType type,
-            @RequestParam(required = false) Integer userIdFilter) {
-        // GET lists usually return the array directly for performance
-        return ResponseEntity.ok(service.getFilteredRequests(currentUserId, status, type, userIdFilter));
+    public ResponseEntity<?> getRequests(@ModelAttribute UserRequestFilterRequest filter) {
+        return ResponseEntity.ok(service.getFilteredRequests(filter));
     }
 
     @GetMapping("/{id}")

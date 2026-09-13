@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,7 +32,7 @@ public class GenericTrackingController {
     @GetMapping("/{refType}/{refId}")
     public ResponseEntity<?> getTimeline(
             @PathVariable ReferenceType refType, 
-            @PathVariable Integer refId) {
+            @NonNull @PathVariable Integer refId) {
         
         // Let the service handle the map building
         Map<String, Object> timelineData = trackingService.getTimelineMap(refId, refType);
@@ -43,8 +44,8 @@ public class GenericTrackingController {
     @PostMapping("/{refType}/{refId}/comments")
     public ResponseEntity<?> addComment(
             @PathVariable ReferenceType refType, 
-            @PathVariable Integer refId,
-            @RequestParam Integer authorId, 
+            @NonNull @PathVariable Integer refId,
+            @NonNull @RequestParam Integer authorId, 
             @RequestBody Map<String, String> payload) {
         
         try {
@@ -60,8 +61,8 @@ public class GenericTrackingController {
     // --- EDIT A COMMENT ---
     @PutMapping("/comments/{commentId}")
     public ResponseEntity<?> updateComment(
-            @PathVariable Integer commentId,
-            @RequestParam Integer editorId, 
+            @NonNull @PathVariable Integer commentId,
+            @NonNull @RequestParam Integer editorId, 
             @RequestBody Map<String, String> payload) {
         
         try {

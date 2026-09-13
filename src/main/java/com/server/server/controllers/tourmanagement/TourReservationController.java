@@ -3,8 +3,10 @@ package com.server.server.controllers.tourmanagement;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,10 +15,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.server.server.dto.tour.ReservationResponse;
+import com.server.server.dto.PageResponse;
+import com.server.server.dto.filter.ReservationFilterRequest;
 import com.server.server.enums.GenericStatus;
 import com.server.server.models.tourmanagement.TourReservation;
 import com.server.server.services.tourmanagement.TourReservationService;
+import com.server.server.utilities.ApiResponse;
+import com.server.server.utilities.ModelMapper;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -24,39 +32,43 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TourReservationController {
     private final TourReservationService reservationService;
+    private final ModelMapper modelMapper;
 
     @PostMapping
-    public ResponseEntity<TourReservation> create(@RequestBody TourReservation res) {
-        return ResponseEntity.ok(reservationService.create(res));
+    @PreAuthorize("hasAnyAuthority('CUSTOMER', 'ADMIN', 'MANAGER', 'EMPLOYEE', 'OWNER')")
+    public ResponseEntity<ApiResponse<ReservationResponse>> create(@Valid @RequestBody TourReservation res) {
+        return ResponseEntity.ok(ApiResponse.ok("Reservation created!", modelMapper.toReservationResponse(reservationService.create(res))));
     }
 
     @PatchMapping("/{id}/status")
-    public ResponseEntity<TourReservation> updateStatus(@PathVariable Integer id, @RequestParam GenericStatus status) {
-        return ResponseEntity.ok(reservationService.updateStatus(id, status));
+    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<ApiResponse<ReservationResponse>> updateStatus(@NonNull @PathVariable Integer id, @RequestParam GenericStatus status) {
+        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toReservationResponse(reservationService.updateStatus(id, status))));
     }
-
 
     @PatchMapping("/{id}/cancel")
-    @PreAuthorize("hasAnyAuthority('CUSTOMER', 'ADMIN', 'MANAGER', 'EMPLOYEE')")
-    public ResponseEntity<TourReservation> cancelReservation(@PathVariable Integer id) {
-        return ResponseEntity.ok(reservationService.cancelReservation(id));
+    @PreAuthorize("hasAnyAuthority('CUSTOMER', 'ADMIN', 'MANAGER', 'EMPLOYEE', 'OWNER')")
+    public ResponseEntity<ApiResponse<ReservationResponse>> cancelReservation(@NonNull @PathVariable Integer id) {
+        return ResponseEntity.ok(ApiResponse.ok("Reservation cancelled!", modelMapper.toReservationResponse(reservationService.cancelReservation(id))));
     }
 
-    @GetMapping("/filter")
-    public ResponseEntity<List<TourReservation>> filter(
-            @RequestParam(required = false) GenericStatus status,
-            @RequestParam(required = false) Long customerId,
-            @RequestParam(required = false) Long agencyId) {
-        return ResponseEntity.ok(reservationService.filter(status, customerId, agencyId));
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<PageResponse<ReservationResponse>>> search(
+            @ModelAttribute ReservationFilterRequest filter) {
+        return ResponseEntity.ok(ApiResponse.ok(reservationService.filter(filter).map(modelMapper::toReservationResponse)));
     }
 
     @GetMapping
-    public ResponseEntity<List<TourReservation>> getAll() {
-        return ResponseEntity.ok(reservationService.getAll());
+    public ResponseEntity<ApiResponse<PageResponse<ReservationResponse>>> getAll(
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "20") Integer size,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+        return ResponseEntity.ok(ApiResponse.ok(reservationService.getAll(page, size, sortDir)
+                .map(modelMapper::toReservationResponse)));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<TourReservation> getById(@PathVariable Integer id) {
-        return ResponseEntity.ok(reservationService.getById(id));
+    public ResponseEntity<ApiResponse<ReservationResponse>> getById(@NonNull @PathVariable Integer id) {
+        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toReservationResponse(reservationService.getById(id))));
     }
 }

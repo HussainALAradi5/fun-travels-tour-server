@@ -5,14 +5,12 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.QueryHints; // IMPORTANT IMPORT
-import org.springframework.stereotype.Repository;
 
 import com.server.server.enums.UserTypeEnum;
 import com.server.server.models.User;
 
 import jakarta.persistence.QueryHint; // IMPORTANT IMPORT
 
-@Repository
 public interface UserRepository extends JpaRepository<User, Integer> {
 
     boolean existsByEmailIgnoreCase(String email);
@@ -27,6 +25,10 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     Optional<User> findByUserNameIgnoreCase(String userName);
 
     Optional<User> findByMobileNumber(String mobileNumber);
+
+    boolean existsByMobileNumber(String mobileNumber);
+
+    boolean existsByMobileNumberAndIdNot(String mobileNumber, Integer id);
 
     List<User> findByIsActiveTrue();
 
