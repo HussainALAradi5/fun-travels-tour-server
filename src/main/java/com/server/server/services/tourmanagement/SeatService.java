@@ -67,7 +67,7 @@ public class SeatService {
     @Transactional(readOnly = true)
     public PageResponse<Seat> filter(SeatFilterRequest filter) {
         String search = filter.getKeyword() != null ? filter.getKeyword() : filter.getSearch();
-        Specification<Seat> spec = Specification.where(hasTransportId(filter.getTransportId()))
+        Specification<Seat> spec = hasTransportId(filter.getTransportId())
                 .and(hasStatus(filter.getStatus())).and(hasChairType(filter.getChairType()))
                 .and((r, q, cb) -> search == null || search.isBlank() ? cb.conjunction()
                         : cb.like(cb.lower(r.get("seatCode")), "%" + search.toLowerCase() + "%"));
@@ -85,7 +85,7 @@ public class SeatService {
 
     @Transactional(readOnly = true)
     public List<Seat> filter(Integer transportId, SeatStatus status, ChairType chairType) {
-        return seatRepository.findAll(Specification.where(hasTransportId(transportId))
+        return seatRepository.findAll(hasTransportId(transportId)
                 .and(hasStatus(status))
                 .and(hasChairType(chairType)));
     }

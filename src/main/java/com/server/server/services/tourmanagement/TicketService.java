@@ -280,7 +280,7 @@ public class TicketService extends GenericFilterService<Ticket> {
         if (currentUser.getUserType() == UserTypeEnum.CUSTOMER) {
             filter.setCustomerId(currentUser.getId().longValue());
         }
-        Specification<Ticket> spec = Specification.where(hasStatus(filter.getStatus()))
+        Specification<Ticket> spec = hasStatus(filter.getStatus())
                 .and(hasCustomer(filter.getCustomerId()))
                 .and(hasTour(filter.getTourId()))
                 .and(FilterUtils.localDateTimeRange("bookingDate", filter.getStartDate(), filter.getEndDate()))

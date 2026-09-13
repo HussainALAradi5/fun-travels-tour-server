@@ -432,7 +432,7 @@ public class TourService extends GenericFilterService<Tour> {
             }
         }
 
-        Specification<Tour> spec = Specification.where(hasStatus(filter.getStatus()))
+        Specification<Tour> spec = hasStatus(filter.getStatus())
                 .and(hasMinSlots(filter.getMinSlots()))
                 .and(FilterUtils.localDateRange("startDate", filter.getStartDate(), filter.getEndDate()))
                 .and(hasAgency(filter.getAgencyId()))

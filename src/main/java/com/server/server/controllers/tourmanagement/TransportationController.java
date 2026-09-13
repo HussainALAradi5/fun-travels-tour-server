@@ -1,7 +1,6 @@
 package com.server.server.controllers.tourmanagement;
 
-import java.util.List;
-
+import java.io.IOException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
@@ -16,10 +15,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.server.server.dto.tour.TransportationResponse;
 import com.server.server.dto.PageResponse;
 import com.server.server.dto.filter.TransportationFilterRequest;
+import com.server.server.dto.importing.ImportResult;
+import com.server.server.dto.tour.TransportationCreateRequest;
 import com.server.server.enums.GenericStatus;
 import com.server.server.enums.tourmanagement.TransportationStatus;
 import com.server.server.enums.tourmanagement.TransportationType;
@@ -40,9 +43,25 @@ public class TransportationController {
 
     @PostMapping
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
-    public ResponseEntity<ApiResponse<TransportationResponse>> create(@Valid @RequestBody Transportation transportation) {
+    public ResponseEntity<ApiResponse<TransportationResponse>> create(@Valid @RequestBody TransportationCreateRequest transportation) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok("Transportation created!", modelMapper.toTransportationResponse(service.create(transportation))));
+    }
+
+    @PostMapping(value = "/imports", consumes = "multipart/form-data")
+    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<ApiResponse<ImportResult>> importExcel(@RequestPart("file") MultipartFile file)
+            throws IOException {
+        if (file.isEmpty()) throw new IllegalArgumentException("Select a non-empty Excel file.");
+        String filename = file.getOriginalFilename();
+        if (filename == null || (!filename.toLowerCase().endsWith(".xlsx")
+                && !filename.toLowerCase().endsWith(".xls"))) {
+            throw new IllegalArgumentException("Only .xlsx and .xls files are supported.");
+        }
+        ImportResult result = service.importExcel(file.getInputStream());
+        return ResponseEntity.ok(ApiResponse.ok(
+                result.failedCount() == 0 ? "Transportation import completed." : "Import completed with row errors.",
+                result));
     }
 
     @GetMapping

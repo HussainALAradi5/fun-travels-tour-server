@@ -24,7 +24,21 @@ public class TransportationResponse {
     private Integer totalCapacity;
     private Integer remainingSeats;
     private Integer calculatedAvailable;
+    private AgencyReference agency;
+    private BranchReference agencyBranch;
     private List<SeatSummary> seats;
+
+    @Data @AllArgsConstructor @NoArgsConstructor
+    public static class AgencyReference {
+        private Integer id;
+        private String agencyName;
+    }
+
+    @Data @AllArgsConstructor @NoArgsConstructor
+    public static class BranchReference {
+        private Integer id;
+        private String branchName;
+    }
 
     @Data @AllArgsConstructor @NoArgsConstructor
     public static class SeatSummary {

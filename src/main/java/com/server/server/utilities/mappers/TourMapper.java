@@ -154,6 +154,14 @@ public class TourMapper {
         dto.setTotalCapacity(t.getTotalCapacity());
         dto.setRemainingSeats(t.getRemainingSeats());
         dto.setCalculatedAvailable(t.getCalculatedAvailable());
+        if (t.getAgency() != null) {
+            dto.setAgency(new TransportationResponse.AgencyReference(
+                    t.getAgency().getId(), t.getAgency().getAgencyName()));
+        }
+        if (t.getAgencyBranch() != null) {
+            dto.setAgencyBranch(new TransportationResponse.BranchReference(
+                    t.getAgencyBranch().getId(), t.getAgencyBranch().getBranchName()));
+        }
         if (t.getSeats() != null) {
             dto.setSeats(t.getSeats().stream()
                     .map(s -> new TransportationResponse.SeatSummary(

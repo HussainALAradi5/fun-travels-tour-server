@@ -12,6 +12,7 @@ import com.server.server.enums.GenericStatus;
 import com.server.server.enums.tourmanagement.TransportationStatus;
 import com.server.server.enums.tourmanagement.TransportationType;
 import com.server.server.models.agency.Agency;
+import com.server.server.models.agency.AgencyBranch;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -79,10 +80,15 @@ public class Transportation {
     @Column(name = "unit_status")
     private TransportationStatus unitStatus = TransportationStatus.AVAILABLE;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "agency_id")
     @JsonBackReference(value = "agency-transportations")
     private Agency agency;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "agency_branch_id")
+    @JsonIgnore
+    private AgencyBranch agencyBranch;
 
     @OneToMany(mappedBy = "transportation", cascade = CascadeType.ALL)
     @JsonManagedReference(value = "transportation-seats")

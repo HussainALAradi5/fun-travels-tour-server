@@ -440,7 +440,7 @@ public class TourReservationService extends GenericFilterService<TourReservation
         if (currentUser.getUserType() == UserTypeEnum.CUSTOMER) {
             filter.setCustomerId(currentUser.getId().longValue());
         }
-        Specification<TourReservation> spec = Specification.where(hasStatus(filter.getStatus()))
+        Specification<TourReservation> spec = hasStatus(filter.getStatus())
                 .and(hasCustomer(filter.getCustomerId()))
                 .and(hasAgency(filter.getAgencyId()))
                 .and(FilterUtils.localDateTimeRange("bookingDate", filter.getStartDate(), filter.getEndDate()))

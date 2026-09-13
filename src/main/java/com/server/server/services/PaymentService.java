@@ -83,7 +83,7 @@ public class PaymentService extends GenericFilterService<Payment> {
         if (filter.getDate() != null && (filter.getStartDate() != null || filter.getEndDate() != null)) {
             throw new IllegalArgumentException("Use either date or startDate/endDate, not both.");
         }
-        Specification<Payment> spec = Specification.where(null);
+        Specification<Payment> spec = Specification.unrestricted();
 
         if (filter.getUserId() != null) {
             spec = spec.and((root, query, cb) -> 

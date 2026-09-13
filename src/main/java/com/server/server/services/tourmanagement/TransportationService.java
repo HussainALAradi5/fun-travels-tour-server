@@ -1,6 +1,12 @@
 package com.server.server.services.tourmanagement;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 
 import org.springframework.beans.BeanUtils;
@@ -14,12 +20,20 @@ import com.server.server.enums.GenericStatus;
 import com.server.server.enums.tourmanagement.TransportationStatus;
 import com.server.server.enums.tourmanagement.TransportationType;
 import com.server.server.dto.filter.TransportationFilterRequest;
+import com.server.server.dto.importing.ImportResult;
+import com.server.server.dto.tour.TransportationCreateRequest;
 import com.server.server.dto.PageResponse;
 import com.server.server.utilities.PaginationUtils;
+import com.server.server.utilities.ExcelImportUtils;
 import java.util.Set;
 import com.server.server.exceptions.WorkflowException;
+import com.server.server.exceptions.ResourceNotFoundException;
+import com.server.server.models.agency.Agency;
+import com.server.server.models.agency.AgencyBranch;
 import com.server.server.models.tourmanagement.Seat;
 import com.server.server.models.tourmanagement.Transportation;
+import com.server.server.repositories.agency.AgencyRepository;
+import com.server.server.repositories.agency.AgencyBranchRepository;
 import com.server.server.repositories.tourmanagement.TransportationRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -28,6 +42,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TransportationService {
     private final TransportationRepository repository;
+    private final AgencyRepository agencyRepository;
+    private final AgencyBranchRepository branchRepository;
 
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'OWNER')")
@@ -46,7 +62,9 @@ public class TransportationService {
 // Inside TransportationService.java
     @Transactional
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'OWNER')")
-    public Transportation create(Transportation transportation) {
+    public Transportation create(TransportationCreateRequest request) {
+        Transportation transportation = toEntity(request);
+        validateUniqueIdentifiers(transportation);
         transportation.setStatus(GenericStatus.ACTIVE);
         transportation.setUnitStatus(TransportationStatus.AVAILABLE);
         transportation.setRemainingSeats(transportation.getTotalCapacity());
@@ -60,6 +78,112 @@ public class TransportationService {
             }
         }
         return repository.save(transportation);
+    }
+
+    public ImportResult importExcel(InputStream input) throws IOException {
+        List<Map<String, String>> rows = ExcelImportUtils.readRows(input);
+        List<String> errors = new ArrayList<>();
+        int imported = 0;
+        for (Map<String, String> row : rows) {
+            try {
+                create(toRequest(row));
+                imported++;
+            } catch (RuntimeException exception) {
+                errors.add("Row " + row.get("_row") + ": " + exception.getMessage());
+            }
+        }
+        return new ImportResult(imported, errors.size(), errors);
+    }
+
+    private Transportation toEntity(TransportationCreateRequest request) {
+        Agency agency = agencyRepository.findById(request.getAgencyId())
+                .orElseThrow(() -> new ResourceNotFoundException("Agency", request.getAgencyId()));
+        AgencyBranch branch = null;
+        if (request.getBranchId() != null) {
+            branch = branchRepository.findById(request.getBranchId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Agency branch", request.getBranchId()));
+            if (branch.getAgency() == null || !branch.getAgency().getId().equals(agency.getId())) {
+                throw new IllegalArgumentException("The selected branch does not belong to the selected agency.");
+            }
+        }
+        Transportation transportation = new Transportation();
+        transportation.setTransportationNumber(request.getTransportationNumber().trim());
+        transportation.setCode(request.getCode().trim());
+        transportation.setType(request.getType());
+        transportation.setProviderName(request.getProviderName().trim());
+        transportation.setTotalCapacity(request.getTotalCapacity());
+        transportation.setAgency(agency);
+        transportation.setAgencyBranch(branch);
+        transportation.setSeatConfig(request.getSeatConfig());
+        return transportation;
+    }
+
+    private void validateUniqueIdentifiers(Transportation transportation) {
+        if (repository.existsByCode(transportation.getCode())) {
+            throw new IllegalArgumentException("Transportation code already exists: " + transportation.getCode());
+        }
+        if (repository.existsByProviderNameAndTransportationNumber(
+                transportation.getProviderName(), transportation.getTransportationNumber())) {
+            throw new IllegalArgumentException("This registration already exists for the selected provider.");
+        }
+    }
+
+    private TransportationCreateRequest toRequest(Map<String, String> row) {
+        TransportationCreateRequest request = new TransportationCreateRequest();
+        request.setTransportationNumber(required(row, "transportationnumber"));
+        request.setCode(required(row, "code"));
+        request.setType(parseEnum(TransportationType.class, required(row, "type"), "type"));
+        request.setProviderName(required(row, "providername"));
+        request.setTotalCapacity(positiveInteger(row, "totalcapacity"));
+        request.setAgencyId(positiveInteger(row, "agencyid"));
+        request.setBranchId(optionalInteger(row, "branchid"));
+        Map<String, Integer> seats = new LinkedHashMap<>();
+        putSeatCount(seats, "PREMIUM_RECLINER", row.get("premiumseats"));
+        putSeatCount(seats, "WHEELCHAIR_ACCESSIBLE", row.get("accessibleseats"));
+        putSeatCount(seats, "KIDS_CHAIR", row.get("kidsseats"));
+        request.setSeatConfig(seats);
+        return request;
+    }
+
+    private String required(Map<String, String> row, String key) {
+        String value = row.get(key);
+        if (value == null || value.isBlank()) throw new IllegalArgumentException(key + " is required.");
+        return value;
+    }
+
+    private Integer positiveInteger(Map<String, String> row, String key) {
+        Integer value = optionalInteger(row, key);
+        if (value == null || value < 1) throw new IllegalArgumentException(key + " must be a positive integer.");
+        return value;
+    }
+
+    private Integer optionalInteger(Map<String, String> row, String key) {
+        String value = row.get(key);
+        if (value == null || value.isBlank()) return null;
+        try {
+            return new java.math.BigDecimal(value).intValueExact();
+        } catch (ArithmeticException | NumberFormatException exception) {
+            throw new IllegalArgumentException(key + " must be a whole number.");
+        }
+    }
+
+    private void putSeatCount(Map<String, Integer> seats, String type, String rawValue) {
+        if (rawValue == null || rawValue.isBlank()) return;
+        try {
+            int count = new java.math.BigDecimal(rawValue).intValueExact();
+            if (count < 0) throw new IllegalArgumentException(type + " seat count cannot be negative.");
+            seats.put(type, count);
+        } catch (ArithmeticException | NumberFormatException exception) {
+            throw new IllegalArgumentException(type + " seat count must be a whole number.");
+        }
+    }
+
+    private <E extends Enum<E>> E parseEnum(Class<E> enumType, String value, String field) {
+        try {
+            return Enum.valueOf(enumType, value.trim().toUpperCase(Locale.ROOT).replace(' ', '_'));
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("Invalid " + field + ": " + value);
+        }
     }
 
     // --- THE DRY HELPER METHOD ---
@@ -106,7 +230,8 @@ public class TransportationService {
 
         // Efficient update ignoring managed relationships and status fields
         BeanUtils.copyProperties(incomingData, existing,
-                "id", "status", "unitStatus", "seats", "remainingSeats", "calculatedAvailable", "agency", "tours");
+                "id", "status", "unitStatus", "seats", "remainingSeats", "calculatedAvailable",
+                "agency", "agencyBranch", "tours");
 
         return repository.save(existing);
     }
@@ -131,7 +256,7 @@ public class TransportationService {
     @Transactional(readOnly = true)
     public PageResponse<Transportation> filter(TransportationFilterRequest filter) {
         String search = filter.getKeyword() != null ? filter.getKeyword() : filter.getSearch();
-        Specification<Transportation> spec = Specification.where(hasType(filter.getType()))
+        Specification<Transportation> spec = hasType(filter.getType())
                 .and(hasStatus(filter.getStatus())).and(hasUnitStatus(filter.getUnitStatus()))
                 .and(hasProvider(search));
         return PageResponse.from(repository.findAll(spec, PaginationUtils.pageable(filter,
