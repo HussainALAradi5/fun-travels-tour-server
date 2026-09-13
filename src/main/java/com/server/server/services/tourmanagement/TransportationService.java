@@ -233,7 +233,69 @@ public class TransportationService {
                 "id", "status", "unitStatus", "seats", "remainingSeats", "calculatedAvailable",
                 "agency", "agencyBranch", "tours");
 
+        if (incomingData.getSeatConfig() != null) {
+            applySeatLayout(existing, incomingData.getSeatConfig());
+        }
+
         return repository.save(existing);
+    }
+
+    private void applySeatLayout(Transportation transportation, Map<String, Integer> requestedLayout) {
+        List<Seat> seats = transportation.getSeats();
+        if (seats == null || seats.isEmpty()) {
+            transportation.setSeats(generateSeatLayout(transportation, requestedLayout));
+            return;
+        }
+
+        boolean hasUnavailableSeats = seats.stream()
+                .anyMatch(seat -> seat.getStatus() != com.server.server.enums.tourmanagement.SeatStatus.AVAILABLE);
+        if (hasUnavailableSeats) {
+            throw new WorkflowException(
+                    "Seat layout cannot be changed while seats are reserved, booked, or under maintenance.");
+        }
+
+        if (transportation.getTours() != null && transportation.getTours().stream()
+                .anyMatch(tour -> tour.getStatus() == GenericStatus.APPROVED
+                        || tour.getStatus() == GenericStatus.ACTIVE)) {
+            throw new WorkflowException(
+                    "Seat layout cannot be changed while this transportation is assigned to an approved or active tour.");
+        }
+
+        Map<com.server.server.enums.tourmanagement.ChairType, Integer> counts = new LinkedHashMap<>();
+        int configuredSeats = 0;
+        for (Map.Entry<String, Integer> entry : requestedLayout.entrySet()) {
+            com.server.server.enums.tourmanagement.ChairType chairType;
+            try {
+                chairType = com.server.server.enums.tourmanagement.ChairType.valueOf(entry.getKey());
+            } catch (IllegalArgumentException exception) {
+                throw new IllegalArgumentException("Unsupported chair type: " + entry.getKey());
+            }
+            int count = entry.getValue() == null ? 0 : entry.getValue();
+            if (count < 0) throw new IllegalArgumentException("Seat counts cannot be negative.");
+            if (chairType != com.server.server.enums.tourmanagement.ChairType.STANDARD) {
+                counts.put(chairType, count);
+                configuredSeats += count;
+            }
+        }
+
+        if (configuredSeats > seats.size()) {
+            throw new WorkflowException(
+                    "Configured seat counts exceed the transportation capacity of " + seats.size() + ".");
+        }
+
+        List<Seat> orderedSeats = seats.stream()
+                .sorted(java.util.Comparator.comparing(Seat::getId))
+                .toList();
+        int index = 0;
+        for (Map.Entry<com.server.server.enums.tourmanagement.ChairType, Integer> entry : counts.entrySet()) {
+            for (int count = 0; count < entry.getValue(); count++) {
+                orderedSeats.get(index++).setChairType(entry.getKey());
+            }
+        }
+        while (index < orderedSeats.size()) {
+            orderedSeats.get(index++).setChairType(
+                    com.server.server.enums.tourmanagement.ChairType.STANDARD);
+        }
     }
 
     @Transactional
