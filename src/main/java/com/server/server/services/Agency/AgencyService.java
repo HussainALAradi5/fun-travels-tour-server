@@ -14,10 +14,14 @@ import com.server.server.models.City;
 import com.server.server.models.Country;
 import com.server.server.models.User;
 import com.server.server.models.agency.Agency;
+import com.server.server.dto.PageResponse;
 import com.server.server.repositories.CityRepository;
 import com.server.server.repositories.CountryRepository;
 import com.server.server.repositories.UserRepository;
 import com.server.server.repositories.agency.AgencyRepository;
+import com.server.server.utilities.PaginationUtils;
+
+import java.util.Set;
 
 import lombok.RequiredArgsConstructor;
 
@@ -34,6 +38,16 @@ public class AgencyService {
     @Transactional(readOnly = true)
     public List<Agency> getAllAgencies() {
         return agencyRepository.findAll();
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<Agency> searchAgencies(String query, Integer page, Integer size) {
+        String safeQuery = query == null ? "" : query.trim();
+        var pageable = PaginationUtils.pageable(
+                page, size, "agencyName", "asc", "agencyName", Set.of("agencyName"));
+        return PageResponse.from(safeQuery.isEmpty()
+                ? agencyRepository.findAll(pageable)
+                : agencyRepository.findByAgencyNameContainingIgnoreCase(safeQuery, pageable));
     }
 
     @Transactional(readOnly = true)

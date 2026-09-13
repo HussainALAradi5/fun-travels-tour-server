@@ -71,7 +71,7 @@ public class TransportationController {
             @RequestParam(defaultValue = "transportationNumber") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
         return ResponseEntity.ok(ApiResponse.ok(service.getAll(page, size, sortBy, sortDir)
-                .map(modelMapper::toTransportationResponse)));
+                .map(modelMapper::toTransportationListResponse)));
     }
 
     @GetMapping("/{id}")
@@ -94,6 +94,6 @@ public class TransportationController {
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<PageResponse<TransportationResponse>>> search(
             @ModelAttribute TransportationFilterRequest filter) {
-        return ResponseEntity.ok(ApiResponse.ok(service.filter(filter).map(modelMapper::toTransportationResponse)));
+        return ResponseEntity.ok(ApiResponse.ok(service.filter(filter).map(modelMapper::toTransportationListResponse)));
     }
 }

@@ -112,6 +112,10 @@ public class ModelMapper {
         return tourMapper.toTransportationResponse(t);
     }
 
+    public TransportationResponse toTransportationListResponse(Transportation t) {
+        return tourMapper.toTransportationListResponse(t);
+    }
+
     public List<TransportationResponse> toTransportationResponseList(List<Transportation> list) {
         return tourMapper.toTransportationResponseList(list);
     }

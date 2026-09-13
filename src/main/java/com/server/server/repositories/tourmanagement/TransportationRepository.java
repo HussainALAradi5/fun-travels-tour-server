@@ -1,7 +1,9 @@
 package com.server.server.repositories.tourmanagement;
 
 import java.util.List;
+import java.util.Optional;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -13,6 +15,9 @@ import com.server.server.enums.tourmanagement.TransportationType;
 import com.server.server.models.tourmanagement.Transportation;
 
 public interface TransportationRepository extends JpaRepository<Transportation, Integer>, JpaSpecificationExecutor<Transportation> {
+    @EntityGraph(attributePaths = { "seats", "agency", "agencyBranch" })
+    Optional<Transportation> findWithSeatsById(Integer id);
+
     boolean existsByCode(String code);
     boolean existsByProviderNameAndCode(String providerName, String code);
     boolean existsByProviderNameAndTransportationNumber(String providerName, String transportationNumber);

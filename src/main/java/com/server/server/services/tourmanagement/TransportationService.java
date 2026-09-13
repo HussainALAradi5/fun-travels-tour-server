@@ -55,7 +55,7 @@ public class TransportationService {
     @Transactional(readOnly = true)
     public Transportation getById(@NonNull Integer id) {
         Objects.requireNonNull(id, "id must not be null");
-        return repository.findById(id)
+        return repository.findWithSeatsById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Transportation unit not found."));
     }
 

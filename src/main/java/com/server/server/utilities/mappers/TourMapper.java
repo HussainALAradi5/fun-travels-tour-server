@@ -142,6 +142,14 @@ public class TourMapper {
     }
 
     public TransportationResponse toTransportationResponse(Transportation t) {
+        return toTransportationResponse(t, true);
+    }
+
+    public TransportationResponse toTransportationListResponse(Transportation t) {
+        return toTransportationResponse(t, false);
+    }
+
+    private TransportationResponse toTransportationResponse(Transportation t, boolean includeSeats) {
         if (t == null) return null;
         TransportationResponse dto = new TransportationResponse();
         dto.setId(t.getId());
@@ -162,7 +170,7 @@ public class TourMapper {
             dto.setAgencyBranch(new TransportationResponse.BranchReference(
                     t.getAgencyBranch().getId(), t.getAgencyBranch().getBranchName()));
         }
-        if (t.getSeats() != null) {
+        if (includeSeats && t.getSeats() != null) {
             dto.setSeats(t.getSeats().stream()
                     .map(s -> new TransportationResponse.SeatSummary(
                             s.getId(), s.getSeatCode(),
@@ -174,7 +182,7 @@ public class TourMapper {
     }
 
     public List<TransportationResponse> toTransportationResponseList(List<Transportation> list) {
-        return list.stream().map(this::toTransportationResponse).collect(Collectors.toList());
+        return list.stream().map(this::toTransportationListResponse).collect(Collectors.toList());
     }
 
     public SeatResponse toSeatResponse(Seat seat) {

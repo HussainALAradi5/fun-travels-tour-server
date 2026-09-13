@@ -15,6 +15,10 @@ import com.server.server.models.agency.Agency;
 import com.server.server.models.agency.AgencyBranch;
 import com.server.server.repositories.UserRepository;
 import com.server.server.repositories.agency.AgencyBranchRepository;
+import com.server.server.dto.PageResponse;
+import com.server.server.utilities.PaginationUtils;
+
+import java.util.Set;
 import com.server.server.repositories.agency.AgencyRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -36,6 +40,19 @@ public class AgencyBranchService {
     public List<AgencyBranch> getBranchesByAgency(@NonNull Integer agencyId) {
         Objects.requireNonNull(agencyId, "agencyId must not be null");
         return branchRepository.findByAgencyIdAndIsActiveTrue(agencyId);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<AgencyBranch> searchBranches(
+            @NonNull Integer agencyId, String query, Integer page, Integer size) {
+        Objects.requireNonNull(agencyId, "agencyId must not be null");
+        String safeQuery = query == null ? "" : query.trim();
+        var pageable = PaginationUtils.pageable(
+                page, size, "branchName", "asc", "branchName", Set.of("branchName"));
+        return PageResponse.from(safeQuery.isEmpty()
+                ? branchRepository.findByAgencyId(agencyId, pageable)
+                : branchRepository.findByAgencyIdAndBranchNameContainingIgnoreCase(
+                        agencyId, safeQuery, pageable));
     }
 
     @Transactional

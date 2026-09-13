@@ -11,9 +11,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.server.server.dto.agency.AgencyResponse;
+import com.server.server.dto.PageResponse;
 import com.server.server.dto.user.UserResponse;
 import com.server.server.models.User;
 import com.server.server.models.agency.Agency;
@@ -39,13 +41,22 @@ public class AgencyController {
                 .ok(new ApiResponse<>(true, "Agency created successfully", modelMapper.toAgencyResponse(created)));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     public ResponseEntity<ApiResponse<AgencyResponse>> getById(@NonNull @PathVariable Integer id) {
         return ResponseEntity.ok(new ApiResponse<>(true, "Fetched agency",
                 modelMapper.toAgencyResponse(agencyService.getAgencyById(id))));
     }
 
-    @GetMapping("/{id}/employees")
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<PageResponse<AgencyResponse>>> search(
+            @RequestParam(defaultValue = "") String query,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "20") Integer size) {
+        return ResponseEntity.ok(ApiResponse.ok("Fetched matching agencies",
+                agencyService.searchAgencies(query, page, size).map(modelMapper::toAgencyResponse)));
+    }
+
+    @GetMapping("/{id:\\d+}/employees")
     public ResponseEntity<ApiResponse<List<UserResponse>>> getEmployeesByAgency(@NonNull @PathVariable Integer id) {
         List<User> employees = agencyService.getEmployeesByAgencyId(id);
         return ResponseEntity
