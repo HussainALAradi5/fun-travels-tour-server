@@ -1,7 +1,5 @@
 package com.server.server.controllers;
 
-import java.util.Map;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -12,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.server.server.dto.auth.AuthResponse;
+import com.server.server.dto.auth.LoginRequest;
+import com.server.server.dto.auth.RegisterRequest;
 import com.server.server.dto.user.UserResponse;
 import com.server.server.models.User;
 import com.server.server.repositories.UserRepository;
@@ -36,16 +36,23 @@ public class AuthController {
     private final ModelMapper modelMapper;
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<UserResponse>> register(@Valid @RequestBody User user) {
+    public ResponseEntity<ApiResponse<UserResponse>> register(@Valid @RequestBody RegisterRequest request) {
+        User user = new User();
+        user.setUserName(request.getUserName());
+        user.setName(request.getName());
+        user.setEmail(request.getEmail());
+        user.setPassword(request.getPassword());
+        user.setMobileNumber(request.getMobileNumber());
+        user.setAge(request.getAge());
         User savedUser = userService.createUser(user);
         UserResponse userResponse = modelMapper.toUserResponse(savedUser);
         return ResponseEntity.ok(ApiResponse.ok("User registered successfully!", userResponse));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<AuthResponse>> login(@RequestBody Map<String, String> request) {
-        String identifier = request.get("identifier");
-        String password = request.get("password");
+    public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
+        String identifier = request.getIdentifier();
+        String password = request.getPassword();
 
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(identifier, password));
 

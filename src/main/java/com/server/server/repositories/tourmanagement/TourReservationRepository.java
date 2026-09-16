@@ -27,6 +27,8 @@ public interface TourReservationRepository
 
        List<TourReservation> findByStatusAndHoldExpiresAtBefore(GenericStatus status, LocalDateTime expiresAt);
 
+       List<TourReservation> findByTour_IdAndStatusIn(Integer tourId, List<GenericStatus> statuses);
+
        List<TourReservation> findByUser_Id(Integer userId); // Fixed mapping
 
        @Query("SELECT COUNT(r) > 0 FROM TourReservation r " +

@@ -20,6 +20,15 @@ public interface SeatRepository extends JpaRepository<Seat, Integer>, JpaSpecifi
     @Query("SELECT s FROM Seat s WHERE s.id = :id")
     Optional<Seat> findByIdWithLock(@Param("id") Integer id);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT s FROM Seat s WHERE s.transportation.id = :transportationId " +
+            "AND s.status = com.server.server.enums.tourmanagement.SeatStatus.AVAILABLE " +
+            "ORDER BY s.id")
+    List<Seat> findAvailableByTransportationIdWithLock(
+            @Param("transportationId") Integer transportationId);
+
+    long countByTransportation_IdAndStatus(Integer transportationId, SeatStatus status);
+
     @Query("SELECT s FROM Seat s WHERE s.transportation.id = :transportId " +
             "AND (:keyword IS NULL OR :keyword = '' OR LOWER(s.seatCode) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
             "AND (:status IS NULL OR s.status = :status) " +

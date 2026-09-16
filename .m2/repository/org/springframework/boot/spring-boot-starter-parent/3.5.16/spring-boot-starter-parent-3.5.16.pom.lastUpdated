@@ -1,4 +1,4 @@
 #NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
-#Sun Sep 13 21:08:14 GMT+03:00 2026
-@default-central-https\://repo.maven.apache.org/maven2/.lastUpdated=1789322894782
+#Wed Sep 16 15:30:41 GMT+03:00 2026
+@default-central-https\://repo.maven.apache.org/maven2/.lastUpdated=1789561841911
 https\://repo.maven.apache.org/maven2/.error=Could not transfer artifact org.springframework.boot\:spring-boot-starter-parent\:pom\:3.5.16 from/to central (https\://repo.maven.apache.org/maven2)\: (certificate_unknown) PKIX path building failed\: sun.security.provider.certpath.SunCertPathBuilderException\: unable to find valid certification path to requested target

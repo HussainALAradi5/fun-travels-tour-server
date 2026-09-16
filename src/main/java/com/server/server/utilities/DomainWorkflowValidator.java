@@ -33,6 +33,19 @@ public final class DomainWorkflowValidator {
         validate("reservation", RESERVATION_TRANSITIONS, current, target);
     }
 
+    public static void validateReservationAdministrativeTransition(GenericStatus current, GenericStatus target) {
+        if (target == GenericStatus.CONFIRMED) {
+            throw new WorkflowException("A reservation can only be confirmed by a successful payment.");
+        }
+        if (target == GenericStatus.APPROVED) {
+            throw new WorkflowException("Reservation approval is not a separate step. Complete payment to confirm it.");
+        }
+        if (target != GenericStatus.REJECTED && target != GenericStatus.COMPLETED) {
+            throw new WorkflowException("Staff can only reject a pending reservation or complete a confirmed reservation.");
+        }
+        validateReservation(current, target);
+    }
+
     private static void validate(String resource, Map<GenericStatus, Set<GenericStatus>> transitions,
             GenericStatus current, GenericStatus target) {
         if (current == target) return;

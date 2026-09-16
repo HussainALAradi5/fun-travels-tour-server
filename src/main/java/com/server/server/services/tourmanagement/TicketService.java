@@ -99,12 +99,14 @@ public class TicketService extends GenericFilterService<Ticket> {
 
         // Allow updating the seat if the ticket isn't completed
         if (incomingData.getAssignedSeat() != null &&
-                !incomingData.getAssignedSeat().getId().equals(existing.getAssignedSeat().getId())) {
-
-            // Release old seat, lock new one
-            seatService.updateStatus(existing.getAssignedSeat().getId(), SeatStatus.AVAILABLE);
-            Seat newSeat = seatService.getById(incomingData.getAssignedSeat().getId());
-            existing.setAssignedSeat(newSeat);
+                (existing.getAssignedSeat() == null ||
+                 !incomingData.getAssignedSeat().getId().equals(existing.getAssignedSeat().getId()))) {
+            if (existing.getTicketStatus() == TicketStatus.CANCELLED
+                    || existing.getTicketStatus() == TicketStatus.COMPLETED) {
+                throw new WorkflowException("A cancelled or completed ticket cannot change seats.");
+            }
+            existing.setAssignedSeat(inventoryService.changeSeat(
+                    existing.getTour(), existing, incomingData.getAssignedSeat().getId()));
         }
 
         // Allow updating meals
@@ -119,7 +121,7 @@ public class TicketService extends GenericFilterService<Ticket> {
     }
 
 @Transactional
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'CUSTOMER')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'OWNER')")
     public Ticket updateStatus(@NonNull Integer id, GenericStatus newStatus) {
         Objects.requireNonNull(id, "id must not be null");
         
@@ -130,6 +132,11 @@ public class TicketService extends GenericFilterService<Ticket> {
 
         Ticket ticket = getById(id);
 
+        if (ticket.getTicketStatus() == TicketStatus.CANCELLED
+                || ticket.getTicketStatus() == TicketStatus.COMPLETED) {
+            throw new WorkflowException("A cancelled or completed ticket cannot change status.");
+        }
+
         // 2. BUSINESS RULE: "No Pay, No Approve"
         // If someone tries to approve or confirm the ticket, check if the reservation is paid
         if ((newStatus == GenericStatus.APPROVED || newStatus == GenericStatus.CONFIRMED)) {
@@ -138,11 +145,23 @@ public class TicketService extends GenericFilterService<Ticket> {
             }
         }
 
+        if (newStatus != GenericStatus.APPROVED
+                && newStatus != GenericStatus.CONFIRMED
+                && newStatus != GenericStatus.COMPLETED) {
+            throw new WorkflowException("Ticket status can only progress to APPROVED, CONFIRMED, or COMPLETED.");
+        }
+        if (newStatus == GenericStatus.COMPLETED
+                && ticket.getTour().getStatus() != GenericStatus.COMPLETED) {
+            throw new WorkflowException("A ticket can only be completed after the tour is completed.");
+        }
+
         ticket.setApprovalStatus(newStatus);
         
         // Keep TicketStatus in sync
         if (newStatus == GenericStatus.CONFIRMED) {
             ticket.setTicketStatus(TicketStatus.CONFIRMED);
+        } else if (newStatus == GenericStatus.COMPLETED) {
+            ticket.setTicketStatus(TicketStatus.COMPLETED);
         }
 
         return ticketRepository.save(ticket);

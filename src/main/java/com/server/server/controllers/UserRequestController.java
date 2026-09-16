@@ -1,9 +1,5 @@
 package com.server.server.controllers;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
@@ -18,12 +14,15 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
 
-import com.server.server.enums.UserRequest.UserRequestStatus;
-import com.server.server.enums.UserRequest.UserRequestType;
+import com.server.server.dto.PageResponse;
 import com.server.server.dto.filter.UserRequestFilterRequest;
-import com.server.server.models.UserRequest;
+import com.server.server.dto.support.UserRequestCreateRequest;
+import com.server.server.dto.support.UserRequestResponse;
 import com.server.server.services.UserRequestService;
+import com.server.server.utilities.ApiResponse;
+import com.server.server.utilities.ModelMapper;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -35,68 +34,54 @@ import lombok.RequiredArgsConstructor;
 public class UserRequestController {
 
     private final UserRequestService service;
+    private final ModelMapper modelMapper;
 
     @PostMapping
-    public ResponseEntity<?> create(@Valid @RequestBody UserRequest request) {
-        return execute(() -> service.create(request), "Request submitted successfully!", HttpStatus.CREATED);
+    public ResponseEntity<ApiResponse<UserRequestResponse>> create(
+            @Valid @RequestBody UserRequestCreateRequest request) {
+        UserRequestResponse response = modelMapper.toUserRequestResponse(service.create(request));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.ok("Request submitted successfully!", response));
     }
 
     @GetMapping
-    public ResponseEntity<?> getRequests(@ModelAttribute UserRequestFilterRequest filter) {
-        return ResponseEntity.ok(service.getFilteredRequests(filter));
+    public ResponseEntity<ApiResponse<PageResponse<UserRequestResponse>>> getRequests(
+            @ModelAttribute UserRequestFilterRequest filter) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                service.getFilteredRequests(filter).map(modelMapper::toUserRequestResponse)));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getById(@PathVariable Integer id) {
-        return execute(() -> service.getById(id), null, HttpStatus.OK);
+    public ResponseEntity<ApiResponse<UserRequestResponse>> getById(@PathVariable Integer id) {
+        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toUserRequestResponse(service.getById(id))));
     }
 
     @PatchMapping("/{id}/assign/{agentId}")
-    public ResponseEntity<?> assign(@PathVariable Integer id, @PathVariable Integer agentId) {
-        return execute(() -> service.assignRequest(id, agentId), "Agent assigned to request.", HttpStatus.OK);
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'SUPPORT_AGENT')")
+    public ResponseEntity<ApiResponse<UserRequestResponse>> assign(@PathVariable Integer id, @PathVariable Integer agentId) {
+        return ResponseEntity.ok(ApiResponse.ok("Agent assigned to request.",
+                modelMapper.toUserRequestResponse(service.assignRequest(id, agentId))));
     }
 
-    @PatchMapping("/{id}/solve/{solverId}")
-    public ResponseEntity<?> solve(@PathVariable Integer id, @PathVariable Integer solverId) {
-        return execute(() -> service.solveRequest(id, solverId), "Request marked as solved!", HttpStatus.OK);
+    @PatchMapping("/{id}/solve")
+    public ResponseEntity<ApiResponse<UserRequestResponse>> solve(@PathVariable Integer id) {
+        return ResponseEntity.ok(ApiResponse.ok("Request marked as solved!",
+                modelMapper.toUserRequestResponse(service.solveRequest(id))));
     }
 
     /**
      * REJECT ACTION
      */
-    @PatchMapping("/{id}/reject/{rejectedById}")
-    public ResponseEntity<?> reject(@PathVariable Integer id, @PathVariable Integer rejectedById) {
-        return execute(() -> service.rejectRequest(id, rejectedById), "Request has been rejected.", HttpStatus.OK);
+    @PatchMapping("/{id}/reject")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'SUPPORT_AGENT')")
+    public ResponseEntity<ApiResponse<UserRequestResponse>> reject(@PathVariable Integer id) {
+        return ResponseEntity.ok(ApiResponse.ok("Request has been rejected.",
+                modelMapper.toUserRequestResponse(service.rejectRequest(id))));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(@PathVariable Integer id) {
-        return execute(() -> {
-            service.delete(id);
-            return null;
-        }, "Request deleted successfully", HttpStatus.OK);
-    }
-
-    // Unified Response Wrapper
-    private ResponseEntity<Map<String, Object>> execute(ServiceAction action, String message, HttpStatus status) {
-        Map<String, Object> response = new HashMap<>();
-        try {
-            Object data = action.run();
-            if (message != null)
-                response.put("message", message);
-            if (data != null)
-                response.put("data", data);
-            response.put("success", true);
-            return new ResponseEntity<>(response, status);
-        } catch (Exception e) {
-            response.put("message", e.getMessage());
-            response.put("success", false);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-        }
-    }
-
-    @FunctionalInterface
-    interface ServiceAction {
-        Object run() throws Exception;
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Integer id) {
+        service.delete(id);
+        return ResponseEntity.ok(ApiResponse.ok("Request deleted successfully"));
     }
 }

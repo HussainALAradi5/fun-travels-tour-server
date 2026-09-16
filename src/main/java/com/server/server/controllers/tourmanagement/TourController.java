@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.server.server.dto.tour.TourResponse;
+import com.server.server.dto.tour.TourCreateRequest;
 import com.server.server.dto.PageResponse;
 import com.server.server.dto.filter.TourFilterRequest;
 import com.server.server.enums.GenericStatus;
@@ -70,8 +71,8 @@ public class TourController {
 
     @PostMapping
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
-    public ResponseEntity<ApiResponse<TourResponse>> create(@Valid @RequestBody Tour tour) {
-        return ResponseEntity.ok(ApiResponse.ok("Tour created!", modelMapper.toTourResponse(tourService.create(tour))));
+    public ResponseEntity<ApiResponse<TourResponse>> create(@Valid @RequestBody TourCreateRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok("Tour created!", modelMapper.toTourResponse(tourService.create(request))));
     }
 
     @PutMapping("/{id}")

@@ -10,12 +10,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.server.server.enums.GenericStatus;
 import com.server.server.enums.tourmanagement.SeatStatus;
+import com.server.server.enums.tourmanagement.TransportationStatus;
 import com.server.server.exceptions.WorkflowException;
 import com.server.server.models.tourmanagement.Seat;
 import com.server.server.models.tourmanagement.Ticket;
 import com.server.server.models.tourmanagement.Tour;
 import com.server.server.repositories.tourmanagement.SeatRepository;
 import com.server.server.repositories.tourmanagement.TourRepository;
+import com.server.server.repositories.tourmanagement.TransportationRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -24,6 +26,7 @@ import lombok.RequiredArgsConstructor;
 public class InventoryService {
     private final TourRepository tourRepository;
     private final SeatRepository seatRepository;
+    private final TransportationRepository transportationRepository;
 
     @Transactional
     public Tour reserve(Integer tourId, int quantity, List<Ticket> tickets) {
@@ -37,6 +40,7 @@ public class InventoryService {
                 "There are not enough places available for this booking.");
         validateAndHoldSeats(tour, tickets);
         tour.setAvailableSlots(available - quantity);
+        synchronizeTransportation(tour);
         return tourRepository.save(tour);
     }
 
@@ -52,6 +56,7 @@ public class InventoryService {
                 seatRepository.save(seat);
             }
         }
+        synchronizeTransportationForTickets(tickets);
     }
 
     @Transactional
@@ -68,14 +73,59 @@ public class InventoryService {
                 seatRepository.save(seat);
             }
         }
+        synchronizeTransportation(tour);
         tourRepository.save(tour);
+    }
+
+    @Transactional
+    public Seat changeSeat(Tour tour, Ticket ticket, Integer newSeatId) {
+        if (tour == null || ticket == null || newSeatId == null) {
+            throw new WorkflowException("A tour, ticket, and new seat are required.");
+        }
+        Seat currentSeat = ticket.getAssignedSeat() == null ? null : lockSeat(ticket.getAssignedSeat().getId());
+        if (currentSeat != null && Objects.equals(currentSeat.getId(), newSeatId)) return currentSeat;
+
+        Seat newSeat = lockSeat(newSeatId);
+        if (newSeat.getStatus() != SeatStatus.AVAILABLE) {
+            throw new WorkflowException("SEAT_NOT_AVAILABLE",
+                    "Seat " + newSeat.getSeatCode() + " is no longer available. Please choose another seat.");
+        }
+        if (tour.getTransportation() == null || newSeat.getTransportation() == null
+                || !Objects.equals(tour.getTransportation().getId(), newSeat.getTransportation().getId())) {
+            throw new WorkflowException("INVALID_SEAT_FOR_TOUR",
+                    "The selected seat does not belong to this tour's transportation.");
+        }
+
+        newSeat.setStatus(ticket.isPaid() ? SeatStatus.BOOKED : SeatStatus.RESERVED);
+        seatRepository.save(newSeat);
+        if (currentSeat != null) {
+            currentSeat.setStatus(SeatStatus.AVAILABLE);
+            seatRepository.save(currentSeat);
+        }
+        synchronizeTransportation(tour);
+        return newSeat;
     }
 
     private void validateAndHoldSeats(Tour tour, List<Ticket> tickets) {
         Set<Integer> selected = new HashSet<>();
+        List<Seat> automaticallyAvailable = tour.getTransportation() == null
+                ? List.of()
+                : seatRepository.findAvailableByTransportationIdWithLock(tour.getTransportation().getId());
+        int automaticIndex = 0;
         for (Ticket ticket : safeTickets(tickets)) {
-            if (ticket.getAssignedSeat() == null || ticket.getAssignedSeat().getId() == null) continue;
-            Integer seatId = ticket.getAssignedSeat().getId();
+            Integer seatId = ticket.getAssignedSeat() == null ? null : ticket.getAssignedSeat().getId();
+            if (seatId == null && tour.getTransportation() != null) {
+                while (automaticIndex < automaticallyAvailable.size()
+                        && selected.contains(automaticallyAvailable.get(automaticIndex).getId())) {
+                    automaticIndex++;
+                }
+                if (automaticIndex >= automaticallyAvailable.size()) {
+                    throw new WorkflowException("INSUFFICIENT_TRANSPORTATION_SEATS",
+                            "There are not enough transportation seats available for this booking.");
+                }
+                seatId = automaticallyAvailable.get(automaticIndex++).getId();
+            }
+            if (seatId == null) continue;
             if (!selected.add(seatId)) throw new WorkflowException("DUPLICATE_SEAT",
                     "Each traveler must have a different seat.");
             Seat seat = lockSeat(seatId);
@@ -92,6 +142,41 @@ public class InventoryService {
             seatRepository.save(seat);
             ticket.setAssignedSeat(seat);
         }
+    }
+
+    private void synchronizeTransportationForTickets(List<Ticket> tickets) {
+        safeTickets(tickets).stream()
+                .map(Ticket::getTour)
+                .filter(Objects::nonNull)
+                .filter(tour -> tour.getTransportation() != null)
+                .map(Tour::getId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .map(this::lockTour)
+                .forEach(this::synchronizeTransportation);
+    }
+
+    private void synchronizeTransportation(Tour tour) {
+        if (tour.getTransportation() == null || tour.getTransportation().getId() == null) return;
+        Integer transportationId = tour.getTransportation().getId();
+        var transportation = transportationRepository.findByIdWithLock(transportationId)
+                .orElseThrow(() -> new WorkflowException("Transportation not found."));
+        int availableSeats = Math.toIntExact(
+                seatRepository.countByTransportation_IdAndStatus(transportationId, SeatStatus.AVAILABLE));
+        transportation.setRemainingSeats(availableSeats);
+        transportation.setCalculatedAvailable(availableSeats);
+        if (transportation.getUnitStatus() != TransportationStatus.MAINTENANCE
+                && transportation.getUnitStatus() != TransportationStatus.INACTIVE) {
+            if (availableSeats == 0) {
+                transportation.setUnitStatus(TransportationStatus.FULL);
+            } else if (availableSeats < transportation.getTotalCapacity()) {
+                transportation.setUnitStatus(TransportationStatus.PARTIAL);
+            } else {
+                transportation.setUnitStatus(TransportationStatus.AVAILABLE);
+            }
+        }
+        transportationRepository.save(transportation);
+        tour.setTransportation(transportation);
     }
 
     private Tour lockTour(Integer tourId) {

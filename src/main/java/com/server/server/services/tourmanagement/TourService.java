@@ -1,5 +1,6 @@
 package com.server.server.services.tourmanagement;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
@@ -12,7 +13,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.server.server.enums.GenericStatus;
+import com.server.server.enums.TransactionType;
+import com.server.server.enums.tourmanagement.TicketStatus;
 import com.server.server.dto.filter.TourFilterRequest;
+import com.server.server.dto.tour.TourCreateRequest;
 import com.server.server.dto.PageResponse;
 import com.server.server.services.filter.GenericFilterService;
 import java.util.Set;
@@ -21,13 +25,21 @@ import com.server.server.enums.Notification.ReferenceType;
 import com.server.server.enums.UserTypeEnum;
 import com.server.server.exceptions.WorkflowException;
 import com.server.server.models.User;
+import com.server.server.models.Account;
 import com.server.server.models.tourmanagement.Ticket;
 import com.server.server.models.tourmanagement.Tour;
+import com.server.server.models.tourmanagement.TourReservation;
 import com.server.server.repositories.tourmanagement.TourRepository;
+import com.server.server.repositories.tourmanagement.TourReservationRepository;
+import com.server.server.repositories.CountryRepository;
+import com.server.server.repositories.CityRepository;
+import com.server.server.repositories.tourmanagement.MealPlanRepository;
+import com.server.server.services.Account.AccountService;
 import com.server.server.services.GenericTrackingService;
 import com.server.server.services.NotificationService;
 import com.server.server.services.SystemSchedulingService;
 import com.server.server.services.UserService;
+import com.server.server.services.TransactionService;
 import com.server.server.utilities.DomainWorkflowValidator;
 import com.server.server.utilities.PaginationUtils;
 import com.server.server.utilities.FilterUtils;
@@ -48,6 +60,13 @@ public class TourService extends GenericFilterService<Tour> {
     private final GenericTrackingService trackingService;
     private final SystemSchedulingService schedulingService;
     private final NotificationService notificationService;
+    private final TourReservationRepository reservationRepository;
+    private final InventoryService inventoryService;
+    private final AccountService accountService;
+    private final TransactionService transactionService;
+    private final CountryRepository countryRepository;
+    private final CityRepository cityRepository;
+    private final MealPlanRepository mealPlanRepository;
 
     @PostConstruct
     public void init() {
@@ -107,7 +126,9 @@ public class TourService extends GenericFilterService<Tour> {
                     java.util.Set<Integer> notifiedUsers = new java.util.HashSet<>();
 
                     for (Ticket ticket : savedTour.getTickets()) {
-                        if (ticket.getApprovalStatus() == GenericStatus.APPROVED && ticket.getCustomer() != null) {
+                        boolean eligibleForGreeting = ticket.getApprovalStatus() == GenericStatus.APPROVED
+                                && ticket.getCustomer() != null;
+                        if (eligibleForGreeting) {
                             Integer customerId = ticket.getCustomer().getId();
 
                             // Only send if we haven't already notified this specific user for this tour
@@ -115,6 +136,10 @@ public class TourService extends GenericFilterService<Tour> {
                                 notificationService.sendTourCompletionGreeting(ticket);
                                 notifiedUsers.add(customerId);
                             }
+                        }
+                        if (ticket.getTicketStatus() != TicketStatus.CANCELLED) {
+                            ticket.setTicketStatus(TicketStatus.COMPLETED);
+                            ticket.setApprovalStatus(GenericStatus.COMPLETED);
                         }
                     }
                 }
@@ -141,8 +166,43 @@ public class TourService extends GenericFilterService<Tour> {
 
     @Transactional
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'OWNER')")
-    public Tour create(Tour tour) {
+    public Tour create(TourCreateRequest request) {
         User currentUser = userService.getCurrentUser();
+        Tour tour = new Tour();
+        tour.setTourNumber(request.getTourNumber().trim());
+        tour.setTitle(request.getTitle().trim());
+        tour.setDescription(request.getDescription());
+        tour.setBasePrice(request.getBasePrice());
+        tour.setPrice(request.getBasePrice());
+        tour.setDiscountPrice(0.0);
+        tour.setTotalPrice(request.getBasePrice());
+        tour.setNumberOfDays(request.getNumberOfDays());
+        tour.setStartDate(request.getStartDate());
+        tour.setEndDate(request.getEndDate());
+        tour.setMaxCapacity(request.getMaxCapacity());
+        tour.setAvailableSlots(request.getMaxCapacity());
+        tour.setStartCountry(countryRepository.findById(request.getStartCountryId())
+                .orElseThrow(() -> new WorkflowException("Start country not found.")));
+        tour.setEndCountry(countryRepository.findById(request.getEndCountryId())
+                .orElseThrow(() -> new WorkflowException("End country not found.")));
+        tour.setStartCity(cityRepository.findById(request.getStartCityId())
+                .orElseThrow(() -> new WorkflowException("Start city not found.")));
+        tour.setEndCity(cityRepository.findById(request.getEndCityId())
+                .orElseThrow(() -> new WorkflowException("End city not found.")));
+        if (!Objects.equals(tour.getStartCity().getCountry().getId(), tour.getStartCountry().getId())
+                || !Objects.equals(tour.getEndCity().getCountry().getId(), tour.getEndCountry().getId())) {
+            throw new WorkflowException("A selected city must belong to its selected country.");
+        }
+        if (request.getDestinationCountryIds() != null) {
+            tour.getDestinationCountries().addAll(countryRepository.findAllById(request.getDestinationCountryIds()));
+        }
+        if (request.getMealPlanIds() != null) {
+            tour.getAvailableMeals().addAll(mealPlanRepository.findAllById(request.getMealPlanIds()));
+        }
+        if (request.getTransportationId() != null) {
+            tour.setTransportation(transportationService.getById(request.getTransportationId()));
+            tour.setHasTransportation(true);
+        }
 
         // Multi-Tenancy
         if (currentUser.getUserType() == UserTypeEnum.EMPLOYEE ||
@@ -163,9 +223,7 @@ public class TourService extends GenericFilterService<Tour> {
         validateTourDates(tour.getStartDate(), tour.getEndDate());
         validateCapacity(tour);
         validateTransportationAvailability(tour, null);
-        double base = tour.getBasePrice() != null ? tour.getBasePrice() : 0.0;
-        double discount = tour.getDiscountPrice() != null ? tour.getDiscountPrice() : 0.0;
-        tour.setTotalPrice(base - discount);
+        tour.setTotalPrice(tour.getBasePrice());
         tour.setStatus(GenericStatus.PENDING);
 
         Tour savedTour = tourRepository.save(tour);
@@ -346,7 +404,7 @@ public class TourService extends GenericFilterService<Tour> {
                 throw new WorkflowException("Cancellation denied: Booked seats exceed 1/3 of total capacity.");
             }
 
-            // Wipe available slots to prevent further bookings
+            cancelAffectedReservations(tour);
             tour.setAvailableSlots(0);
         }
 
@@ -372,6 +430,38 @@ public class TourService extends GenericFilterService<Tour> {
 
         tour.setStatus(newStatus);
         return tourRepository.save(tour);
+    }
+
+    private void cancelAffectedReservations(Tour tour) {
+        List<TourReservation> reservations = reservationRepository.findByTour_IdAndStatusIn(
+                tour.getId(), List.of(GenericStatus.PENDING, GenericStatus.APPROVED, GenericStatus.CONFIRMED));
+
+        for (TourReservation reservation : reservations) {
+            GenericStatus previous = reservation.getStatus();
+            inventoryService.release(tour.getId(), reservation.getRequestedSlots(), reservation.getTickets());
+
+            if (previous == GenericStatus.CONFIRMED) {
+                BigDecimal refund = Objects.requireNonNullElse(reservation.getTotalPrice(), BigDecimal.ZERO);
+                if (refund.signum() > 0) {
+                    Account account = accountService.getAccountByUserId(reservation.getUser().getId());
+                    transactionService.creditAccount(account, refund, TransactionType.REFUND,
+                            "Full refund because the tour was cancelled by the agency", reservation);
+                }
+            }
+
+            reservation.getTickets().forEach(ticket -> {
+                ticket.setTicketStatus(TicketStatus.CANCELLED);
+                ticket.setApprovalStatus(GenericStatus.CANCELLED);
+            });
+            reservation.setStatus(GenericStatus.CANCELLED);
+            reservation.setHoldExpiresAt(null);
+            reservationRepository.save(reservation);
+
+            notificationService.sendNotification(reservation.getUser(), "Tour Cancelled",
+                    "The tour '" + tour.getTitle() + "' was cancelled. Any paid amount was returned to your wallet.",
+                    com.server.server.enums.Notification.NotificationType.CANCELLATION_ALERT,
+                    reservation.getId(), ReferenceType.RESERVATION);
+        }
     }
 
     @Transactional

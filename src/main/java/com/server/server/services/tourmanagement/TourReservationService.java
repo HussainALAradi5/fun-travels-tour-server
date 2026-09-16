@@ -429,7 +429,23 @@ public class TourReservationService extends GenericFilterService<TourReservation
             return cancelReservation(id);
         }
         TourReservation res = getById(id);
-        DomainWorkflowValidator.validateReservation(res.getStatus(), newStatus);
+        DomainWorkflowValidator.validateReservationAdministrativeTransition(res.getStatus(), newStatus);
+
+        if (newStatus == GenericStatus.REJECTED) {
+            inventoryService.release(res.getTour().getId(), res.getRequestedSlots(), res.getTickets());
+            res.getTickets().forEach(ticket -> {
+                ticket.setTicketStatus(TicketStatus.CANCELLED);
+                ticket.setApprovalStatus(GenericStatus.REJECTED);
+            });
+            res.setHoldExpiresAt(null);
+        } else if (newStatus == GenericStatus.COMPLETED) {
+            res.getTickets().forEach(ticket -> {
+                if (ticket.getTicketStatus() != TicketStatus.CANCELLED) {
+                    ticket.setTicketStatus(TicketStatus.COMPLETED);
+                    ticket.setApprovalStatus(GenericStatus.COMPLETED);
+                }
+            });
+        }
         res.setStatus(newStatus);
         return repository.save(res);
     }

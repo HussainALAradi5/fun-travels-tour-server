@@ -64,9 +64,9 @@ public class PaymentService extends GenericFilterService<Payment> {
             payment.setStatus(PaymentStatus.COMPLETED);
             payment.setPaymentDate(LocalDateTime.now());
         } else if (method == PaymentMethod.CREDIT_CARD || method == PaymentMethod.PAYPAL) {
-            // Deterministic demo provider. Replace with a signed provider webhook in production.
-            payment.setStatus(PaymentStatus.COMPLETED);
-            payment.setPaymentDate(LocalDateTime.now());
+            // External providers are asynchronous. Only a verified, signed webhook may
+            // transition this payment to COMPLETED.
+            payment.setStatus(PaymentStatus.PENDING);
         } else {
             payment.setStatus(PaymentStatus.PENDING);
         }

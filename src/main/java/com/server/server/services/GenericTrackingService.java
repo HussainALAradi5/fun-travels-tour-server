@@ -11,6 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.server.server.enums.Notification.ReferenceType;
 import com.server.server.enums.UserRequest.UserRequestStatus;
+import com.server.server.enums.UserTypeEnum;
+import com.server.server.exceptions.AccessDeniedException;
 import com.server.server.models.GenericComment;
 import com.server.server.models.GenericEventLog;
 import com.server.server.models.User;
@@ -33,6 +35,25 @@ public class GenericTrackingService {
 
     // Inject the UserRequestRepository to check statuses
     private final UserRequestRepository userRequestRepository;
+    private final UserService userService;
+
+    private void validateContent(String content) {
+        if (content == null || content.isBlank()) {
+            throw new IllegalArgumentException("Comment content is required.");
+        }
+    }
+
+    private void validateReferenceAccess(@NonNull Integer refId, ReferenceType refType) {
+        if (refType != ReferenceType.USER_REQUEST) return;
+        UserRequest request = userRequestRepository.findById(refId)
+                .orElseThrow(() -> new RuntimeException("Reference request not found"));
+        User currentUser = userService.getCurrentUser();
+        if (currentUser.getUserType() != UserTypeEnum.ADMIN
+                && currentUser.getUserType() != UserTypeEnum.SUPPORT_AGENT
+                && !request.getUser().getId().equals(currentUser.getId())) {
+            throw new AccessDeniedException("You are not allowed to access this request timeline.");
+        }
+    }
 
     // --- VALIDATION LOGIC ---
     private void validateReferenceState(@NonNull Integer refId, ReferenceType refType) {
@@ -52,6 +73,7 @@ public class GenericTrackingService {
     // --- TIMELINE FETCHING ---
     public Map<String, Object> getTimelineMap(@NonNull Integer refId, ReferenceType refType) {
         Objects.requireNonNull(refId, "refId must not be null");
+        validateReferenceAccess(refId, refType);
         Map<String, Object> timelineData = new HashMap<>();
         timelineData.put("events", getEvents(refId, refType));
         timelineData.put("comments", getComments(refId, refType));
@@ -60,15 +82,14 @@ public class GenericTrackingService {
 
     // --- COMMENTS ---
     @Transactional
-    public GenericComment addComment(@NonNull Integer refId, ReferenceType refType, String content,
-            @NonNull Integer authorId) {
+    public GenericComment addComment(@NonNull Integer refId, ReferenceType refType, String content) {
         Objects.requireNonNull(refId, "refId must not be null");
-        Objects.requireNonNull(authorId, "authorId must not be null");
+        validateContent(content);
+        validateReferenceAccess(refId, refType);
         // Enforce state rule before saving
         validateReferenceState(refId, refType);
 
-        User author = userRepository.findById(authorId)
-                .orElseThrow(() -> new RuntimeException("Author not found"));
+        User author = userService.getCurrentUser();
 
         GenericComment comment = GenericComment.builder()
                 .referenceId(refId).referenceType(refType)
@@ -78,22 +99,22 @@ public class GenericTrackingService {
     }
 
     @Transactional
-    public GenericComment updateComment(@NonNull Integer commentId, @NonNull Integer editorId, String newContent) {
+    public GenericComment updateComment(@NonNull Integer commentId, String newContent) {
         Objects.requireNonNull(commentId, "commentId must not be null");
-        Objects.requireNonNull(editorId, "editorId must not be null");
+        validateContent(newContent);
         GenericComment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new RuntimeException("Comment not found"));
 
         // Enforce state rule before updating using the comment's stored ref details
         validateReferenceState(comment.getReferenceId(), comment.getReferenceType());
+        validateReferenceAccess(comment.getReferenceId(), comment.getReferenceType());
+
+        User editor = userService.getCurrentUser();
 
         // Security Check: Only the original author can edit their comment
-        if (!comment.getAuthor().getId().equals(editorId)) {
+        if (!comment.getAuthor().getId().equals(editor.getId())) {
             throw new RuntimeException("Unauthorized: Only the author can edit this comment");
         }
-
-        User editor = userRepository.findById(editorId)
-                .orElseThrow(() -> new RuntimeException("Editor not found"));
 
         comment.setContent(newContent);
         comment.setUpdatedBy(editor);

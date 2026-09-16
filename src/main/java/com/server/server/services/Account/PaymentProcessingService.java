@@ -52,11 +52,12 @@ public class PaymentProcessingService {
                     .method(chosenMethod)
                     .transactionId(externalTransactionId)
                     .amount(amountDue)
-                    .status(PaymentStatus.COMPLETED)
+                    .status(PaymentStatus.PENDING)
                     .reservation(reservation)
                     .build();
             paymentRepository.save(payment);
-            isPaid = true;
+            // A client-supplied provider reference is not proof of payment. A signed
+            // provider webhook must complete the payment and booking.
         }
         // SCENARIO 3: Bank Transfer / Cash
         else if (chosenMethod == PaymentMethod.BANK_TRANSFER || chosenMethod == PaymentMethod.CASH_AT_OFFICE) {
