@@ -6,5 +6,6 @@ public enum UserTypeEnum {
     EMPLOYEE,
     OWNER,
     CUSTOMER,
-    SUPPORT_AGENT
+    SUPPORT_AGENT,
+    DEVELOPER
 }

@@ -3,6 +3,7 @@ package com.server.server.models.tourmanagement;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.server.server.enums.GenericStatus;
 import com.server.server.models.agency.Agency;
+import com.server.server.enums.tourmanagement.SpiceLevel;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -46,6 +47,10 @@ public class MealPlan {
     private boolean isVegetarian = false;
     private boolean isVegan = false;
     private boolean isGlutenFree = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "spice_level", nullable = false)
+    private SpiceLevel spiceLevel = SpiceLevel.NONE;
 
     @Enumerated(EnumType.STRING)
     @NotNull(message = "Status is required")

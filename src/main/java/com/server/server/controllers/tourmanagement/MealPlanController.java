@@ -16,9 +16,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.server.server.dto.tour.MealPlanResponse;
+import com.server.server.dto.tour.MealPlanCreateRequest;
 import com.server.server.dto.PageResponse;
 import com.server.server.enums.GenericStatus;
-import com.server.server.models.tourmanagement.MealPlan;
 import com.server.server.services.tourmanagement.MealPlanService;
 import com.server.server.utilities.ApiResponse;
 import com.server.server.utilities.ModelMapper;
@@ -49,8 +49,8 @@ public class MealPlanController {
 
     @PostMapping
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
-    public ResponseEntity<ApiResponse<MealPlanResponse>> defineMeal(@Valid @RequestBody MealPlan mealPlan) {
-        return ResponseEntity.ok(ApiResponse.ok("Meal added!", modelMapper.toMealPlanResponse(service.createMeal(mealPlan))));
+    public ResponseEntity<ApiResponse<MealPlanResponse>> defineMeal(@Valid @RequestBody MealPlanCreateRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok("Meal added!", modelMapper.toMealPlanResponse(service.createMeal(request))));
     }
 
     @PatchMapping("/{id}/status")

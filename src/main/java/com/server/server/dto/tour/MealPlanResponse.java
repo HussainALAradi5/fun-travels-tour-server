@@ -1,6 +1,9 @@
 package com.server.server.dto.tour;
 
 import com.server.server.enums.GenericStatus;
+import com.server.server.enums.tourmanagement.MealDietaryType;
+import com.server.server.enums.tourmanagement.SpiceLevel;
+import java.util.Set;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -14,8 +17,7 @@ public class MealPlanResponse {
     private String mealName;
     private Double mealPrice;
     private String mealDescription;
-    private boolean isVegetarian;
-    private boolean isVegan;
-    private boolean isGlutenFree;
+    private Set<MealDietaryType> dietaryTypes;
+    private SpiceLevel spiceLevel;
     private GenericStatus status;
 }

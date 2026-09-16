@@ -13,6 +13,9 @@ import com.server.server.enums.GenericStatus;
 import com.server.server.models.tourmanagement.MealPlan;
 import com.server.server.repositories.tourmanagement.MealPlanRepository;
 import com.server.server.dto.PageResponse;
+import com.server.server.dto.tour.MealPlanCreateRequest;
+import com.server.server.enums.tourmanagement.MealDietaryType;
+import com.server.server.enums.tourmanagement.SpiceLevel;
 import com.server.server.utilities.PaginationUtils;
 import java.util.Set;
 
@@ -44,8 +47,23 @@ public class MealPlanService {
 
     @Transactional
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'OWNER')")
-    public MealPlan createMeal(MealPlan meal) {
-        if (meal.getMealPrice() < 0) throw new IllegalArgumentException("Meal price cannot be negative.");
+    public MealPlan createMeal(MealPlanCreateRequest request) {
+        Set<MealDietaryType> types = request.getDietaryTypes() == null || request.getDietaryTypes().isEmpty()
+                ? Set.of(MealDietaryType.STANDARD)
+                : new java.util.HashSet<>(request.getDietaryTypes());
+        if (types.contains(MealDietaryType.STANDARD) && types.size() > 1) {
+            throw new IllegalArgumentException("Standard cannot be combined with another dietary classification.");
+        }
+        if (types.contains(MealDietaryType.VEGAN)) types.add(MealDietaryType.VEGETARIAN);
+
+        MealPlan meal = new MealPlan();
+        meal.setMealName(request.getMealName().trim());
+        meal.setMealPrice(request.getMealPrice());
+        meal.setMealDescription(request.getMealDescription());
+        meal.setVegetarian(types.contains(MealDietaryType.VEGETARIAN));
+        meal.setVegan(types.contains(MealDietaryType.VEGAN));
+        meal.setGlutenFree(types.contains(MealDietaryType.GLUTEN_FREE));
+        meal.setSpiceLevel(Objects.requireNonNullElse(request.getSpiceLevel(), SpiceLevel.NONE));
         meal.setStatus(GenericStatus.ACTIVE);
         return repository.save(meal);
     }

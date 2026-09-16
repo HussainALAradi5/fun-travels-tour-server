@@ -197,8 +197,14 @@ public class TourMapper {
 
     public MealPlanResponse toMealPlanResponse(MealPlan mp) {
         if (mp == null) return null;
+        java.util.Set<com.server.server.enums.tourmanagement.MealDietaryType> types =
+                new java.util.LinkedHashSet<>();
+        if (mp.isVegetarian()) types.add(com.server.server.enums.tourmanagement.MealDietaryType.VEGETARIAN);
+        if (mp.isVegan()) types.add(com.server.server.enums.tourmanagement.MealDietaryType.VEGAN);
+        if (mp.isGlutenFree()) types.add(com.server.server.enums.tourmanagement.MealDietaryType.GLUTEN_FREE);
+        if (types.isEmpty()) types.add(com.server.server.enums.tourmanagement.MealDietaryType.STANDARD);
         return new MealPlanResponse(mp.getId(), mp.getMealName(), mp.getMealPrice(),
-                mp.getMealDescription(), mp.isVegetarian(), mp.isVegan(), mp.isGlutenFree(), mp.getStatus());
+                mp.getMealDescription(), types, mp.getSpiceLevel(), mp.getStatus());
     }
 
     public List<MealPlanResponse> toMealPlanResponseList(List<MealPlan> meals) {
