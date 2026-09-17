@@ -57,3 +57,4 @@ FunTravelsTour.insomnia_export.json
 FunTravelsTour.postman_collection.json
 FunTravelsTour.postman_environment.json
 server.log
+src/main/resources/application.properties.txt
