@@ -20,6 +20,8 @@ public record AppProperties(
         @NotEmpty List<String> corsAllowedOrigins,
         @DefaultValue("./uploads") @NotBlank String uploadDir,
         @DefaultValue("2097152") @Positive long maxImageBytes,
+        /** Private folder for generated files (reports); never served statically. */
+        @DefaultValue("./media") @NotBlank String mediaDir,
         @DefaultValue @Valid Seed seed) {
 
     /** Development seed: one user per role. Never runs under the prod profile. */

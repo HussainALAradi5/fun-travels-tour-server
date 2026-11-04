@@ -23,6 +23,11 @@ public final class RoleGroups {
     /** Roles a manager may create inside their own agency. */
     public static final Set<UserTypeEnum> MANAGER_CREATABLE = EnumSet.of(UserTypeEnum.EMPLOYEE);
 
+    /** Staff who may export agency and fleet reports (agency staff only see their own agency). */
+    public static final Set<UserTypeEnum> REPORT_STAFF = EnumSet.of(
+            UserTypeEnum.ADMIN, UserTypeEnum.OWNER, UserTypeEnum.MANAGER, UserTypeEnum.EMPLOYEE);
+    /** Roles that may export the user directory, matching {@code GET /api/users}. */
+    public static final Set<UserTypeEnum> USER_REPORT = EnumSet.of(UserTypeEnum.ADMIN, UserTypeEnum.MANAGER);
     /** Roles accepted from the employee bulk import file. */
     public static final Set<UserTypeEnum> IMPORTABLE = EnumSet.of(
             UserTypeEnum.MANAGER, UserTypeEnum.EMPLOYEE);

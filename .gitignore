@@ -62,3 +62,6 @@ src/main/resources/application.properties.txt
 ### Local-only files ###
 .m2/
 seed-credentials.local.txt
+
+# Generated reports (private media)
+media

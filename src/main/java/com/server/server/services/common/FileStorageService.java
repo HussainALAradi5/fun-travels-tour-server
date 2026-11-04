@@ -12,7 +12,10 @@ import com.server.server.config.properties.AppProperties;
 
 import lombok.RequiredArgsConstructor;
 
-/** Stores validated uploads under {@code app.upload-dir}. Only JPEG and PNG images are accepted. */
+/**
+ * Stores files. Profile images go to the public {@code app.upload-dir} (JPEG and PNG only); private files
+ * such as reports go to {@code app.media-dir}, which is only reachable through access-checked endpoints.
+ */
 @Service
 @RequiredArgsConstructor
 public class FileStorageService {
@@ -65,6 +68,43 @@ public class FileStorageService {
         } catch (IOException e) {
             // A leftover file is harmless; the profile already points at the new image.
         }
+    }
+
+    /** Writes a private file (relative to {@code app.media-dir}); private files are never served statically. */
+    public void writePrivate(String relativePath, byte[] content) {
+        Path file = privatePath(relativePath);
+        try {
+            Files.createDirectories(file.getParent());
+            Files.write(file, content);
+        } catch (IOException e) {
+            throw new IllegalStateException("Could not save the file.", e);
+        }
+    }
+
+    public byte[] readPrivate(String relativePath) {
+        try {
+            return Files.readAllBytes(privatePath(relativePath));
+        } catch (IOException e) {
+            throw new IllegalStateException("The stored file is missing.", e);
+        }
+    }
+
+    public void deletePrivate(String relativePath) {
+        try {
+            Files.deleteIfExists(privatePath(relativePath));
+        } catch (IOException e) {
+            // The record is removed either way; a leftover file is cleaned up with the folder.
+        }
+    }
+
+    /** Resolves a path inside the media folder and rejects anything that would leave it. */
+    private Path privatePath(String relativePath) {
+        Path root = Paths.get(appProperties.mediaDir()).toAbsolutePath().normalize();
+        Path file = root.resolve(relativePath).normalize();
+        if (!file.startsWith(root) || file.equals(root)) {
+            throw new IllegalArgumentException("Invalid file path.");
+        }
+        return file;
     }
 
     private Path profileFolder() {
