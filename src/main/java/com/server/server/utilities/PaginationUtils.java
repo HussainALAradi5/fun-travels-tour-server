@@ -7,8 +7,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
-import com.server.server.dto.filter.GenericFilterRequest;
-
+import com.server.server.dto.common.GenericFilterRequest;
 public final class PaginationUtils {
     public static final int DEFAULT_PAGE = 0;
     public static final int DEFAULT_SIZE = 20;

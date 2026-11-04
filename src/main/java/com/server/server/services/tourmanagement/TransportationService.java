@@ -1,5 +1,11 @@
 package com.server.server.services.tourmanagement;
 
+import com.server.server.dto.tourmanagement.TransportationUpdateRequest;
+
+import com.server.server.exceptions.DuplicateResourceException;
+
+import com.server.server.services.auth.AccessPolicyService;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -9,22 +15,21 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
-import org.springframework.beans.BeanUtils;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.server.server.enums.GenericStatus;
+import com.server.server.enums.common.GenericStatus;
 import com.server.server.enums.tourmanagement.TransportationStatus;
 import com.server.server.enums.tourmanagement.TransportationType;
-import com.server.server.dto.filter.TransportationFilterRequest;
-import com.server.server.dto.importing.ImportResult;
-import com.server.server.dto.tour.TransportationCreateRequest;
-import com.server.server.dto.PageResponse;
+import com.server.server.dto.tourmanagement.TransportationFilterRequest;
+import com.server.server.dto.common.ImportResult;
+import com.server.server.dto.tourmanagement.TransportationCreateRequest;
+import com.server.server.dto.common.PageResponse;
 import com.server.server.utilities.PaginationUtils;
-import com.server.server.utilities.ExcelImportUtils;
+import com.server.server.services.common.ExcelImportService;
 import java.util.Set;
 import com.server.server.exceptions.WorkflowException;
 import com.server.server.exceptions.ResourceNotFoundException;
@@ -35,7 +40,6 @@ import com.server.server.models.tourmanagement.Transportation;
 import com.server.server.repositories.agency.AgencyRepository;
 import com.server.server.repositories.agency.AgencyBranchRepository;
 import com.server.server.repositories.tourmanagement.TransportationRepository;
-
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -44,6 +48,9 @@ public class TransportationService {
     private final TransportationRepository repository;
     private final AgencyRepository agencyRepository;
     private final AgencyBranchRepository branchRepository;
+    private final ExcelImportService excelImportService;
+    private final AccessPolicyService accessPolicy;
+    private final InventoryService inventoryService;
 
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'OWNER')")
@@ -81,7 +88,7 @@ public class TransportationService {
     }
 
     public ImportResult importExcel(InputStream input) throws IOException {
-        List<Map<String, String>> rows = ExcelImportUtils.readRows(input);
+        List<Map<String, String>> rows = excelImportService.readRowsByHeader(input);
         List<String> errors = new ArrayList<>();
         int imported = 0;
         for (Map<String, String> row : rows) {
@@ -89,15 +96,17 @@ public class TransportationService {
                 create(toRequest(row));
                 imported++;
             } catch (RuntimeException exception) {
-                errors.add("Row " + row.get("_row") + ": " + exception.getMessage());
+                errors.add("Row " + row.get(ExcelImportService.ROW_NUMBER_KEY) + ": " + exception.getMessage());
             }
         }
         return new ImportResult(imported, errors.size(), errors);
     }
 
     private Transportation toEntity(TransportationCreateRequest request) {
-        Agency agency = agencyRepository.findById(request.getAgencyId())
-                .orElseThrow(() -> new ResourceNotFoundException("Agency", request.getAgencyId()));
+        Integer scope = AccessPolicyService.agencyScope(accessPolicy.requireCurrentUser());
+        Integer agencyId = scope != null ? scope : request.getAgencyId();
+        Agency agency = agencyRepository.findById(agencyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Agency", agencyId));
         AgencyBranch branch = null;
         if (request.getBranchId() != null) {
             branch = branchRepository.findById(request.getBranchId())
@@ -224,14 +233,24 @@ public class TransportationService {
     }
     @Transactional
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'OWNER')")
-    public Transportation update(@NonNull Integer id, Transportation incomingData) {
+    public Transportation update(@NonNull Integer id, TransportationUpdateRequest incomingData) {
         Objects.requireNonNull(id, "id must not be null");
         Transportation existing = getById(id);
-
-        // Efficient update ignoring managed relationships and status fields
-        BeanUtils.copyProperties(incomingData, existing,
-                "id", "status", "unitStatus", "seats", "remainingSeats", "calculatedAvailable",
-                "agency", "agencyBranch", "tours");
+        accessPolicy.requireAgencyAccess(accessPolicy.requireCurrentUser(), existing.getAgency());
+        // Capacity follows the seat layout and the code is permanent, so neither is copied.
+        if (incomingData.getTransportationNumber() != null && !incomingData.getTransportationNumber().isBlank()) {
+            existing.setTransportationNumber(incomingData.getTransportationNumber().trim());
+        }
+        if (incomingData.getProviderName() != null && !incomingData.getProviderName().isBlank()) {
+            existing.setProviderName(incomingData.getProviderName().trim());
+        }
+        if (incomingData.getType() != null) {
+            existing.setType(incomingData.getType());
+        }
+        if (repository.existsByProviderNameAndTransportationNumberAndIdNot(
+                existing.getProviderName(), existing.getTransportationNumber(), existing.getId())) {
+            throw new DuplicateResourceException("This registration already exists for the selected provider.");
+        }
 
         if (incomingData.getSeatConfig() != null) {
             applySeatLayout(existing, incomingData.getSeatConfig());
@@ -247,11 +266,9 @@ public class TransportationService {
             return;
         }
 
-        boolean hasUnavailableSeats = seats.stream()
-                .anyMatch(seat -> seat.getStatus() != com.server.server.enums.tourmanagement.SeatStatus.AVAILABLE);
-        if (hasUnavailableSeats) {
-            throw new WorkflowException(
-                    "Seat layout cannot be changed while seats are reserved, booked, or under maintenance.");
+        if (seats.stream().anyMatch(seat -> inventoryService.isSeatInUse(seat.getId()))) {
+            throw new WorkflowException("SEAT_LAYOUT_LOCKED",
+                    "Seat layout cannot be changed while seats are held by active tickets.");
         }
 
         if (transportation.getTours() != null && transportation.getTours().stream()
@@ -299,10 +316,11 @@ public class TransportationService {
     }
 
     @Transactional
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'OWNER')")
     public Transportation updateStatus(@NonNull Integer id, TransportationStatus newUnitStatus) {
         Objects.requireNonNull(id, "id must not be null");
         Transportation transport = getById(id);
+        accessPolicy.requireAgencyAccess(accessPolicy.requireCurrentUser(), transport.getAgency());
         validateStatusTransition(transport.getUnitStatus(), newUnitStatus);
         transport.setUnitStatus(newUnitStatus);
         return repository.save(transport);

@@ -1,7 +1,6 @@
 package com.server.server.dto.support;
 
-import com.server.server.enums.UserRequest.UserRequestType;
-
+import com.server.server.enums.support.UserRequestType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;

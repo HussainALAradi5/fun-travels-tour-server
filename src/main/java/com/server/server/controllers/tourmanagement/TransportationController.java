@@ -1,5 +1,7 @@
 package com.server.server.controllers.tourmanagement;
 
+import com.server.server.dto.tourmanagement.TransportationUpdateRequest;
+
 import java.io.IOException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,19 +20,15 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.server.server.dto.tour.TransportationResponse;
-import com.server.server.dto.PageResponse;
-import com.server.server.dto.filter.TransportationFilterRequest;
-import com.server.server.dto.importing.ImportResult;
-import com.server.server.dto.tour.TransportationCreateRequest;
-import com.server.server.enums.GenericStatus;
+import com.server.server.dto.tourmanagement.TransportationResponse;
+import com.server.server.dto.common.PageResponse;
+import com.server.server.dto.tourmanagement.TransportationFilterRequest;
+import com.server.server.dto.common.ImportResult;
+import com.server.server.dto.tourmanagement.TransportationCreateRequest;
 import com.server.server.enums.tourmanagement.TransportationStatus;
-import com.server.server.enums.tourmanagement.TransportationType;
-import com.server.server.models.tourmanagement.Transportation;
 import com.server.server.services.tourmanagement.TransportationService;
 import com.server.server.utilities.ApiResponse;
 import com.server.server.utilities.ModelMapper;
-
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -81,8 +79,8 @@ public class TransportationController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
-    public ResponseEntity<ApiResponse<TransportationResponse>> update(@NonNull @PathVariable Integer id, @Valid @RequestBody Transportation transportation) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTransportationResponse(service.update(id, transportation))));
+    public ResponseEntity<ApiResponse<TransportationResponse>> update(@NonNull @PathVariable Integer id, @Valid @RequestBody TransportationUpdateRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTransportationResponse(service.update(id, request))));
     }
 
     @PatchMapping("/{id}/status")

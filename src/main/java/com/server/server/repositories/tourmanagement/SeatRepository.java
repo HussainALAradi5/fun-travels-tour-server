@@ -10,32 +10,15 @@ import java.util.Optional;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.repository.query.Param;
 
-import com.server.server.enums.tourmanagement.ChairType;
 import com.server.server.enums.tourmanagement.SeatStatus;
 import com.server.server.models.tourmanagement.Seat;
-
 public interface SeatRepository extends JpaRepository<Seat, Integer>, JpaSpecificationExecutor<Seat> {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT s FROM Seat s WHERE s.id = :id")
     Optional<Seat> findByIdWithLock(@Param("id") Integer id);
 
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT s FROM Seat s WHERE s.transportation.id = :transportationId " +
-            "AND s.status = com.server.server.enums.tourmanagement.SeatStatus.AVAILABLE " +
-            "ORDER BY s.id")
-    List<Seat> findAvailableByTransportationIdWithLock(
-            @Param("transportationId") Integer transportationId);
+    List<Seat> findByTransportation_IdAndStatusNotOrderByIdAsc(Integer transportationId, SeatStatus status);
 
-    long countByTransportation_IdAndStatus(Integer transportationId, SeatStatus status);
-
-    @Query("SELECT s FROM Seat s WHERE s.transportation.id = :transportId " +
-            "AND (:keyword IS NULL OR :keyword = '' OR LOWER(s.seatCode) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
-            "AND (:status IS NULL OR s.status = :status) " +
-            "AND (:chairType IS NULL OR s.chairType = :chairType)")
-    List<Seat> filterAndSearch(
-            @Param("transportId") Integer transportId,
-            @Param("keyword") String keyword,
-            @Param("status") SeatStatus status,
-            @Param("chairType") ChairType chairType);
+    List<Seat> findByTransportation_IdOrderByIdAsc(Integer transportationId);
 }

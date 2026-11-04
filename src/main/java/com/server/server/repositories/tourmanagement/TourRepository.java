@@ -16,9 +16,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.beust.jcommander.internal.Nullable;
-import com.server.server.enums.GenericStatus;
+import com.server.server.enums.common.GenericStatus;
 import com.server.server.models.tourmanagement.Tour;
-
 import jakarta.persistence.LockModeType;
 
 public interface TourRepository extends JpaRepository<Tour, Integer>, JpaSpecificationExecutor<Tour> {
@@ -27,11 +26,7 @@ public interface TourRepository extends JpaRepository<Tour, Integer>, JpaSpecifi
     @Query("SELECT t FROM Tour t WHERE t.id = :id")
     Optional<Tour> findByIdWithLock(@Param("id") Integer id);
 
-    List<Tour> findByStatus(GenericStatus status);
 
-    List<Tour> findByAgency_Id(Integer agencyId);
-
-    List<Tour> findByTransportation_Id(Integer transportationId);
 
     @EntityGraph(attributePaths = {
             "startCountry",
@@ -49,22 +44,10 @@ public interface TourRepository extends JpaRepository<Tour, Integer>, JpaSpecifi
     @Query("SELECT t FROM Tour t WHERE t.id = :id")
     Optional<Tour> findByIdWithDetails(@Param("id") Integer id);
 
-    @Query("SELECT t FROM Tour t LEFT JOIN FETCH t.destinationCountries WHERE t.id = :id")
-    Optional<Tour> findWithDestinations(@Param("id") Integer id);
 
-    @Query("SELECT t FROM Tour t LEFT JOIN FETCH t.tickets WHERE t.id = :id")
-    Optional<Tour> findWithTickets(@Param("id") Integer id);
 
     List<Tour> findByStartDateAndStatus(LocalDate startDate, GenericStatus status);
 
-    @Query("SELECT DISTINCT t FROM Tour t " +
-            "LEFT JOIN FETCH t.startCountry " +
-            "LEFT JOIN FETCH t.endCountry " +
-            "LEFT JOIN FETCH t.startCity " +
-            "LEFT JOIN FETCH t.endCity " +
-            "LEFT JOIN FETCH t.transportation " +
-            "LEFT JOIN FETCH t.destinationCountries")
-    List<Tour> findAllWithDetails();
 
     @Override
     @EntityGraph(attributePaths = {
@@ -102,7 +85,7 @@ public interface TourRepository extends JpaRepository<Tour, Integer>, JpaSpecifi
 
     @Query("SELECT COUNT(t) > 0 FROM Tour t WHERE t.transportation.id = :transportationId " +
             "AND (:excludedTourId IS NULL OR t.id <> :excludedTourId) " +
-            "AND t.status <> com.server.server.enums.GenericStatus.CANCELLED " +
+            "AND t.status <> com.server.server.enums.common.GenericStatus.CANCELLED " +
             "AND t.startDate <= :endDate " +
             "AND COALESCE(t.endDate, t.startDate) >= :startDate")
     boolean hasTransportationConflict(@Param("transportationId") Integer transportationId,

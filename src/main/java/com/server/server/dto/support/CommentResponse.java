@@ -2,8 +2,7 @@ package com.server.server.dto.support;
 
 import java.time.LocalDateTime;
 
-import com.server.server.enums.Notification.ReferenceType;
-
+import com.server.server.enums.notification.ReferenceType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -18,6 +17,8 @@ public class CommentResponse {
     private String content;
     private UserSummary author;
     private LocalDateTime createdAt;
+    /** Set only when the comment was edited after it was posted. */
+    private LocalDateTime updatedAt;
 
     @Data @AllArgsConstructor @NoArgsConstructor
     public static class UserSummary {

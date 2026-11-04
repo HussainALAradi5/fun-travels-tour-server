@@ -1,52 +1,64 @@
 package com.server.server.services.tourmanagement;
 
-import java.math.BigDecimal;
+import com.server.server.models.tourmanagement.Transportation;
+
+import com.server.server.models.geography.City;
+
+import com.server.server.models.geography.Country;
+
+import com.server.server.dto.common.EntityReference;
+
+import com.server.server.dto.tourmanagement.TourUpdateRequest;
+
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 
-import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.server.server.enums.GenericStatus;
-import com.server.server.enums.TransactionType;
+import com.server.server.enums.common.GenericStatus;
+import com.server.server.enums.payment.TransactionType;
 import com.server.server.enums.tourmanagement.TicketStatus;
-import com.server.server.dto.filter.TourFilterRequest;
-import com.server.server.dto.tour.TourCreateRequest;
-import com.server.server.dto.PageResponse;
-import com.server.server.services.filter.GenericFilterService;
+import com.server.server.dto.tourmanagement.TourFilterRequest;
+import com.server.server.dto.tourmanagement.TourCreateRequest;
+import com.server.server.dto.common.PageResponse;
+import com.server.server.services.common.GenericFilterService;
 import java.util.Set;
 import java.util.Map;
-import com.server.server.enums.Notification.ReferenceType;
-import com.server.server.enums.UserTypeEnum;
+import com.server.server.enums.notification.NotificationType;
+import com.server.server.enums.notification.ReferenceType;
+import com.server.server.enums.user.UserTypeEnum;
 import com.server.server.exceptions.WorkflowException;
-import com.server.server.models.User;
-import com.server.server.models.Account;
+import com.server.server.models.user.User;
 import com.server.server.models.tourmanagement.Ticket;
 import com.server.server.models.tourmanagement.Tour;
 import com.server.server.models.tourmanagement.TourReservation;
 import com.server.server.repositories.tourmanagement.TourRepository;
 import com.server.server.repositories.tourmanagement.TourReservationRepository;
-import com.server.server.repositories.CountryRepository;
-import com.server.server.repositories.CityRepository;
+import com.server.server.repositories.geography.CountryRepository;
+import com.server.server.repositories.geography.CityRepository;
 import com.server.server.repositories.tourmanagement.MealPlanRepository;
-import com.server.server.services.Account.AccountService;
-import com.server.server.services.GenericTrackingService;
-import com.server.server.services.NotificationService;
-import com.server.server.services.SystemSchedulingService;
-import com.server.server.services.UserService;
-import com.server.server.services.TransactionService;
+import com.server.server.services.support.GenericTrackingService;
+import com.server.server.services.notification.NotificationService;
+import com.server.server.services.common.SystemSchedulingService;
 import com.server.server.utilities.DomainWorkflowValidator;
 import com.server.server.utilities.PaginationUtils;
 import com.server.server.utilities.FilterUtils;
-
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
+import com.server.server.constants.BookingRules;
+import com.server.server.services.auth.AccessPolicyService;
+import com.server.server.exceptions.AccessDeniedException;
+
+import com.server.server.models.tourmanagement.MealPlan;
+import com.server.server.models.agency.Agency;
+import com.server.server.repositories.tourmanagement.TicketRepository;
+import com.server.server.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -56,17 +68,16 @@ import lombok.extern.slf4j.Slf4j;
 public class TourService extends GenericFilterService<Tour> {
     private final TourRepository tourRepository;
     private final TransportationService transportationService;
-    private final UserService userService;
+    private final AccessPolicyService accessPolicy;
+    private final BookingLifecycleService bookingLifecycleService;
     private final GenericTrackingService trackingService;
     private final SystemSchedulingService schedulingService;
     private final NotificationService notificationService;
     private final TourReservationRepository reservationRepository;
-    private final InventoryService inventoryService;
-    private final AccountService accountService;
-    private final TransactionService transactionService;
     private final CountryRepository countryRepository;
     private final CityRepository cityRepository;
     private final MealPlanRepository mealPlanRepository;
+    private final TicketRepository ticketRepository;
 
     @PostConstruct
     public void init() {
@@ -167,7 +178,7 @@ public class TourService extends GenericFilterService<Tour> {
     @Transactional
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'OWNER')")
     public Tour create(TourCreateRequest request) {
-        User currentUser = userService.getCurrentUser();
+        User currentUser = accessPolicy.currentUserOrNull();
         Tour tour = new Tour();
         tour.setTourNumber(request.getTourNumber().trim());
         tour.setTitle(request.getTitle().trim());
@@ -196,9 +207,6 @@ public class TourService extends GenericFilterService<Tour> {
         if (request.getDestinationCountryIds() != null) {
             tour.getDestinationCountries().addAll(countryRepository.findAllById(request.getDestinationCountryIds()));
         }
-        if (request.getMealPlanIds() != null) {
-            tour.getAvailableMeals().addAll(mealPlanRepository.findAllById(request.getMealPlanIds()));
-        }
         if (request.getTransportationId() != null) {
             tour.setTransportation(transportationService.getById(request.getTransportationId()));
             tour.setHasTransportation(true);
@@ -220,6 +228,9 @@ public class TourService extends GenericFilterService<Tour> {
             tour.setTransportation(transportationService.getById(tour.getTransportation().getId()));
         }
 
+        if (request.getMealPlanIds() != null) {
+            tour.getAvailableMeals().addAll(bookableMeals(request.getMealPlanIds(), tour.getAgency()));
+        }
         validateTourDates(tour.getStartDate(), tour.getEndDate());
         validateCapacity(tour);
         validateTransportationAvailability(tour, null);
@@ -241,92 +252,75 @@ public class TourService extends GenericFilterService<Tour> {
 
     @Transactional
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'OWNER')")
-    public Tour updateTour(@NonNull Integer id, Tour incomingData) {
-        Objects.requireNonNull(id, "id must not be null");
+    public Tour updateTour(@NonNull Integer id, TourUpdateRequest request) {
         Tour existing = getById(id);
-        User currentUser = userService.getCurrentUser();
-        boolean canEdit = false;
-        if (currentUser.getUserType() == UserTypeEnum.ADMIN) {
-            canEdit = true;
-        } else if (existing.getCreatedBy() != null && existing.getCreatedBy().getId().equals(currentUser.getId())) {
-            canEdit = true;
-        } else if (currentUser.getUserType() == UserTypeEnum.MANAGER &&
-                existing.getAgencyBranch() != null &&
-                existing.getAgencyBranch().getId().equals(currentUser.getAgencyBranch().getId())) {
-            canEdit = true;
-        } else if (currentUser.getUserType() == UserTypeEnum.OWNER &&
-                existing.getAgency() != null &&
-                existing.getAgency().getId().equals(currentUser.getAgency().getId())) {
-            canEdit = true;
-        }
-
-        if (!canEdit) {
-            throw new WorkflowException(
-                    "Access Denied: You can only edit tours you created, or tours within your managed branch/agency.");
-        }
-
+        User currentUser = accessPolicy.requireCurrentUser();
+        requireCanManage(currentUser, existing);
         if (existing.getStatus() == GenericStatus.COMPLETED) {
             throw new WorkflowException("Cannot modify a completed tour.");
         }
+        if (request.getTitle() != null && !request.getTitle().isBlank()) existing.setTitle(request.getTitle().trim());
+        if (request.getTourNumber() != null && !request.getTourNumber().isBlank()) existing.setTourNumber(request.getTourNumber().trim());
+        if (request.getDescription() != null) existing.setDescription(request.getDescription());
+        if (request.getNumberOfDays() != null) existing.setNumberOfDays(request.getNumberOfDays());
+        boolean datesChanged = (request.getStartDate() != null && !request.getStartDate().equals(existing.getStartDate()))
+                || (request.getEndDate() != null && !request.getEndDate().equals(existing.getEndDate()));
+        if (request.getStartDate() != null) existing.setStartDate(request.getStartDate());
+        if (request.getEndDate() != null) existing.setEndDate(request.getEndDate());
+        if (datesChanged) {
+            // An already-running tour keeps its past start date; only new dates are checked.
+            validateTourDates(existing.getStartDate(), existing.getEndDate());
+        }
 
-        if (incomingData.getTitle() != null)
-            existing.setTitle(incomingData.getTitle());
-        if (incomingData.getTourNumber() != null)
-            existing.setTourNumber(incomingData.getTourNumber());
-        if (incomingData.getDescription() != null)
-            existing.setDescription(incomingData.getDescription());
-        if (incomingData.getStartDate() != null)
-            existing.setStartDate(incomingData.getStartDate());
-        if (incomingData.getEndDate() != null)
-            existing.setEndDate(incomingData.getEndDate());
-        if (incomingData.getNumberOfDays() != null)
-            existing.setNumberOfDays(incomingData.getNumberOfDays());
-
-        LocalDate finalStart = incomingData.getStartDate() != null ? incomingData.getStartDate()
-                : existing.getStartDate();
-        LocalDate finalEnd = incomingData.getEndDate() != null ? incomingData.getEndDate() : existing.getEndDate();
-        validateTourDates(finalStart, finalEnd);
-
-        if (incomingData.getMaxCapacity() != null) {
+        if (request.getMaxCapacity() != null) {
             int bookedOrHeld = existing.getMaxCapacity() - existing.getAvailableSlots();
-            if (incomingData.getMaxCapacity() < bookedOrHeld) {
+            if (request.getMaxCapacity() < bookedOrHeld) {
                 throw new WorkflowException("CAPACITY_BELOW_BOOKINGS",
                         "Capacity cannot be lower than the number of reserved or sold places.");
             }
-            existing.setMaxCapacity(incomingData.getMaxCapacity());
-            existing.setAvailableSlots(incomingData.getMaxCapacity() - bookedOrHeld);
+            existing.setMaxCapacity(request.getMaxCapacity());
+            existing.setAvailableSlots(request.getMaxCapacity() - bookedOrHeld);
+        }
+        if (request.getBasePrice() != null) {
+            existing.setBasePrice(request.getBasePrice());
+            existing.setPrice(request.getBasePrice());
         }
 
-        if (incomingData.getBasePrice() != null) {
-            existing.setBasePrice(incomingData.getBasePrice());
-            existing.setPrice(incomingData.getBasePrice());
+        Country startCountry = findCountry(request.getStartCountry());
+        Country endCountry = findCountry(request.getEndCountry());
+        City startCity = findCity(request.getStartCity());
+        City endCity = findCity(request.getEndCity());
+        if (startCountry != null) existing.setStartCountry(startCountry);
+        if (endCountry != null) existing.setEndCountry(endCountry);
+        if (startCity != null) existing.setStartCity(startCity);
+        if (endCity != null) existing.setEndCity(endCity);
+        if (!Objects.equals(existing.getStartCity().getCountry().getId(), existing.getStartCountry().getId())
+                || !Objects.equals(existing.getEndCity().getCountry().getId(), existing.getEndCountry().getId())) {
+            throw new WorkflowException("A selected city must belong to its selected country.");
         }
 
-        if (incomingData.getStartCountry() != null)
-            existing.setStartCountry(incomingData.getStartCountry());
-        if (incomingData.getEndCountry() != null)
-            existing.setEndCountry(incomingData.getEndCountry());
-        if (incomingData.getStartCity() != null)
-            existing.setStartCity(incomingData.getStartCity());
-        if (incomingData.getEndCity() != null)
-            existing.setEndCity(incomingData.getEndCity());
-
-        if (incomingData.getTransportation() != null && incomingData.getTransportation().getId() != null) {
-            existing.setTransportation(transportationService.getById(incomingData.getTransportation().getId()));
+        Integer transportationId = idOf(request.getTransportation());
+        if (transportationId != null && (existing.getTransportation() == null
+                || !Objects.equals(existing.getTransportation().getId(), transportationId))) {
+            if (ticketRepository.existsByTour_IdAndTicketStatusNot(existing.getId(), TicketStatus.CANCELLED)) {
+                throw new WorkflowException("TRANSPORTATION_LOCKED",
+                        "Transportation cannot change after tickets were issued for this tour.");
+            }
+            Transportation transportation = transportationService.getById(transportationId);
+            accessPolicy.requireAgencyAccess(currentUser, transportation.getAgency());
+            existing.setTransportation(transportation);
             existing.setHasTransportation(true);
         }
-
         validateCapacity(existing);
         validateTransportationAvailability(existing, existing.getId());
 
-        if (incomingData.getDestinationCountries() != null) {
+        if (request.getDestinationCountries() != null) {
             existing.getDestinationCountries().clear();
-            existing.getDestinationCountries().addAll(incomingData.getDestinationCountries());
+            existing.getDestinationCountries().addAll(countryRepository.findAllById(ids(request.getDestinationCountries())));
         }
-
-        if (incomingData.getAvailableMeals() != null) {
+        if (request.getAvailableMeals() != null) {
             existing.getAvailableMeals().clear();
-            existing.getAvailableMeals().addAll(incomingData.getAvailableMeals());
+            existing.getAvailableMeals().addAll(bookableMeals(ids(request.getAvailableMeals()), existing.getAgency()));
         }
 
         double discount = existing.getDiscountPrice() != null ? existing.getDiscountPrice() : 0.0;
@@ -365,10 +359,11 @@ public class TourService extends GenericFilterService<Tour> {
     }
 
     @Transactional
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'OWNER')")
     public Tour updateStatus(@NonNull Integer id, GenericStatus newStatus) {
         Objects.requireNonNull(id, "id must not be null");
         Tour tour = getById(id);
+        requireCanManage(accessPolicy.requireCurrentUser(), tour);
         GenericStatus currentStatus = tour.getStatus();
 
         if (currentStatus == newStatus)
@@ -390,7 +385,7 @@ public class TourService extends GenericFilterService<Tour> {
         // --- NEW: CANCELLATION BUSINESS RULES ---
         if (newStatus == GenericStatus.CANCELLED) {
             // Rule A: Must be at least 14 days away
-            if (tour.getStartDate() != null && tour.getStartDate().isBefore(LocalDate.now().plusDays(14))) {
+            if (tour.getStartDate() != null && tour.getStartDate().isBefore(LocalDate.now().plusDays(BookingRules.TOUR_CANCELLATION_MIN_DAYS))) {
                 throw new WorkflowException("Cancellation denied: Tour is less than 2 weeks away.");
             }
 
@@ -400,7 +395,7 @@ public class TourService extends GenericFilterService<Tour> {
             int avail = tour.getAvailableSlots() != null ? tour.getAvailableSlots() : maxCap;
             int bookedSeats = maxCap - avail;
 
-            if (bookedSeats > (maxCap / 3.0)) {
+            if (bookedSeats > maxCap * BookingRules.TOUR_CANCELLATION_MAX_BOOKED_RATIO) {
                 throw new WorkflowException("Cancellation denied: Booked seats exceed 1/3 of total capacity.");
             }
 
@@ -432,54 +427,81 @@ public class TourService extends GenericFilterService<Tour> {
         return tourRepository.save(tour);
     }
 
+    /** Agency cancellation: every active booking is cancelled and paid tickets are fully refunded. */
     private void cancelAffectedReservations(Tour tour) {
         List<TourReservation> reservations = reservationRepository.findByTour_IdAndStatusIn(
                 tour.getId(), List.of(GenericStatus.PENDING, GenericStatus.APPROVED, GenericStatus.CONFIRMED));
-
         for (TourReservation reservation : reservations) {
-            GenericStatus previous = reservation.getStatus();
-            inventoryService.release(tour.getId(), reservation.getRequestedSlots(), reservation.getTickets());
-
-            if (previous == GenericStatus.CONFIRMED) {
-                BigDecimal refund = Objects.requireNonNullElse(reservation.getTotalPrice(), BigDecimal.ZERO);
-                if (refund.signum() > 0) {
-                    Account account = accountService.getAccountByUserId(reservation.getUser().getId());
-                    transactionService.creditAccount(account, refund, TransactionType.REFUND,
-                            "Full refund because the tour was cancelled by the agency", reservation);
-                }
+            if (reservation.getStatus() == GenericStatus.CONFIRMED) {
+                bookingLifecycleService.refundToWallet(reservation, BookingLifecycleService.activeTotal(reservation),
+                        TransactionType.REFUND, "Full refund because the tour was cancelled by the agency");
             }
-
-            reservation.getTickets().forEach(ticket -> {
-                ticket.setTicketStatus(TicketStatus.CANCELLED);
-                ticket.setApprovalStatus(GenericStatus.CANCELLED);
-            });
+            bookingLifecycleService.releaseAndCancelTickets(reservation, GenericStatus.CANCELLED);
             reservation.setStatus(GenericStatus.CANCELLED);
             reservation.setHoldExpiresAt(null);
             reservationRepository.save(reservation);
-
             notificationService.sendNotification(reservation.getUser(), "Tour Cancelled",
                     "The tour '" + tour.getTitle() + "' was cancelled. Any paid amount was returned to your wallet.",
-                    com.server.server.enums.Notification.NotificationType.CANCELLATION_ALERT,
-                    reservation.getId(), ReferenceType.RESERVATION);
+                    NotificationType.CANCELLATION_ALERT, reservation.getId(), ReferenceType.RESERVATION);
         }
     }
 
-    @Transactional
-    public void restoreInventory(@NonNull Integer tourId, int slotsToRestore) {
-        Objects.requireNonNull(tourId, "tourId must not be null");
-        Tour tour = tourRepository.findByIdWithLock(tourId)
-                .orElseThrow(() -> new IllegalArgumentException("Tour not found"));
+    /**
+     * Admins manage every tour. Agency staff manage tours of their own agency: owners all of them,
+     * managers those of their branch (or without a branch), employees only tours they created.
+     */
+    private static Integer idOf(EntityReference reference) {
+        return reference == null ? null : reference.getId();
+    }
 
-        if (tour.getStatus() == GenericStatus.COMPLETED) {
-            throw new WorkflowException("Tour is completed. Inventory cannot be modified.");
-        }
+    private static List<Integer> ids(List<EntityReference> references) {
+        return references.stream().map(TourService::idOf).filter(Objects::nonNull).distinct().toList();
+    }
 
-        int next = tour.getAvailableSlots() + slotsToRestore;
-        if (next < 0 || next > tour.getMaxCapacity()) {
-            throw new WorkflowException("Inventory must remain between zero and tour capacity.");
+    private Country findCountry(EntityReference reference) {
+        Integer id = idOf(reference);
+        return id == null ? null : countryRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Country", id));
+    }
+
+    private City findCity(EntityReference reference) {
+        Integer id = idOf(reference);
+        return id == null ? null : cityRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("City", id));
+    }
+
+    /** Meals offered on a tour must be active and belong to the tour's agency (or be shared). */
+    private List<MealPlan> bookableMeals(List<Integer> mealIds, Agency agency) {
+        List<MealPlan> meals = mealPlanRepository.findAllById(mealIds);
+        if (meals.size() != new java.util.HashSet<>(mealIds).size()) {
+            throw new ResourceNotFoundException("One or more meal plans were not found.");
         }
-        tour.setAvailableSlots(next);
-        tourRepository.save(tour);
+        for (MealPlan meal : meals) {
+            if (meal.getStatus() != GenericStatus.ACTIVE) {
+                throw new WorkflowException("MEAL_INACTIVE", "Meal '" + meal.getMealName() + "' is not active.");
+            }
+            if (meal.getAgency() != null && (agency == null || !Objects.equals(meal.getAgency().getId(), agency.getId()))) {
+                throw new WorkflowException("MEAL_OTHER_AGENCY", "Meal '" + meal.getMealName() + "' belongs to another agency.");
+            }
+        }
+        return meals;
+    }
+
+    private void requireCanManage(User user, Tour tour) {
+        if (AccessPolicyService.isAdmin(user)) {
+            return;
+        }
+        accessPolicy.requireAgencyAccess(user, tour.getAgency());
+        boolean creator = tour.getCreatedBy() != null && Objects.equals(tour.getCreatedBy().getId(), user.getId());
+        boolean allowed = switch (user.getUserType()) {
+            case OWNER -> true;
+            case MANAGER -> creator || tour.getAgencyBranch() == null || (user.getAgencyBranch() != null
+                    && Objects.equals(tour.getAgencyBranch().getId(), user.getAgencyBranch().getId()));
+            case EMPLOYEE -> creator;
+            default -> false;
+        };
+        if (!allowed) {
+            throw new AccessDeniedException(
+                    "You can only manage tours you created, or tours within your managed branch or agency.");
+        }
     }
 
     private void validateCapacity(Tour tour) {
@@ -509,7 +531,7 @@ public class TourService extends GenericFilterService<Tour> {
     public PageResponse<Tour> filter(TourFilterRequest filter) {
 
         // Use the centralized method
-        User currentUser = userService.getCurrentUser();
+        User currentUser = accessPolicy.currentUserOrNull();
 
         // 3. Dynamic Filter Override
         if (currentUser != null) {

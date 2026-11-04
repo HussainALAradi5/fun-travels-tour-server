@@ -1,7 +1,6 @@
 package com.server.server.dto.auth;
 
 import com.server.server.dto.user.UserResponse;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

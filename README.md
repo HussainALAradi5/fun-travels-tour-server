@@ -1,61 +1,35 @@
 # Fun Travels Tour - Server
 
-Backend API for the Fun Travels Tour travel agency management platform.
+Backend API for the Fun Travels Tour multi-agency travel platform.
 
-**Author:** Hussain Al Aradi
-**Tech:** Java 21 | Spring Boot 3.4.13 | PostgreSQL | JWT | Stripe
+**Author:** Hussain Al Aradi - **Tech:** Java 21 | Spring Boot 3.5.16 | PostgreSQL | JWT | Stripe
 
-## Quick Start
+## Quick start
 
 ```bash
-# Prerequisites: Java 21+, PostgreSQL 15+
-
-# 1. Create database
 createdb fun_travels_tour
-
-# 2. Configure src/main/resources/application.properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/fun_travels_tour
-spring.datasource.username=your_user
-spring.datasource.password=your_pass
-spring.jpa.hibernate.ddl-auto=update
-jwt.secret=your_secret_key
-stripe.api.secret-key=sk_test_xxx
-stripe.api.publishable-key=pk_test_xxx
-
-# 3. Run
+cp src/main/resources/application.properties.example src/main/resources/application.properties
+# set DB_URL / DB_USERNAME / DB_PASSWORD and JWT_SECRET (32+ characters)
+./mvnw test
 ./mvnw spring-boot:run
 ```
 
-Server starts at `http://localhost:8080`
+The API starts at `http://localhost:8080`. With `SEED_ENABLED=true` on an empty database, one account per role is created (`admin`, `owner`, `manager`, `employee`, `customer`, `support`, `developer`, emails `<name>@funtravel.com`); the password is `SEED_PASSWORD` or a generated one written to `seed-credentials.local.txt`. The seed never runs under the `prod` profile.
+
+## Layout
+
+```text
+src/main/java/com/server/server/
+  config/        database, notification, payment, properties, scheduling, security, web
+  constants/     booking rules, code prefixes, role groups, validation patterns
+  controllers/   one folder per domain (agency, auth, geography, notification, payment, support, tourmanagement, user)
+  dto/  enums/  models/  repositories/  services/   same domain folders
+  exceptions/    domain exceptions and the global handler
+  middlewares/   JWT authentication filter
+  seeds/         development data seeder
+  utilities/     API envelope, code generator, pagination, pricing, workflow validation, mappers
+```
 
 ## Documentation
 
-Full documentation is in the separate repository: [fun-travels-tour-document](https://github.com/HussainALAradi5/fun-travels-tour-document)
-
-## Tech Stack
-
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| Java | 21 | Language |
-| Spring Boot | 3.4.13 | Framework |
-| Spring Security | - | Authentication |
-| Spring Data JPA | - | ORM |
-| PostgreSQL | 15+ | Database |
-| JWT (jjwt) | 0.13.0 | Token Auth |
-| Stripe | 24.2.0 | Payments |
-| Apache POI | 5.2.3 | Excel Import |
-| ZXing | 3.5.3 | QR/Barcode |
-
-## Project Structure
-
-```
-src/main/java/com/server/server/
-├── Config/           # Security, JWT, CORS, Stripe, WebSocket
-├── controllers/      # REST endpoints (20 controllers)
-├── Models/           # JPA entities (19 entities)
-├── repositories/     # Data access (19 repos)
-├── services/         # Business logic (27 services)
-├── enums/            # Type enums (17 enums)
-├── exceptions/       # Error handling
-└── utilities/        # ApiResponse wrapper
-```
+Endpoints, services, models, security notes, and use cases: [fun-travels-tour-document](https://github.com/HussainALAradi5/fun-travels-tour-document).

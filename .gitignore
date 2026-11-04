@@ -58,3 +58,7 @@ FunTravelsTour.postman_collection.json
 FunTravelsTour.postman_environment.json
 server.log
 src/main/resources/application.properties.txt
+
+### Local-only files ###
+.m2/
+seed-credentials.local.txt

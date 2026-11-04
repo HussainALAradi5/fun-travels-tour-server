@@ -2,9 +2,8 @@ package com.server.server.dto.notification;
 
 import java.time.LocalDateTime;
 
-import com.server.server.enums.Notification.NotificationType;
-import com.server.server.enums.Notification.ReferenceType;
-
+import com.server.server.enums.notification.NotificationType;
+import com.server.server.enums.notification.ReferenceType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

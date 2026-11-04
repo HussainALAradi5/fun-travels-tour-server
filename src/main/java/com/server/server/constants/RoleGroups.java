@@ -1,0 +1,32 @@
+package com.server.server.constants;
+
+import java.util.EnumSet;
+import java.util.Set;
+
+import com.server.server.enums.user.UserTypeEnum;
+
+/** Role sets used by service-level authorization rules. */
+public final class RoleGroups {
+
+    /** Staff who belong to one agency and only see that agency's data. */
+    public static final Set<UserTypeEnum> AGENCY_STAFF = EnumSet.of(
+            UserTypeEnum.OWNER, UserTypeEnum.MANAGER, UserTypeEnum.EMPLOYEE);
+
+    /** Staff who handle support requests across the platform. */
+    public static final Set<UserTypeEnum> SUPPORT_STAFF = EnumSet.of(
+            UserTypeEnum.ADMIN, UserTypeEnum.SUPPORT_AGENT);
+
+    /** Roles an owner may create inside their own agency. */
+    public static final Set<UserTypeEnum> OWNER_CREATABLE = EnumSet.of(
+            UserTypeEnum.MANAGER, UserTypeEnum.EMPLOYEE);
+
+    /** Roles a manager may create inside their own agency. */
+    public static final Set<UserTypeEnum> MANAGER_CREATABLE = EnumSet.of(UserTypeEnum.EMPLOYEE);
+
+    /** Roles accepted from the employee bulk import file. */
+    public static final Set<UserTypeEnum> IMPORTABLE = EnumSet.of(
+            UserTypeEnum.MANAGER, UserTypeEnum.EMPLOYEE);
+
+    private RoleGroups() {
+    }
+}

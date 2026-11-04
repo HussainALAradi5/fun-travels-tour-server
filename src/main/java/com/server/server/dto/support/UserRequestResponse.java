@@ -2,9 +2,8 @@ package com.server.server.dto.support;
 
 import java.time.LocalDateTime;
 
-import com.server.server.enums.UserRequest.UserRequestStatus;
-import com.server.server.enums.UserRequest.UserRequestType;
-
+import com.server.server.enums.support.UserRequestStatus;
+import com.server.server.enums.support.UserRequestType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
