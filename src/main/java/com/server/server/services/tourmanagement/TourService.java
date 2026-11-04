@@ -162,10 +162,46 @@ public class TourService extends GenericFilterService<Tour> {
         }
     }
 
+    /** Admins and agency staff list every tour (staff within their agency); everyone else only bookable ones. */
     @Transactional(readOnly = true)
     public PageResponse<Tour> getAll(Integer page, Integer size, String sortBy, String sortDir) {
-        return PageResponse.from(tourRepository.findAll(PaginationUtils.pageable(page, size, sortBy, sortDir,
-                "startDate", Set.of("id", "tourNumber", "title", "startDate", "endDate", "totalPrice"))));
+        return PageResponse.from(tourRepository.findAll(visibleTours(accessPolicy.currentUserOrNull()),
+                PaginationUtils.pageable(page, size, sortBy, sortDir, "startDate",
+                        Set.of("id", "tourNumber", "title", "startDate", "endDate", "totalPrice"))));
+    }
+
+    /**
+     * One tour by id for the public endpoint. Bookable (ACTIVE) tours are public; others are shown to
+     * administrators, the owning agency's staff, and customers holding a ticket for it. Anyone else gets 404,
+     * so pending or cancelled tours do not leak.
+     */
+    @Transactional(readOnly = true)
+    public Tour getVisible(@NonNull Integer id) {
+        Tour tour = getById(id);
+        if (tour.getStatus() == GenericStatus.ACTIVE) {
+            return tour;
+        }
+        User current = accessPolicy.currentUserOrNull();
+        boolean allowed = current != null && (AccessPolicyService.isAdmin(current)
+                || (AccessPolicyService.isAgencyStaff(current) && current.getAgency() != null && tour.getAgency() != null
+                        && Objects.equals(current.getAgency().getId(), tour.getAgency().getId()))
+                || ticketRepository.existsByTour_IdAndCustomer_Id(id, current.getId()));
+        if (!allowed) {
+            throw new ResourceNotFoundException("Tour", id);
+        }
+        return tour;
+    }
+
+    /** Admins see all tours, agency staff their agency's, everyone else only ACTIVE (bookable) tours. */
+    private Specification<Tour> visibleTours(User current) {
+        if (current != null && AccessPolicyService.isAdmin(current)) {
+            return (r, q, cb) -> cb.conjunction();
+        }
+        Integer scope = current == null ? null : AccessPolicyService.agencyScope(current);
+        if (scope != null) {
+            return (r, q, cb) -> cb.equal(r.get("agency").get("id"), scope);
+        }
+        return (r, q, cb) -> cb.equal(r.get("status"), GenericStatus.ACTIVE);
     }
 
     @Transactional(readOnly = true)
@@ -184,7 +220,6 @@ public class TourService extends GenericFilterService<Tour> {
         tour.setTitle(request.title().trim());
         tour.setDescription(request.description());
         tour.setBasePrice(request.basePrice());
-        tour.setPrice(request.basePrice());
         tour.setDiscountPrice(0.0);
         tour.setTotalPrice(request.basePrice());
         tour.setNumberOfDays(request.numberOfDays());
@@ -283,7 +318,6 @@ public class TourService extends GenericFilterService<Tour> {
         }
         if (request.basePrice() != null) {
             existing.setBasePrice(request.basePrice());
-            existing.setPrice(request.basePrice());
         }
 
         Country startCountry = findCountry(request.startCountry());
@@ -544,7 +578,7 @@ public class TourService extends GenericFilterService<Tour> {
             }
         }
 
-        Specification<Tour> spec = hasStatus(filter.getStatus())
+        Specification<Tour> spec = visibleTours(currentUser).and(hasStatus(filter.getStatus()))
                 .and(hasMinSlots(filter.getMinSlots()))
                 .and(FilterUtils.localDateRange("startDate", filter.getStartDate(), filter.getEndDate()))
                 .and(hasAgency(filter.getAgencyId()))

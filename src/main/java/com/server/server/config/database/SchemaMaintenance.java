@@ -33,10 +33,16 @@ public class SchemaMaintenance implements ApplicationRunner {
             WHERE tc.table_name = 'tickets' AND tc.constraint_type = 'UNIQUE' AND ccu.column_name = 'seat_id'
             """;
 
+    /** Columns whose fields were removed; left in place they would be NOT NULL or stale. */
+    private static final List<String> RETIRED_COLUMNS = List.of(
+            "ALTER TABLE IF EXISTS tours DROP COLUMN IF EXISTS price",
+            "ALTER TABLE IF EXISTS transportations DROP COLUMN IF EXISTS remaining_seats");
+
     private final JdbcTemplate jdbcTemplate;
 
     @Override
     public void run(ApplicationArguments args) {
+        RETIRED_COLUMNS.forEach(jdbcTemplate::execute);
         List<String> constraints = jdbcTemplate.queryForList(UNIQUE_SEAT_CONSTRAINTS, String.class);
         for (String constraint : constraints) {
             if (!constraint.matches("[A-Za-z0-9_]+")) {

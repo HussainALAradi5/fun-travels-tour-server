@@ -63,7 +63,7 @@ public class TourController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<TourResponse>> getById(@NonNull @PathVariable Integer id) {
-        return ResponseEntity.ok(ApiResponse.ok(TourResponse.from(tourService.getById(id))));
+        return ResponseEntity.ok(ApiResponse.ok(TourResponse.from(tourService.getVisible(id))));
     }
 
     @PostMapping

@@ -19,6 +19,9 @@ import com.server.server.repositories.tourmanagement.TicketRepository;
 import com.server.server.repositories.tourmanagement.TourRepository;
 
 import lombok.RequiredArgsConstructor;
+import com.server.server.enums.tourmanagement.TicketStatus;
+import jakarta.annotation.PostConstruct;
+import com.server.server.services.common.SystemSchedulingService;
 
 /**
  * Tour places and seat holds.
@@ -38,6 +41,12 @@ public class InventoryService {
     private final TourRepository tourRepository;
     private final SeatRepository seatRepository;
     private final TicketRepository ticketRepository;
+    private final SystemSchedulingService schedulingService;
+
+    @PostConstruct
+    void registerReconciliation() {
+        schedulingService.registerNightlyTask(this::reconcileActiveTours);
+    }
 
     /** Holds places and seats. Tickets without a chosen seat get the lowest free seat. */
     @Transactional
@@ -47,13 +56,36 @@ public class InventoryService {
         if (tour.getStatus() != GenericStatus.ACTIVE) {
             throw new WorkflowException("TOUR_NOT_BOOKABLE", "This tour is not available for booking.");
         }
-        int available = Objects.requireNonNullElse(tour.getAvailableSlots(), 0);
+        // Counted from tickets, not trusted from the stored counter, so any drift is corrected at each booking.
+        int available = placesLeft(tour);
         if (available < quantity) {
             throw new WorkflowException("INSUFFICIENT_CAPACITY", "There are not enough places available for this booking.");
         }
         assignSeats(tour, tickets);
         tour.setAvailableSlots(available - quantity);
         return tourRepository.save(tour);
+    }
+
+    /** Nightly: sets every bookable tour's available places from its tickets. */
+    @Transactional
+    public int reconcileActiveTours() {
+        int corrected = 0;
+        for (Tour tour : tourRepository.findByStatus(GenericStatus.ACTIVE)) {
+            int actual = placesLeft(tour);
+            if (!Objects.equals(tour.getAvailableSlots(), actual)) {
+                tour.setAvailableSlots(actual);
+                tourRepository.save(tour);
+                corrected++;
+            }
+        }
+        return corrected;
+    }
+
+    /** Capacity minus the tour's tickets that are not cancelled (saved tickets only). */
+    private int placesLeft(Tour tour) {
+        int capacity = Objects.requireNonNullElse(tour.getMaxCapacity(), 0);
+        long held = ticketRepository.countByTour_IdAndTicketStatusNot(tour.getId(), TicketStatus.CANCELLED);
+        return (int) Math.max(0, capacity - held);
     }
 
     /** Returns places to the tour. Seats free themselves once their tickets are cancelled. */

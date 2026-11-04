@@ -78,8 +78,6 @@ public class Tour extends BaseEntity {
     @Column(name = "available_slots")
     private Integer availableSlots;
 
-    @NotNull(message = "Price is required")
-    private Double price;
 
     @Enumerated(EnumType.STRING)
     @NotNull(message = "Status is required")
@@ -169,8 +167,6 @@ public class Tour extends BaseEntity {
             this.basePrice = 0.0;
         if (this.discountPrice == null)
             this.discountPrice = 0.0;
-        if (this.price == null || this.price == 0.0)
-            this.price = this.basePrice;
         this.totalPrice = this.basePrice - this.discountPrice;
         if (this.availableSlots == null && this.maxCapacity != null) {
             this.availableSlots = this.maxCapacity;
@@ -181,8 +177,6 @@ public class Tour extends BaseEntity {
     private void applyDatabaseDefaults() {
         if (this.basePrice == null)
             this.basePrice = 0.0;
-        if (this.price == null)
-            this.price = this.basePrice;
         if (this.discountPrice == null)
             this.discountPrice = 0.0;
         if (this.availableSlots == null && this.maxCapacity != null) {

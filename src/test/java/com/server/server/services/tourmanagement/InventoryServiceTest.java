@@ -38,6 +38,8 @@ class InventoryServiceTest {
     private SeatRepository seatRepository;
     @Mock
     private TicketRepository ticketRepository;
+    @Mock
+    private com.server.server.services.common.SystemSchedulingService schedulingService;
     @InjectMocks
     private InventoryService inventory;
 
@@ -139,5 +141,31 @@ class InventoryServiceTest {
         Ticket ticket = new Ticket();
         ticket.setAssignedSeat(ref);
         return ticket;
+    }
+
+    @Test
+    void bookingCountsPlacesFromTicketsNotTheStoredCounter() {
+        tour.setAvailableSlots(0); // drifted counter says sold out
+        when(ticketRepository.countByTour_IdAndTicketStatusNot(5, com.server.server.enums.tourmanagement.TicketStatus.CANCELLED)).thenReturn(1L);
+        inventory.reserve(5, 1, List.of(new Ticket()));
+        assertThat(tour.getAvailableSlots()).isEqualTo(1); // 3 capacity - 1 held - 1 new
+    }
+
+    @Test
+    void bookingIsRefusedWhenTicketsFillTheTourEvenIfTheCounterSaysOtherwise() {
+        tour.setAvailableSlots(3); // drifted counter says empty
+        when(ticketRepository.countByTour_IdAndTicketStatusNot(5, com.server.server.enums.tourmanagement.TicketStatus.CANCELLED)).thenReturn(3L);
+        assertThatThrownBy(() -> inventory.reserve(5, 1, List.of(new Ticket())))
+                .isInstanceOf(WorkflowException.class).hasMessageContaining("not enough places");
+    }
+
+    @Test
+    void nightlyReconciliationFixesDriftedTours() {
+        tour.setAvailableSlots(3);
+        when(tourRepository.findByStatus(GenericStatus.ACTIVE)).thenReturn(List.of(tour));
+        when(ticketRepository.countByTour_IdAndTicketStatusNot(5, com.server.server.enums.tourmanagement.TicketStatus.CANCELLED)).thenReturn(2L);
+        assertThat(inventory.reconcileActiveTours()).isEqualTo(1);
+        assertThat(tour.getAvailableSlots()).isEqualTo(1);
+        assertThat(inventory.reconcileActiveTours()).isZero();
     }
 }

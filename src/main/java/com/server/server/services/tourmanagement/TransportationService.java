@@ -83,7 +83,6 @@ public class TransportationService {
         validateUniqueIdentifiers(transportation);
         transportation.setStatus(GenericStatus.ACTIVE);
         transportation.setUnitStatus(TransportationStatus.AVAILABLE);
-        transportation.setRemainingSeats(transportation.getTotalCapacity());
 
         // THE DRY CALL: Auto-generate seats at the exact moment of creation
         if (transportation.getSeats() == null || transportation.getSeats().isEmpty()) {

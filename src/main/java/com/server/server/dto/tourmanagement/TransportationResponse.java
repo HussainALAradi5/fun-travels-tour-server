@@ -18,8 +18,6 @@ public record TransportationResponse(
         GenericStatus status,
         TransportationStatus unitStatus,
         Integer totalCapacity,
-        Integer remainingSeats,
-        Integer calculatedAvailable,
         AgencySummary agency,
         BranchSummary agencyBranch,
         List<SeatSummary> seats) {
@@ -43,7 +41,7 @@ public record TransportationResponse(
                 : null;
         return new TransportationResponse(vehicle.getId(), vehicle.getTransportationNumber(), vehicle.getCode(),
                 vehicle.getType(), vehicle.getProviderName(), vehicle.getStatus(), vehicle.getUnitStatus(),
-                vehicle.getTotalCapacity(), vehicle.getRemainingSeats(), vehicle.getCalculatedAvailable(),
+                vehicle.getTotalCapacity(),
                 AgencySummary.from(vehicle.getAgency()), BranchSummary.from(vehicle.getAgencyBranch()), seats);
     }
 }

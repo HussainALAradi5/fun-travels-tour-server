@@ -4,7 +4,6 @@ import com.server.server.models.base.BaseEntity;
 
 import java.util.List;
 
-import org.hibernate.annotations.Formula;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -64,12 +63,6 @@ public class Transportation extends BaseEntity {
     @NotNull(message = "Transportation total capacity is required")
     private Integer totalCapacity;
 
-    @Column(name = "remaining_seats")
-    private Integer remainingSeats;
-
-    // This annotation calculates the count directly from the DB for read operations
-    @Formula("(SELECT COUNT(*) FROM seats s WHERE s.transportation_id = id AND s.status = 'AVAILABLE')")
-    private Integer calculatedAvailable;
 
     @Enumerated(EnumType.STRING)
     @NotNull(message = "Transportation Unit Status is required")

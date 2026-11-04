@@ -61,6 +61,12 @@ public interface TicketRepository extends JpaRepository<Ticket, Integer>, JpaSpe
             + "com.server.server.enums.common.GenericStatus.CANCELLED)")
     boolean existsActiveTicketForSeat(@Param("seatId") Integer seatId);
 
+    /** Whether this customer holds any ticket for the tour (cancelled ones included). */
+    boolean existsByTour_IdAndCustomer_Id(Integer tourId, Integer customerId);
+
+    /** Places held by the tour's tickets that are not cancelled; the source of truth for available slots. */
+    long countByTour_IdAndTicketStatusNot(Integer tourId, TicketStatus status);
+
     /** Whether a tour still has tickets that are not cancelled. */
     boolean existsByTour_IdAndTicketStatusNot(Integer tourId, TicketStatus status);
 }

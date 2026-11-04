@@ -33,6 +33,8 @@ app.upload-dir=${FILE_UPLOAD_DIR:./uploads}
 app.max-image-bytes=${MAX_IMAGE_BYTES:2097152}
 # Private folder for generated reports; never served statically.
 app.media-dir=${MEDIA_DIR:./media}
+# Generated reports are deleted after this many days.
+app.report-retention-days=${REPORT_RETENTION_DAYS:30}
 
 # Development seed (one user per role). Never runs with the prod profile.
 # Leave SEED_PASSWORD empty to generate one into seed-credentials.local.txt.

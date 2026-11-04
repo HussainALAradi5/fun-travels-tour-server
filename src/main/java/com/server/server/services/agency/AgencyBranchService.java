@@ -39,9 +39,11 @@ public class AgencyBranchService {
         return branchRepository.findAll();
     }
 
+    /** Active branches, for administrators and the agency's own staff. */
     @Transactional(readOnly = true)
     public List<AgencyBranch> getBranchesByAgency(@NonNull Integer agencyId) {
         Objects.requireNonNull(agencyId, "agencyId must not be null");
+        requireMember(agencyId);
         return branchRepository.findByAgencyIdAndIsActiveTrue(agencyId);
     }
 
@@ -49,6 +51,7 @@ public class AgencyBranchService {
     public PageResponse<AgencyBranch> searchBranches(
             @NonNull Integer agencyId, String query, Integer page, Integer size) {
         Objects.requireNonNull(agencyId, "agencyId must not be null");
+        requireMember(agencyId);
         String safeQuery = query == null ? "" : query.trim();
         var pageable = PaginationUtils.pageable(
                 page, size, "branchName", "asc", "branchName", Set.of("branchName"));
@@ -83,6 +86,10 @@ public class AgencyBranchService {
             if (manager.getUserType() != UserTypeEnum.MANAGER) {
                 throw new IllegalArgumentException("The branch manager must have the MANAGER role.");
             }
+            // A manager of another agency is never moved over; only unassigned or own-agency managers qualify.
+            if (manager.getAgency() != null && !Objects.equals(manager.getAgency().getId(), agencyId)) {
+                throw new IllegalArgumentException("This manager belongs to another agency.");
+            }
             manager.setAgency(agency);
             manager.setAgencyBranch(saved);
             userRepository.save(manager);
@@ -91,15 +98,20 @@ public class AgencyBranchService {
         return saved;
     }
 
+    private void requireMember(Integer agencyId) {
+        Agency agency = agencyRepository.findById(agencyId).orElseThrow(() -> new ResourceNotFoundException("Agency", agencyId));
+        accessPolicy.requireAgencyMember(accessPolicy.requireCurrentUser(), agency);
+    }
+
     @Transactional(readOnly = true)
     public List<User> getEmployeesByBranch(@NonNull Integer agencyId, @NonNull Integer branchId) {
         Objects.requireNonNull(agencyId, "agencyId must not be null");
         Objects.requireNonNull(branchId, "branchId must not be null");
+        requireMember(agencyId);
         AgencyBranch branch = branchRepository.findById(branchId)
                 .orElseThrow(() -> new ResourceNotFoundException("Branch", branchId));
-
         if (!branch.getAgency().getId().equals(agencyId)) {
-            throw new SecurityException("This branch does not belong to the specified agency.");
+            throw new ResourceNotFoundException("Branch", branchId);
         }
 
         return userRepository.findByAgencyBranchIdAndUserTypeAndIsActiveTrue(branchId, UserTypeEnum.EMPLOYEE);

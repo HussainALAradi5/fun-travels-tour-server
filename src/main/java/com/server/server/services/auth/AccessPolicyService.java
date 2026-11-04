@@ -93,6 +93,20 @@ public class AccessPolicyService {
         requireAgencyAccess(current, agency);
     }
 
+    /**
+     * Stricter than {@link #requireAgencyAccess}: only administrators and staff of this agency pass. Used for
+     * agency internals (branches, staff lists, owner contacts) that customers and other roles must not read.
+     */
+    public void requireAgencyMember(User current, Agency agency) {
+        if (isAdmin(current)) {
+            return;
+        }
+        if (!isAgencyStaff(current) || agency == null || current.getAgency() == null
+                || !Objects.equals(current.getAgency().getId(), agency.getId())) {
+            throw new AccessDeniedException("Only this agency's staff can see its details.");
+        }
+    }
+
     /** Agency staff may only act inside their own agency; other staff roles are not agency-bound. */
     public void requireAgencyAccess(User current, Agency agency) {
         Integer scope = agencyScope(current);

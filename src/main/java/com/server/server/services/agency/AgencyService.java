@@ -27,6 +27,7 @@ import com.server.server.utilities.PaginationUtils;
 import java.util.Set;
 
 import lombok.RequiredArgsConstructor;
+import com.server.server.services.auth.AccessPolicyService;
 
 @Service
 @RequiredArgsConstructor
@@ -36,20 +37,43 @@ public class AgencyService {
     private final UserRepository userRepository;
     private final CountryRepository countryRepository;
     private final CityRepository cityRepository;
+    private final AccessPolicyService accessPolicy;
 
+    /** Admins see every agency; agency staff only their own. */
     @Transactional(readOnly = true)
     public List<Agency> getAllAgencies() {
-        return agencyRepository.findAll();
+        User current = accessPolicy.requireCurrentUser();
+        if (AccessPolicyService.isAdmin(current)) {
+            return agencyRepository.findAll();
+        }
+        return current.getAgency() == null ? List.of() : List.of(getAgencyById(current.getAgency().getId()));
     }
 
+    /** Admins search every agency; agency staff find only their own; other roles are refused. */
     @Transactional(readOnly = true)
     public PageResponse<Agency> searchAgencies(String query, Integer page, Integer size) {
+        User current = accessPolicy.requireCurrentUser();
         String safeQuery = query == null ? "" : query.trim();
         var pageable = PaginationUtils.pageable(
                 page, size, "agencyName", "asc", "agencyName", Set.of("agencyName"));
+        if (!AccessPolicyService.isAdmin(current)) {
+            Agency own = current.getAgency();
+            accessPolicy.requireAgencyMember(current, own);
+            boolean matches = own.getAgencyName().toLowerCase().contains(safeQuery.toLowerCase());
+            List<Agency> content = matches ? List.of(own) : List.of();
+            return new PageResponse<>(content, 0, content.size(), content.size(), content.isEmpty() ? 0 : 1);
+        }
         return PageResponse.from(safeQuery.isEmpty()
                 ? agencyRepository.findAll(pageable)
                 : agencyRepository.findByAgencyNameContainingIgnoreCase(safeQuery, pageable));
+    }
+
+    /** Agency details (owner contacts included) for administrators and the agency's own staff. */
+    @Transactional(readOnly = true)
+    public Agency getVisibleAgency(@NonNull Integer id) {
+        Agency agency = getAgencyById(id);
+        accessPolicy.requireAgencyMember(accessPolicy.requireCurrentUser(), agency);
+        return agency;
     }
 
     @Transactional(readOnly = true)
@@ -98,6 +122,7 @@ public class AgencyService {
     @Transactional(readOnly = true)
     public List<User> getEmployeesByAgencyId(@NonNull Integer agencyId) {
         Objects.requireNonNull(agencyId, "agencyId must not be null");
+        accessPolicy.requireAgencyMember(accessPolicy.requireCurrentUser(), getAgencyById(agencyId));
         return userRepository.findByAgencyIdAndIsActiveTrue(agencyId);
     }
 

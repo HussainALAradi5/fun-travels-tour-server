@@ -43,7 +43,7 @@ public class AgencyController {
     @GetMapping("/{id:\\d+}")
     public ResponseEntity<ApiResponse<AgencyResponse>> getById(@NonNull @PathVariable Integer id) {
         return ResponseEntity.ok(new ApiResponse<>(true, "Fetched agency",
-                AgencyResponse.from(agencyService.getAgencyById(id))));
+                AgencyResponse.from(agencyService.getVisibleAgency(id))));
     }
 
     @GetMapping("/search")

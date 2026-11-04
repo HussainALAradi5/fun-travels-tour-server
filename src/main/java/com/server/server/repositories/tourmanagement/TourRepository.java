@@ -93,4 +93,5 @@ public interface TourRepository extends JpaRepository<Tour, Integer>, JpaSpecifi
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);
 
+    List<Tour> findByStatus(GenericStatus status);
 }

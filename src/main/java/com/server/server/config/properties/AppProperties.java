@@ -22,6 +22,8 @@ public record AppProperties(
         @DefaultValue("2097152") @Positive long maxImageBytes,
         /** Private folder for generated files (reports); never served statically. */
         @DefaultValue("./media") @NotBlank String mediaDir,
+        /** Generated reports are deleted after this many days. */
+        @DefaultValue("30") @Positive int reportRetentionDays,
         @DefaultValue @Valid Seed seed) {
 
     /** Development seed: one user per role. Never runs under the prod profile. */
