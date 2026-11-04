@@ -1,0 +1,64 @@
+package com.server.server.models.tourmanagement;
+
+import com.server.server.models.base.BaseEntity;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.server.server.enums.common.GenericStatus;
+import com.server.server.models.agency.Agency;
+import com.server.server.enums.tourmanagement.SpiceLevel;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
+@ToString(callSuper = true, onlyExplicitlyIncluded = true)
+@Data
+@Entity
+@NoArgsConstructor
+@AllArgsConstructor
+@Table(name = "meal_plans")
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
+public class MealPlan extends BaseEntity {
+
+    @Column(nullable = false)
+    @NotBlank(message = "Meal Name is required")
+    private String mealName;
+
+    @Column(nullable = false)
+    @NotNull(message = "Meal Price is required")
+    private Double mealPrice;
+
+    @Column(columnDefinition = "TEXT")
+    private String mealDescription;
+
+    private boolean isVegetarian = false;
+    private boolean isVegan = false;
+    private boolean isGlutenFree = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "spice_level", nullable = false)
+    private SpiceLevel spiceLevel = SpiceLevel.NONE;
+
+    @Enumerated(EnumType.STRING)
+    @NotNull(message = "Status is required")
+    private GenericStatus status = GenericStatus.ACTIVE;
+
+    // FIX: Added the missing Agency relationship so the Repository can filter by
+    // Agency
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "agency_id")
+    @JsonIgnoreProperties({ "owner", "branches", "tours", "transportations" })
+    private Agency agency;
+}

@@ -1,23 +1,23 @@
 package com.server.server.utilities.mappers;
 
+import com.server.server.enums.common.GenericStatus;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 
-import com.server.server.dto.tour.TourResponse;
-import com.server.server.dto.tour.TicketResponse;
-import com.server.server.dto.tour.ReservationResponse;
-import com.server.server.dto.tour.TransportationResponse;
-import com.server.server.dto.tour.SeatResponse;
-import com.server.server.dto.tour.MealPlanResponse;
+import com.server.server.dto.tourmanagement.TourResponse;
+import com.server.server.dto.tourmanagement.TicketResponse;
+import com.server.server.dto.tourmanagement.ReservationResponse;
+import com.server.server.dto.tourmanagement.TransportationResponse;
+import com.server.server.dto.tourmanagement.SeatResponse;
+import com.server.server.dto.tourmanagement.MealPlanResponse;
 import com.server.server.models.tourmanagement.Tour;
 import com.server.server.models.tourmanagement.Ticket;
 import com.server.server.models.tourmanagement.TourReservation;
 import com.server.server.models.tourmanagement.Transportation;
 import com.server.server.models.tourmanagement.Seat;
 import com.server.server.models.tourmanagement.MealPlan;
-
 @Component
 public class TourMapper {
 
@@ -39,12 +39,10 @@ public class TourMapper {
         dto.setStatus(tour.getStatus());
         dto.setHasTransportation(tour.isHasTransportation());
         if (tour.getStartCountry() != null) {
-            dto.setStartCountry(new TourResponse.CountrySummary(
-                    tour.getStartCountry().getId(), tour.getStartCountry().getFamousName()));
+            dto.setStartCountry(countrySummary(tour.getStartCountry()));
         }
         if (tour.getEndCountry() != null) {
-            dto.setEndCountry(new TourResponse.CountrySummary(
-                    tour.getEndCountry().getId(), tour.getEndCountry().getFamousName()));
+            dto.setEndCountry(countrySummary(tour.getEndCountry()));
         }
         if (tour.getStartCity() != null) {
             dto.setStartCity(new TourResponse.CitySummary(
@@ -73,6 +71,14 @@ public class TourMapper {
                     tour.getCreatedBy().getId(), tour.getCreatedBy().getName()));
         }
         dto.setCreatedAt(tour.getCreatedAt());
+        if (tour.getDestinationCountries() != null) {
+            dto.setDestinationCountries(tour.getDestinationCountries().stream().map(this::countrySummary).toList());
+        }
+        if (tour.getAvailableMeals() != null) {
+            dto.setAvailableMeals(tour.getAvailableMeals().stream()
+                    .filter(meal -> meal.getStatus() == GenericStatus.ACTIVE)
+                    .map(this::toMealPlanResponse).toList());
+        }
         return dto;
     }
 
@@ -102,8 +108,8 @@ public class TourMapper {
                     ticket.getCustomer().getId(), ticket.getCustomer().getName()));
         }
         if (ticket.getTour() != null) {
-            dto.setTour(new TicketResponse.TourSummary(
-                    ticket.getTour().getId(), ticket.getTour().getTourNumber(), ticket.getTour().getTitle()));
+            dto.setTour(new TicketResponse.TourSummary(ticket.getTour().getId(), ticket.getTour().getTourNumber(),
+                    ticket.getTour().getTitle(), ticket.getTour().getStartDate(), ticket.getTour().getEndDate()));
         }
         if (ticket.getAssignedSeat() != null) {
             dto.setAssignedSeat(new TicketResponse.SeatSummary(
@@ -209,5 +215,9 @@ public class TourMapper {
 
     public List<MealPlanResponse> toMealPlanResponseList(List<MealPlan> meals) {
         return meals.stream().map(this::toMealPlanResponse).collect(Collectors.toList());
+    }
+
+    private TourResponse.CountrySummary countrySummary(com.server.server.models.geography.Country c) {
+        return new TourResponse.CountrySummary(c.getId(), c.getFamousName(), c.getOfficialName(), c.getFlagPngUrl());
     }
 }

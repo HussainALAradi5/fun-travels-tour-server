@@ -1,7 +1,5 @@
 package com.server.server.controllers.tourmanagement;
 
-import java.util.List;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,14 +13,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.server.server.dto.tour.MealPlanResponse;
-import com.server.server.dto.tour.MealPlanCreateRequest;
-import com.server.server.dto.PageResponse;
-import com.server.server.enums.GenericStatus;
+import com.server.server.dto.tourmanagement.MealPlanResponse;
+import com.server.server.dto.tourmanagement.MealPlanCreateRequest;
+import com.server.server.dto.common.PageResponse;
+import com.server.server.enums.common.GenericStatus;
 import com.server.server.services.tourmanagement.MealPlanService;
 import com.server.server.utilities.ApiResponse;
 import com.server.server.utilities.ModelMapper;
-
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 

@@ -4,9 +4,8 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
 
-import com.server.server.enums.GenericStatus;
+import com.server.server.enums.common.GenericStatus;
 import com.server.server.exceptions.WorkflowException;
-
 public final class DomainWorkflowValidator {
     private static final Map<GenericStatus, Set<GenericStatus>> TOUR_TRANSITIONS = Map.of(
             GenericStatus.PENDING, EnumSet.of(GenericStatus.APPROVED, GenericStatus.CANCELLED),

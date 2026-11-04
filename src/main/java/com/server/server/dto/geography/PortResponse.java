@@ -1,8 +1,7 @@
 package com.server.server.dto.geography;
 
-import com.server.server.enums.GenericStatus;
-import com.server.server.enums.PortType;
-
+import com.server.server.enums.common.GenericStatus;
+import com.server.server.enums.geography.PortType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

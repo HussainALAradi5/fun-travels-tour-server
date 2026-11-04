@@ -8,10 +8,9 @@ import org.springframework.stereotype.Component;
 import com.server.server.dto.user.UserResponse;
 import com.server.server.dto.agency.AgencyResponse;
 import com.server.server.dto.agency.AgencyBranchResponse;
-import com.server.server.models.User;
+import com.server.server.models.user.User;
 import com.server.server.models.agency.Agency;
 import com.server.server.models.agency.AgencyBranch;
-
 @Component
 public class UserMapper {
 

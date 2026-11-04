@@ -1,7 +1,6 @@
 package com.server.server.dto.user;
 
-import com.server.server.enums.UserTypeEnum;
-
+import com.server.server.enums.user.UserTypeEnum;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

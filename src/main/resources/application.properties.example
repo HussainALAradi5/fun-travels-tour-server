@@ -1,4 +1,4 @@
-spring.datasource.url=${DB_URL:jdbc:postgresql://localhost:{clinet_side_port}/fun_travels_tour}
+spring.datasource.url=${DB_URL:jdbc:postgresql://localhost:5432/fun_travels_tour}
 spring.datasource.username=${DB_USERNAME:username}
 spring.datasource.password=${DB_PASSWORD:password}
 spring.datasource.driver-class-name=org.postgresql.Driver
@@ -6,7 +6,6 @@ spring.datasource.driver-class-name=org.postgresql.Driver
 spring.jpa.hibernate.ddl-auto=${JPA_DDL_AUTO:update}
 spring.jpa.show-sql=${JPA_SHOW_SQL:false}
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
-spring.sql.init.mode=always
 
 jwt.secret=${JWT_SECRET:change-this-development-secret-before-production-0123456789}
 jwt.expiration=${JWT_EXPIRATION:86400000}
@@ -18,8 +17,7 @@ api.restcountries.api-key=${REST_COUNTRIES_API_KEY:}
 api.restcountries.url=https://api.restcountries.com/countries/v5/name?q=
 api.restcountries.all.url=https://api.restcountries.com/countries/v5?limit=100&response_fields=names.common,names.official,codes.alpha_2,flag.url_png,flag.url_svg,calling_codes
 
-file.upload-dir=${FILE_UPLOAD_DIR:./uploads}
-server.port=${SERVER_PORT:your_port_number}
+server.port=${SERVER_PORT:8080}
 
 spring.mail.host=${MAIL_HOST:smtp.gmail.com}
 spring.mail.port=${MAIL_PORT:587}
@@ -27,3 +25,17 @@ spring.mail.username=${MAIL_USERNAME:}
 spring.mail.password=${MAIL_PASSWORD:}
 spring.mail.properties.mail.smtp.auth=${MAIL_SMTP_AUTH:true}
 spring.mail.properties.mail.smtp.starttls.enable=${MAIL_STARTTLS:true}
+
+# Application
+app.client-url=${CLIENT_URL:http://localhost:3000}
+app.cors-allowed-origins=${CORS_ALLOWED_ORIGINS:http://localhost:[*],http://127.0.0.1:[*],http://10.0.2.2:[*]}
+app.upload-dir=${FILE_UPLOAD_DIR:./uploads}
+app.max-image-bytes=${MAX_IMAGE_BYTES:2097152}
+
+# Development seed (one user per role). Never runs with the prod profile.
+# Leave SEED_PASSWORD empty to generate one into seed-credentials.local.txt.
+app.seed.enabled=${SEED_ENABLED:true}
+app.seed.password=${SEED_PASSWORD:}
+
+# Booking hold cleanup interval in milliseconds
+booking.hold-cleanup-ms=${BOOKING_HOLD_CLEANUP_MS:60000}

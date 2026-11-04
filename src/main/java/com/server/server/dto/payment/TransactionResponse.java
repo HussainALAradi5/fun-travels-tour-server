@@ -3,8 +3,7 @@ package com.server.server.dto.payment;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-import com.server.server.enums.TransactionType;
-
+import com.server.server.enums.payment.TransactionType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

@@ -1,5 +1,13 @@
 package com.server.server.exceptions;
 
+import org.springframework.http.converter.HttpMessageNotReadableException;
+
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+import org.springframework.web.bind.MissingServletRequestParameterException;
+
+import org.springframework.security.authentication.DisabledException;
+
 import java.util.stream.Collectors;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -14,7 +22,6 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import com.server.server.utilities.ApiResponse;
-
 import jakarta.validation.ConstraintViolationException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +38,27 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UsernameNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleUserNotFound(UsernameNotFoundException ex) {
         return buildResponse("Invalid username or password", HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDisabled(DisabledException ex) {
+        return buildResponse("This account has been deactivated.", HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleSecurityDenied(org.springframework.security.access.AccessDeniedException ex) {
+        return buildResponse("You do not have permission to perform this action.", HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler({ MissingServletRequestParameterException.class, MethodArgumentTypeMismatchException.class,
+            HttpMessageNotReadableException.class })
+    public ResponseEntity<ApiResponse<Void>> handleBadRequest(Exception ex) {
+        return buildResponse("The request is missing a value or contains an invalid value.", HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(org.springframework.orm.ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ApiResponse<Void>> handleConcurrentUpdate(Exception ex) {
+        return buildResponse("This record was changed by another request. Please try again.", HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
@@ -93,25 +121,13 @@ public class GlobalExceptionHandler {
         while (root.getCause() != null && root.getCause() != root) {
             root = root.getCause();
         }
-        return buildResponse("Database error: " + root.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        log.error("Database error root cause: {}", root.getMessage());
+        return buildResponse("A database error occurred.", HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ApiResponse<Void>> handleRuntime(RuntimeException ex) {
-        log.error("Runtime error: ", ex);
-
-        String msg = ex.getMessage();
-        if (msg != null && msg.toLowerCase().contains("not found")) {
-            return buildResponse(msg, HttpStatus.NOT_FOUND);
-        }
-        if (msg != null && (msg.toLowerCase().contains("taken") || msg.toLowerCase().contains("already exists"))) {
-            return buildResponse(msg, HttpStatus.CONFLICT);
-        }
-        if (msg != null && msg.toLowerCase().contains("access denied")) {
-            return buildResponse(msg, HttpStatus.FORBIDDEN);
-        }
-
-        return buildResponse(msg != null ? msg : "An unexpected error occurred", HttpStatus.BAD_REQUEST);
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiResponse<Void>> handleIllegalState(IllegalStateException ex) {
+        return buildResponse(ex.getMessage(), HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(Exception.class)

@@ -1,6 +1,6 @@
 package com.server.server.controllers.tourmanagement;
 
-import java.util.List;
+import com.server.server.dto.tourmanagement.SeatUpdateRequest;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
@@ -14,16 +14,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.server.server.dto.tour.SeatResponse;
-import com.server.server.dto.PageResponse;
-import com.server.server.dto.filter.SeatFilterRequest;
-import com.server.server.enums.tourmanagement.ChairType;
+import com.server.server.dto.tourmanagement.SeatResponse;
+import com.server.server.dto.common.PageResponse;
+import com.server.server.dto.tourmanagement.SeatFilterRequest;
 import com.server.server.enums.tourmanagement.SeatStatus;
-import com.server.server.models.tourmanagement.Seat;
 import com.server.server.services.tourmanagement.SeatService;
 import com.server.server.utilities.ApiResponse;
 import com.server.server.utilities.ModelMapper;
-
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -49,13 +46,13 @@ public class SeatController {
 
     @PatchMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
-    public ResponseEntity<ApiResponse<SeatResponse>> updateSeatDetails(@NonNull @PathVariable Integer id, @Valid @RequestBody Seat seat) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toSeatResponse(seatService.updateSeat(id, seat))));
+    public ResponseEntity<ApiResponse<SeatResponse>> updateSeatDetails(@NonNull @PathVariable Integer id, @Valid @RequestBody SeatUpdateRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toSeatResponse(seatService.updateSeat(id, request))));
     }
 
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<PageResponse<SeatResponse>>> search(@ModelAttribute SeatFilterRequest filter) {
-        return ResponseEntity.ok(ApiResponse.ok(seatService.filter(filter).map(modelMapper::toSeatResponse)));
+        return ResponseEntity.ok(ApiResponse.ok(seatService.search(filter)));
     }
 
     @PatchMapping("/{id}/status")

@@ -1,7 +1,5 @@
 package com.server.server.controllers.tourmanagement;
 
-import java.util.List;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,16 +13,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.server.server.dto.tour.TicketResponse;
-import com.server.server.dto.PageResponse;
-import com.server.server.dto.filter.TicketFilterRequest;
-import com.server.server.enums.GenericStatus;
-import com.server.server.enums.tourmanagement.TicketStatus;
-import com.server.server.models.tourmanagement.Ticket;
+import com.server.server.dto.tourmanagement.TicketResponse;
+import com.server.server.dto.common.PageResponse;
+import com.server.server.dto.tourmanagement.TicketFilterRequest;
+import com.server.server.enums.common.GenericStatus;
+import com.server.server.dto.tourmanagement.TicketCreateRequest;
 import com.server.server.services.tourmanagement.TicketService;
 import com.server.server.utilities.ApiResponse;
 import com.server.server.utilities.ModelMapper;
-
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -56,8 +52,8 @@ public class TicketController {
 
     @PostMapping
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'OWNER')")
-    public ResponseEntity<ApiResponse<TicketResponse>> create(@Valid @RequestBody Ticket ticket) {
-        return ResponseEntity.ok(ApiResponse.ok("Ticket created!", modelMapper.toTicketResponse(ticketService.create(ticket))));
+    public ResponseEntity<ApiResponse<TicketResponse>> create(@Valid @RequestBody TicketCreateRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok("Ticket created!", modelMapper.toTicketResponse(ticketService.create(request))));
     }
 
     @PutMapping("/{id}/status")
@@ -69,7 +65,7 @@ public class TicketController {
     @PutMapping("/{id}/cancel")
     @PreAuthorize("hasAnyAuthority('CUSTOMER', 'ADMIN', 'MANAGER', 'EMPLOYEE', 'OWNER')")
     public ResponseEntity<ApiResponse<TicketResponse>> cancel(@NonNull @PathVariable Integer id) {
-        return ResponseEntity.ok(ApiResponse.ok("Ticket cancelled!", modelMapper.toTicketResponse(ticketService.updateStatus(id, GenericStatus.CANCELLED))));
+        return ResponseEntity.ok(ApiResponse.ok("Ticket cancelled!", modelMapper.toTicketResponse(ticketService.cancelTicket(id))));
     }
 
     @PutMapping("/{id}/approve")

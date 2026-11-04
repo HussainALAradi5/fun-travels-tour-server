@@ -1,6 +1,5 @@
 package com.server.server.enums.tourmanagement;
 
-
 public enum ChairType {
     STANDARD,
     KIDS_CHAIR,

@@ -15,18 +15,17 @@ import com.server.server.dto.notification.NotificationCounts;
 import com.server.server.dto.support.UserRequestResponse;
 import com.server.server.dto.support.CommentResponse;
 import com.server.server.dto.support.EventLogResponse;
-import com.server.server.dto.support.AccountResponse;
-import com.server.server.models.Account;
-import com.server.server.models.City;
-import com.server.server.models.Country;
-import com.server.server.models.GenericComment;
-import com.server.server.models.GenericEventLog;
-import com.server.server.models.Notification;
-import com.server.server.models.Payment;
-import com.server.server.models.Port;
-import com.server.server.models.Transaction;
-import com.server.server.models.UserRequest;
-
+import com.server.server.dto.payment.AccountResponse;
+import com.server.server.models.payment.Account;
+import com.server.server.models.geography.City;
+import com.server.server.models.geography.Country;
+import com.server.server.models.support.GenericComment;
+import com.server.server.models.support.GenericEventLog;
+import com.server.server.models.notification.Notification;
+import com.server.server.models.payment.Payment;
+import com.server.server.models.geography.Port;
+import com.server.server.models.payment.Transaction;
+import com.server.server.models.support.UserRequest;
 @Component
 public class SystemMapper {
 
@@ -177,6 +176,10 @@ public class SystemMapper {
         dto.setReferenceId(c.getReferenceId());
         dto.setContent(c.getContent());
         dto.setCreatedAt(c.getCreatedAt());
+        if (c.getUpdatedAt() != null && c.getCreatedAt() != null
+                && c.getUpdatedAt().isAfter(c.getCreatedAt().plusSeconds(1))) {
+            dto.setUpdatedAt(c.getUpdatedAt());
+        }
         if (c.getAuthor() != null) {
             dto.setAuthor(new CommentResponse.UserSummary(c.getAuthor().getId(), c.getAuthor().getName()));
         }
