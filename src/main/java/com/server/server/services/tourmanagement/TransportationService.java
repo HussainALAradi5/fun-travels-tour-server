@@ -55,7 +55,7 @@ public class TransportationService {
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'OWNER')")
     public PageResponse<Transportation> getAll(Integer page, Integer size, String sortBy, String sortDir) {
-        return PageResponse.from(repository.findAll(PaginationUtils.pageable(page, size, sortBy, sortDir,
+        return PageResponse.from(repository.findAll(inViewerScope(), PaginationUtils.pageable(page, size, sortBy, sortDir,
                 "transportationNumber", Set.of("id", "transportationNumber", "code", "providerName", "type", "unitStatus"))));
     }
 
@@ -63,7 +63,16 @@ public class TransportationService {
     public Transportation getById(@NonNull Integer id) {
         Objects.requireNonNull(id, "id must not be null");
         return repository.findWithSeatsById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Transportation unit not found."));
+                .orElseThrow(() -> new ResourceNotFoundException("Transportation", id));
+    }
+
+    /** A vehicle with its seats, for staff of its agency and administrators. */
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'OWNER')")
+    public Transportation getVisible(@NonNull Integer id) {
+        Transportation transportation = getById(id);
+        accessPolicy.requireAgencyAccess(accessPolicy.requireCurrentUser(), transportation.getAgency());
+        return transportation;
     }
 
 // Inside TransportationService.java
@@ -104,26 +113,26 @@ public class TransportationService {
 
     private Transportation toEntity(TransportationCreateRequest request) {
         Integer scope = AccessPolicyService.agencyScope(accessPolicy.requireCurrentUser());
-        Integer agencyId = scope != null ? scope : request.getAgencyId();
+        Integer agencyId = scope != null ? scope : request.agencyId();
         Agency agency = agencyRepository.findById(agencyId)
                 .orElseThrow(() -> new ResourceNotFoundException("Agency", agencyId));
         AgencyBranch branch = null;
-        if (request.getBranchId() != null) {
-            branch = branchRepository.findById(request.getBranchId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Agency branch", request.getBranchId()));
+        if (request.branchId() != null) {
+            branch = branchRepository.findById(request.branchId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Agency branch", request.branchId()));
             if (branch.getAgency() == null || !branch.getAgency().getId().equals(agency.getId())) {
                 throw new IllegalArgumentException("The selected branch does not belong to the selected agency.");
             }
         }
         Transportation transportation = new Transportation();
-        transportation.setTransportationNumber(request.getTransportationNumber().trim());
-        transportation.setCode(request.getCode().trim());
-        transportation.setType(request.getType());
-        transportation.setProviderName(request.getProviderName().trim());
-        transportation.setTotalCapacity(request.getTotalCapacity());
+        transportation.setTransportationNumber(request.transportationNumber().trim());
+        transportation.setCode(request.code().trim());
+        transportation.setType(request.type());
+        transportation.setProviderName(request.providerName().trim());
+        transportation.setTotalCapacity(request.totalCapacity());
         transportation.setAgency(agency);
         transportation.setAgencyBranch(branch);
-        transportation.setSeatConfig(request.getSeatConfig());
+        transportation.setSeatConfig(request.seatConfig());
         return transportation;
     }
 
@@ -138,20 +147,19 @@ public class TransportationService {
     }
 
     private TransportationCreateRequest toRequest(Map<String, String> row) {
-        TransportationCreateRequest request = new TransportationCreateRequest();
-        request.setTransportationNumber(required(row, "transportationnumber"));
-        request.setCode(required(row, "code"));
-        request.setType(parseEnum(TransportationType.class, required(row, "type"), "type"));
-        request.setProviderName(required(row, "providername"));
-        request.setTotalCapacity(positiveInteger(row, "totalcapacity"));
-        request.setAgencyId(positiveInteger(row, "agencyid"));
-        request.setBranchId(optionalInteger(row, "branchid"));
         Map<String, Integer> seats = new LinkedHashMap<>();
         putSeatCount(seats, "PREMIUM_RECLINER", row.get("premiumseats"));
         putSeatCount(seats, "WHEELCHAIR_ACCESSIBLE", row.get("accessibleseats"));
         putSeatCount(seats, "KIDS_CHAIR", row.get("kidsseats"));
-        request.setSeatConfig(seats);
-        return request;
+        return new TransportationCreateRequest(
+                required(row, "transportationnumber"),
+                required(row, "code"),
+                parseEnum(TransportationType.class, required(row, "type"), "type"),
+                required(row, "providername"),
+                positiveInteger(row, "totalcapacity"),
+                positiveInteger(row, "agencyid"),
+                optionalInteger(row, "branchid"),
+                seats);
     }
 
     private String required(Map<String, String> row, String key) {
@@ -238,22 +246,22 @@ public class TransportationService {
         Transportation existing = getById(id);
         accessPolicy.requireAgencyAccess(accessPolicy.requireCurrentUser(), existing.getAgency());
         // Capacity follows the seat layout and the code is permanent, so neither is copied.
-        if (incomingData.getTransportationNumber() != null && !incomingData.getTransportationNumber().isBlank()) {
-            existing.setTransportationNumber(incomingData.getTransportationNumber().trim());
+        if (incomingData.transportationNumber() != null && !incomingData.transportationNumber().isBlank()) {
+            existing.setTransportationNumber(incomingData.transportationNumber().trim());
         }
-        if (incomingData.getProviderName() != null && !incomingData.getProviderName().isBlank()) {
-            existing.setProviderName(incomingData.getProviderName().trim());
+        if (incomingData.providerName() != null && !incomingData.providerName().isBlank()) {
+            existing.setProviderName(incomingData.providerName().trim());
         }
-        if (incomingData.getType() != null) {
-            existing.setType(incomingData.getType());
+        if (incomingData.type() != null) {
+            existing.setType(incomingData.type());
         }
         if (repository.existsByProviderNameAndTransportationNumberAndIdNot(
                 existing.getProviderName(), existing.getTransportationNumber(), existing.getId())) {
             throw new DuplicateResourceException("This registration already exists for the selected provider.");
         }
 
-        if (incomingData.getSeatConfig() != null) {
-            applySeatLayout(existing, incomingData.getSeatConfig());
+        if (incomingData.seatConfig() != null) {
+            applySeatLayout(existing, incomingData.seatConfig());
         }
 
         return repository.save(existing);
@@ -334,11 +342,12 @@ public class TransportationService {
     }
 
     @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'OWNER')")
     public PageResponse<Transportation> filter(TransportationFilterRequest filter) {
         String search = filter.getKeyword() != null ? filter.getKeyword() : filter.getSearch();
-        Specification<Transportation> spec = hasType(filter.getType())
+        Specification<Transportation> spec = inViewerScope().and(hasType(filter.getType()))
                 .and(hasStatus(filter.getStatus())).and(hasUnitStatus(filter.getUnitStatus()))
-                .and(hasProvider(search));
+                .and(matchesKeyword(search));
         return PageResponse.from(repository.findAll(spec, PaginationUtils.pageable(filter,
                 "transportationNumber", Set.of("id", "transportationNumber", "code", "providerName", "type", "unitStatus"),
                 java.util.Map.of())));
@@ -356,8 +365,21 @@ public class TransportationService {
         return (r, q, cb) -> us == null ? cb.conjunction() : cb.equal(r.get("unitStatus"), us);
     }
 
-    private Specification<Transportation> hasProvider(String p) {
-        return (r, q, cb) -> (p == null || p.isBlank()) ? cb.conjunction()
-                : cb.like(cb.lower(r.get("providerName")), "%" + p.toLowerCase() + "%");
+    /** Keyword search over provider, internal code, and registration number. */
+    private Specification<Transportation> matchesKeyword(String keyword) {
+        return (r, q, cb) -> {
+            if (keyword == null || keyword.isBlank()) {
+                return cb.conjunction();
+            }
+            String like = "%" + keyword.trim().toLowerCase() + "%";
+            return cb.or(cb.like(cb.lower(r.get("providerName")), like), cb.like(cb.lower(r.get("code")), like),
+                    cb.like(cb.lower(r.get("transportationNumber")), like));
+        };
+    }
+
+    /** Agency staff see only their agency's vehicles; administrators see all. */
+    private Specification<Transportation> inViewerScope() {
+        Integer scope = AccessPolicyService.agencyScope(accessPolicy.requireCurrentUser());
+        return (r, q, cb) -> scope == null ? cb.conjunction() : cb.equal(r.get("agency").get("id"), scope);
     }
 }

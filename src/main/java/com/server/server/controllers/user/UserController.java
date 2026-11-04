@@ -24,10 +24,11 @@ import com.server.server.dto.user.UserUpdateRequest;
 import com.server.server.enums.user.UserTypeEnum;
 import com.server.server.services.user.UserService;
 import com.server.server.utilities.ApiResponse;
-import com.server.server.utilities.ModelMapper;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import com.server.server.dto.user.ProfileResponse;
+import com.server.server.services.user.ProfileService;
 
 @RestController
 @RequestMapping("/api/users")
@@ -35,31 +36,42 @@ import lombok.RequiredArgsConstructor;
 public class UserController {
 
     private final UserService userService;
-    private final ModelMapper modelMapper;
+    private final ProfileService profileService;
+
+    /** The signed-in user's profile with agency placement and wallet. */
+    @GetMapping("/me/profile")
+    public ResponseEntity<ApiResponse<ProfileResponse>> getMyProfile() {
+        return ResponseEntity.ok(ApiResponse.ok(profileService.getMyProfile()));
+    }
+
+    @PutMapping("/me/profile")
+    public ResponseEntity<ApiResponse<ProfileResponse>> updateMyProfile(@Valid @RequestBody UserUpdateRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok("Profile updated!", profileService.updateMyProfile(request)));
+    }
 
     @GetMapping
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER')")
     public ResponseEntity<ApiResponse<List<UserResponse>>> getAllUsers() {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toUserResponseList(userService.getUsersByType(null))));
+        return ResponseEntity.ok(ApiResponse.ok(userService.getUsersByType(null).stream().map(UserResponse::from).toList()));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<UserResponse>> getUserById(@NonNull @PathVariable Integer id) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toUserResponse(userService.getVisibleUser(id))));
+        return ResponseEntity.ok(ApiResponse.ok(UserResponse.from(userService.getVisibleUser(id))));
     }
 
     @GetMapping("/agency/{agencyId}")
     public ResponseEntity<ApiResponse<List<UserResponse>>> getEmployeesByAgency(
             @NonNull @PathVariable Integer agencyId,
             @RequestParam(required = false) UserTypeEnum role) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toUserResponseList(userService.getAgencyUsers(agencyId, role))));
+        return ResponseEntity.ok(ApiResponse.ok(userService.getAgencyUsers(agencyId, role).stream().map(UserResponse::from).toList()));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<UserResponse>> updateUser(@NonNull @PathVariable Integer id,
             @Valid @RequestBody UserUpdateRequest request) {
         return ResponseEntity.ok(ApiResponse.ok("User updated!",
-                modelMapper.toUserResponse(userService.updateProfile(id, request))));
+                UserResponse.from(userService.updateProfile(id, request))));
     }
 
     @PreAuthorize("hasAnyAuthority('ADMIN', 'OWNER', 'MANAGER')")
@@ -77,9 +89,10 @@ public class UserController {
     public ResponseEntity<ApiResponse<UserResponse>> updatePermissions(
             @NonNull @PathVariable Integer id,
             @RequestParam UserTypeEnum type,
+            @RequestParam(required = false) Integer agencyId,
             @RequestParam(required = false) Integer branchId) {
         return ResponseEntity.ok(ApiResponse.ok("Permissions updated!",
-                modelMapper.toUserResponse(userService.updatePermissions(id, type, branchId))));
+                UserResponse.from(userService.updatePermissions(id, type, agencyId, branchId))));
     }
 
     @PreAuthorize("hasAnyAuthority('ADMIN', 'OWNER', 'MANAGER')")
@@ -89,7 +102,7 @@ public class UserController {
             @RequestParam(required = false) Integer agencyId,
             @RequestParam(required = false) Integer branchId) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok("Employee added!",
-                modelMapper.toUserResponse(userService.createEmployee(request, agencyId, branchId))));
+                UserResponse.from(userService.createEmployee(request, agencyId, branchId))));
     }
 
     @PreAuthorize("hasAuthority('ADMIN')")
@@ -102,6 +115,6 @@ public class UserController {
     @GetMapping("/role/{type}")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'OWNER')")
     public ResponseEntity<ApiResponse<List<UserResponse>>> getUsersByRole(@PathVariable UserTypeEnum type) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toUserResponseList(userService.getUsersByType(type))));
+        return ResponseEntity.ok(ApiResponse.ok(userService.getUsersByType(type).stream().map(UserResponse::from).toList()));
     }
 }

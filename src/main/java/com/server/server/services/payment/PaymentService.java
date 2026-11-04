@@ -32,6 +32,7 @@ import java.time.LocalTime;
 import java.util.Set;
 import com.server.server.services.common.GenericFilterService;
 import com.server.server.utilities.FilterUtils;
+import com.server.server.exceptions.WorkflowException;
 @Service
 @RequiredArgsConstructor
 public class PaymentService extends GenericFilterService<Payment> {
@@ -75,20 +76,17 @@ public class PaymentService extends GenericFilterService<Payment> {
                 .transactionId(CodeGenerator.generate(CodePrefixes.PAYMENT))
                 .build();
 
-        if (method == PaymentMethod.WALLET) {
-            var account = accountService.getAccountByUserId(res.getUser().getId());
-            transactionService.debitAccount(account, res.getTotalPrice(), TransactionType.PAYMENT,
-                    "Payment for reservation " + res.getReservationNumber(), res);
-            payment.setStatus(PaymentStatus.COMPLETED);
-            payment.setPaymentDate(LocalDateTime.now());
-        } else if (method == PaymentMethod.CREDIT_CARD || method == PaymentMethod.PAYPAL) {
-            // External providers are asynchronous. Only a verified, signed webhook may
-            // transition this payment to COMPLETED.
-            payment.setStatus(PaymentStatus.PENDING);
-        } else {
-            payment.setStatus(PaymentStatus.PENDING);
+        // Bookings are paid from the wallet; cards top the wallet up first. There is no provider
+        // webhook to complete an external booking payment, so other methods would stay pending forever.
+        if (method != PaymentMethod.WALLET) {
+            throw new WorkflowException("PAYMENT_METHOD_UNSUPPORTED",
+                    "Bookings are paid from your wallet. Top up your wallet by card, then pay.");
         }
-
+        var account = accountService.getAccountByUserId(res.getUser().getId());
+        transactionService.debitAccount(account, res.getTotalPrice(), TransactionType.PAYMENT,
+                "Payment for reservation " + res.getReservationNumber(), res);
+        payment.setStatus(PaymentStatus.COMPLETED);
+        payment.setPaymentDate(LocalDateTime.now());
         return paymentRepository.save(payment);
     }
 

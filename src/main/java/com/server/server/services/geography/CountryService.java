@@ -60,18 +60,18 @@ public class CountryService {
 
     @Transactional
     public Country createCountry(CountryCreateRequest request) {
-        String code = request.getCountryCode().trim().toUpperCase(java.util.Locale.ROOT);
+        String code = request.countryCode().trim().toUpperCase(java.util.Locale.ROOT);
         if (countryRepository.existsByCountryCodeIgnoreCase(code)) {
             throw new DuplicateResourceException("Country code " + code + " already exists.");
         }
         Country country = new Country();
-        country.setFamousName(request.getFamousName().trim());
-        country.setOfficialName(request.getOfficialName());
+        country.setFamousName(request.famousName().trim());
+        country.setOfficialName(request.officialName());
         country.setCountryCode(code);
-        country.setDialCode(request.getDialCode());
-        country.setMobileNumberLength(request.getMobileNumberLength());
-        country.setFlagPngUrl(request.getFlagPngUrl());
-        country.setFlagSvgUrl(request.getFlagSvgUrl());
+        country.setDialCode(request.dialCode());
+        country.setMobileNumberLength(request.mobileNumberLength());
+        country.setFlagPngUrl(request.flagPngUrl());
+        country.setFlagSvgUrl(request.flagSvgUrl());
         return countryRepository.save(country);
     }
 

@@ -20,7 +20,6 @@ import com.server.server.enums.common.GenericStatus;
 import com.server.server.dto.tourmanagement.ReservationCreateRequest;
 import com.server.server.services.tourmanagement.TourReservationService;
 import com.server.server.utilities.ApiResponse;
-import com.server.server.utilities.ModelMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -29,30 +28,29 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TourReservationController {
     private final TourReservationService reservationService;
-    private final ModelMapper modelMapper;
 
     @PostMapping
     @PreAuthorize("hasAnyAuthority('CUSTOMER', 'ADMIN', 'MANAGER', 'EMPLOYEE', 'OWNER')")
     public ResponseEntity<ApiResponse<ReservationResponse>> create(@Valid @RequestBody ReservationCreateRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok("Reservation created!", modelMapper.toReservationResponse(reservationService.create(request))));
+        return ResponseEntity.ok(ApiResponse.ok("Reservation created!", ReservationResponse.from(reservationService.create(request))));
     }
 
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
     public ResponseEntity<ApiResponse<ReservationResponse>> updateStatus(@NonNull @PathVariable Integer id, @RequestParam GenericStatus status) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toReservationResponse(reservationService.updateStatus(id, status))));
+        return ResponseEntity.ok(ApiResponse.ok(ReservationResponse.from(reservationService.updateStatus(id, status))));
     }
 
     @PatchMapping("/{id}/cancel")
     @PreAuthorize("hasAnyAuthority('CUSTOMER', 'ADMIN', 'MANAGER', 'EMPLOYEE', 'OWNER')")
     public ResponseEntity<ApiResponse<ReservationResponse>> cancelReservation(@NonNull @PathVariable Integer id) {
-        return ResponseEntity.ok(ApiResponse.ok("Reservation cancelled!", modelMapper.toReservationResponse(reservationService.cancelReservation(id))));
+        return ResponseEntity.ok(ApiResponse.ok("Reservation cancelled!", ReservationResponse.from(reservationService.cancelReservation(id))));
     }
 
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<PageResponse<ReservationResponse>>> search(
             @ModelAttribute ReservationFilterRequest filter) {
-        return ResponseEntity.ok(ApiResponse.ok(reservationService.filter(filter).map(modelMapper::toReservationResponse)));
+        return ResponseEntity.ok(ApiResponse.ok(reservationService.filter(filter).map(ReservationResponse::from)));
     }
 
     @GetMapping
@@ -61,11 +59,11 @@ public class TourReservationController {
             @RequestParam(defaultValue = "20") Integer size,
             @RequestParam(defaultValue = "desc") String sortDir) {
         return ResponseEntity.ok(ApiResponse.ok(reservationService.getAll(page, size, sortDir)
-                .map(modelMapper::toReservationResponse)));
+                .map(ReservationResponse::from)));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ReservationResponse>> getById(@NonNull @PathVariable Integer id) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toReservationResponse(reservationService.getById(id))));
+        return ResponseEntity.ok(ApiResponse.ok(ReservationResponse.from(reservationService.getById(id))));
     }
 }

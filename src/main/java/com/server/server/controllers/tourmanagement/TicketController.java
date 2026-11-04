@@ -20,7 +20,6 @@ import com.server.server.enums.common.GenericStatus;
 import com.server.server.dto.tourmanagement.TicketCreateRequest;
 import com.server.server.services.tourmanagement.TicketService;
 import com.server.server.utilities.ApiResponse;
-import com.server.server.utilities.ModelMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -29,11 +28,10 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TicketController {
     private final TicketService ticketService;
-    private final ModelMapper modelMapper;
 
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<PageResponse<TicketResponse>>> search(@ModelAttribute TicketFilterRequest filter) {
-        return ResponseEntity.ok(ApiResponse.ok(ticketService.filter(filter).map(modelMapper::toTicketResponse)));
+        return ResponseEntity.ok(ApiResponse.ok(ticketService.filter(filter).map(TicketResponse::from)));
     }
 
     @GetMapping
@@ -42,41 +40,41 @@ public class TicketController {
             @RequestParam(defaultValue = "20") Integer size,
             @RequestParam(defaultValue = "desc") String sortDir) {
         return ResponseEntity.ok(ApiResponse.ok(ticketService.getAll(page, size, sortDir)
-                .map(modelMapper::toTicketResponse)));
+                .map(TicketResponse::from)));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<TicketResponse>> getById(@NonNull @PathVariable Integer id) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTicketResponse(ticketService.getById(id))));
+        return ResponseEntity.ok(ApiResponse.ok(TicketResponse.from(ticketService.getById(id))));
     }
 
     @PostMapping
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'OWNER')")
     public ResponseEntity<ApiResponse<TicketResponse>> create(@Valid @RequestBody TicketCreateRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok("Ticket created!", modelMapper.toTicketResponse(ticketService.create(request))));
+        return ResponseEntity.ok(ApiResponse.ok("Ticket created!", TicketResponse.from(ticketService.create(request))));
     }
 
     @PutMapping("/{id}/status")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
     public ResponseEntity<ApiResponse<TicketResponse>> updateStatus(@NonNull @PathVariable Integer id, @RequestParam GenericStatus status) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTicketResponse(ticketService.updateStatus(id, status))));
+        return ResponseEntity.ok(ApiResponse.ok(TicketResponse.from(ticketService.updateStatus(id, status))));
     }
 
     @PutMapping("/{id}/cancel")
     @PreAuthorize("hasAnyAuthority('CUSTOMER', 'ADMIN', 'MANAGER', 'EMPLOYEE', 'OWNER')")
     public ResponseEntity<ApiResponse<TicketResponse>> cancel(@NonNull @PathVariable Integer id) {
-        return ResponseEntity.ok(ApiResponse.ok("Ticket cancelled!", modelMapper.toTicketResponse(ticketService.cancelTicket(id))));
+        return ResponseEntity.ok(ApiResponse.ok("Ticket cancelled!", TicketResponse.from(ticketService.cancelTicket(id))));
     }
 
     @PutMapping("/{id}/approve")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
     public ResponseEntity<ApiResponse<TicketResponse>> approve(@NonNull @PathVariable Integer id) {
-        return ResponseEntity.ok(ApiResponse.ok("Ticket approved!", modelMapper.toTicketResponse(ticketService.updateStatus(id, GenericStatus.APPROVED))));
+        return ResponseEntity.ok(ApiResponse.ok("Ticket approved!", TicketResponse.from(ticketService.updateStatus(id, GenericStatus.APPROVED))));
     }
 
     @PutMapping("/{id}/confirm")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
     public ResponseEntity<ApiResponse<TicketResponse>> confirm(@NonNull @PathVariable Integer id) {
-        return ResponseEntity.ok(ApiResponse.ok("Ticket confirmed!", modelMapper.toTicketResponse(ticketService.updateStatus(id, GenericStatus.CONFIRMED))));
+        return ResponseEntity.ok(ApiResponse.ok("Ticket confirmed!", TicketResponse.from(ticketService.updateStatus(id, GenericStatus.CONFIRMED))));
     }
 }

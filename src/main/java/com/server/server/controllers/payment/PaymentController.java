@@ -20,7 +20,6 @@ import com.server.server.models.tourmanagement.TourReservation;
 import com.server.server.services.payment.PaymentService;
 import com.server.server.services.tourmanagement.TourReservationService;
 import com.server.server.utilities.ApiResponse;
-import com.server.server.utilities.ModelMapper;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -30,7 +29,6 @@ public class PaymentController {
 
     private final PaymentService paymentService;
     private final TourReservationService reservationService;
-    private final ModelMapper modelMapper;
 
     @PostMapping("/execute/{reservationId}")
     @PreAuthorize("hasAnyAuthority('CUSTOMER', 'ADMIN', 'MANAGER', 'OWNER')")
@@ -38,18 +36,18 @@ public class PaymentController {
             @NonNull @PathVariable Integer reservationId,
             @RequestParam PaymentMethod method) {
         TourReservation result = reservationService.finalizeReservationWithPayment(reservationId, method);
-        return ResponseEntity.ok(ApiResponse.ok("Payment processed!", modelMapper.toReservationResponse(result)));
+        return ResponseEntity.ok(ApiResponse.ok("Payment processed!", ReservationResponse.from(result)));
     }
 
     @GetMapping
     @PreAuthorize("hasAnyAuthority('CUSTOMER', 'ADMIN', 'MANAGER', 'OWNER')")
     public ResponseEntity<ApiResponse<PageResponse<PaymentResponse>>> getPayments(@ModelAttribute PaymentFilterRequest filter) {
-        return ResponseEntity.ok(ApiResponse.ok(paymentService.filter(filter).map(modelMapper::toPaymentResponse)));
+        return ResponseEntity.ok(ApiResponse.ok(paymentService.filter(filter).map(PaymentResponse::from)));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('CUSTOMER', 'ADMIN', 'MANAGER', 'OWNER')")
     public ResponseEntity<ApiResponse<PaymentResponse>> getById(@NonNull @PathVariable Integer id) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toPaymentResponse(paymentService.getById(id))));
+        return ResponseEntity.ok(ApiResponse.ok(PaymentResponse.from(paymentService.getById(id))));
     }
 }

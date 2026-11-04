@@ -62,29 +62,29 @@ public class AgencyService {
     /** Admin-only. The optional owner must already have the OWNER role. */
     @Transactional
     public Agency createAgency(AgencyCreateRequest request) {
-        Country country = request.getCountryId() == null ? null : countryRepository.findById(request.getCountryId())
-                .orElseThrow(() -> new ResourceNotFoundException("Country", request.getCountryId()));
-        City city = request.getCityId() == null ? null : cityRepository.findById(request.getCityId())
-                .orElseThrow(() -> new ResourceNotFoundException("City", request.getCityId()));
+        Country country = request.countryId() == null ? null : countryRepository.findById(request.countryId())
+                .orElseThrow(() -> new ResourceNotFoundException("Country", request.countryId()));
+        City city = request.cityId() == null ? null : cityRepository.findById(request.cityId())
+                .orElseThrow(() -> new ResourceNotFoundException("City", request.cityId()));
         if (city != null && country != null && !Objects.equals(city.getCountry().getId(), country.getId())) {
             throw new IllegalArgumentException("The selected city does not belong to the selected country.");
         }
-        String name = request.getAgencyName().trim();
+        String name = request.agencyName().trim();
         if (country != null && agencyRepository.existsByAgencyNameIgnoreCaseAndCountryId(name, country.getId())) {
             throw new DuplicateResourceException("An agency named '" + name + "' already exists in this country.");
         }
         Agency agency = new Agency();
         agency.setAgencyName(name);
-        agency.setAddress(request.getAddress());
-        agency.setContactNumber(request.getContactNumber());
-        agency.setOwnerMobileNumber(request.getOwnerMobileNumber());
+        agency.setAddress(request.address());
+        agency.setContactNumber(request.contactNumber());
+        agency.setOwnerMobileNumber(request.ownerMobileNumber());
         agency.setCountry(country);
         agency.setCity(city);
         agency.setActive(true);
         Agency saved = agencyRepository.saveAndFlush(agency);
-        if (request.getAgencyOwnerId() != null) {
-            User owner = userRepository.findById(request.getAgencyOwnerId())
-                    .orElseThrow(() -> new ResourceNotFoundException("User", request.getAgencyOwnerId()));
+        if (request.agencyOwnerId() != null) {
+            User owner = userRepository.findById(request.agencyOwnerId())
+                    .orElseThrow(() -> new ResourceNotFoundException("User", request.agencyOwnerId()));
             if (owner.getUserType() != UserTypeEnum.OWNER) {
                 throw new IllegalArgumentException("The selected agency owner must have the OWNER role.");
             }

@@ -1,39 +1,29 @@
 package com.server.server.dto.user;
 
+import com.server.server.dto.agency.AgencySummary;
+import com.server.server.dto.agency.BranchSummary;
 import com.server.server.enums.user.UserTypeEnum;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.server.server.models.user.User;
+/** A user account as lists and sign-in return it. */
+public record UserResponse(
+        Integer id,
+        String userName,
+        String name,
+        String email,
+        String mobileNumber,
+        Integer age,
+        UserTypeEnum userType,
+        String profileImageUrl,
+        boolean active,
+        AgencySummary agency,
+        BranchSummary agencyBranch) {
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class UserResponse {
-    private Integer id;
-    private String userName;
-    private String name;
-    private String email;
-    private String mobileNumber;
-    private Integer age;
-    private UserTypeEnum userType;
-    private String profileImageUrl;
-    private boolean active;
-    private AgencySummary agency;
-    private AgencyBranchSummary agencyBranch;
-
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
-    public static class AgencySummary {
-        private Integer id;
-        private String agencyName;
-    }
-
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
-    public static class AgencyBranchSummary {
-        private Integer id;
-        private String branchName;
+    public static UserResponse from(User user) {
+        if (user == null) {
+            return null;
+        }
+        return new UserResponse(user.getId(), user.getUserName(), user.getName(), user.getEmail(),
+                user.getMobileNumber(), user.getAge(), user.getUserType(), user.getProfileImageUrl(), user.isActive(),
+                AgencySummary.from(user.getAgency()), BranchSummary.from(user.getAgencyBranch()));
     }
 }

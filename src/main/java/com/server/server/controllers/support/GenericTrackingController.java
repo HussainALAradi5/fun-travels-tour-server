@@ -16,7 +16,6 @@ import com.server.server.dto.support.TimelineResponse;
 import com.server.server.enums.notification.ReferenceType;
 import com.server.server.services.support.GenericTrackingService;
 import com.server.server.utilities.ApiResponse;
-import com.server.server.utilities.ModelMapper;
 import jakarta.validation.Valid;
 
 import lombok.RequiredArgsConstructor;
@@ -27,7 +26,6 @@ import lombok.RequiredArgsConstructor;
 public class GenericTrackingController {
 
     private final GenericTrackingService trackingService;
-    private final ModelMapper modelMapper;
 
     // --- FETCH EVERYTHING FOR THE TIMELINE ---
     @GetMapping("/{refType}/{refId}")
@@ -44,8 +42,8 @@ public class GenericTrackingController {
             @PathVariable ReferenceType refType, 
             @NonNull @PathVariable Integer refId,
             @Valid @RequestBody CommentRequest request) {
-        CommentResponse response = modelMapper.toCommentResponse(
-                trackingService.addComment(refId, refType, request.getContent()));
+        CommentResponse response = CommentResponse.from(
+                trackingService.addComment(refId, refType, request.content()));
         return ResponseEntity.ok(ApiResponse.ok("Comment added successfully.", response));
     }
 
@@ -54,8 +52,8 @@ public class GenericTrackingController {
     public ResponseEntity<ApiResponse<CommentResponse>> updateComment(
             @NonNull @PathVariable Integer commentId,
             @Valid @RequestBody CommentRequest request) {
-        CommentResponse response = modelMapper.toCommentResponse(
-                trackingService.updateComment(commentId, request.getContent()));
+        CommentResponse response = CommentResponse.from(
+                trackingService.updateComment(commentId, request.content()));
         return ResponseEntity.ok(ApiResponse.ok("Comment updated successfully.", response));
     }
 }

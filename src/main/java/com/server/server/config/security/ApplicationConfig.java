@@ -27,9 +27,7 @@ public class ApplicationConfig {
     @Bean
     public UserDetailsService userDetailsService() {
         return identifier -> {
-            // Updated to search by email, username, or mobile
-            com.server.server.models.user.User user = userRepository
-                .findByEmailIgnoreCaseOrUserNameIgnoreCaseOrMobileNumber(identifier, identifier, identifier)
+            com.server.server.models.user.User user = userRepository.findByLoginIdentifier(identifier)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with identifier: " + identifier));
 
             UserTypeEnum userType = user.getUserType() != null

@@ -27,9 +27,10 @@ import com.server.server.repositories.tourmanagement.TicketRepository;
 import com.server.server.repositories.tourmanagement.TourRepository;
 import com.server.server.repositories.tourmanagement.TourReservationRepository;
 import com.server.server.services.auth.AccessPolicyService;
-import com.server.server.utilities.ModelMapper;
 
 import lombok.RequiredArgsConstructor;
+import com.server.server.dto.support.CommentResponse;
+import com.server.server.dto.support.EventLogResponse;
 
 /** Comments and event logs attached to any record type, with per-type access rules. */
 @Service
@@ -43,14 +44,13 @@ public class GenericTrackingService {
     private final TicketRepository ticketRepository;
     private final TourRepository tourRepository;
     private final AccessPolicyService accessPolicy;
-    private final ModelMapper modelMapper;
 
     @Transactional(readOnly = true)
     public TimelineResponse getTimeline(@NonNull Integer refId, ReferenceType refType) {
         requireAccess(accessPolicy.requireCurrentUser(), refId, refType);
         return new TimelineResponse(
-                getEvents(refId, refType).stream().map(modelMapper::toEventLogResponse).toList(),
-                getComments(refId, refType).stream().map(modelMapper::toCommentResponse).toList());
+                getEvents(refId, refType).stream().map(EventLogResponse::from).toList(),
+                getComments(refId, refType).stream().map(CommentResponse::from).toList());
     }
 
     @Transactional

@@ -172,7 +172,7 @@ public class TourService extends GenericFilterService<Tour> {
     public Tour getById(@NonNull Integer id) {
         Objects.requireNonNull(id, "id must not be null");
         return tourRepository.findByIdWithDetails(id)
-                .orElseThrow(() -> new IllegalArgumentException("Tour not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Tour", id));
     }
 
     @Transactional
@@ -180,35 +180,35 @@ public class TourService extends GenericFilterService<Tour> {
     public Tour create(TourCreateRequest request) {
         User currentUser = accessPolicy.currentUserOrNull();
         Tour tour = new Tour();
-        tour.setTourNumber(request.getTourNumber().trim());
-        tour.setTitle(request.getTitle().trim());
-        tour.setDescription(request.getDescription());
-        tour.setBasePrice(request.getBasePrice());
-        tour.setPrice(request.getBasePrice());
+        tour.setTourNumber(request.tourNumber().trim());
+        tour.setTitle(request.title().trim());
+        tour.setDescription(request.description());
+        tour.setBasePrice(request.basePrice());
+        tour.setPrice(request.basePrice());
         tour.setDiscountPrice(0.0);
-        tour.setTotalPrice(request.getBasePrice());
-        tour.setNumberOfDays(request.getNumberOfDays());
-        tour.setStartDate(request.getStartDate());
-        tour.setEndDate(request.getEndDate());
-        tour.setMaxCapacity(request.getMaxCapacity());
-        tour.setAvailableSlots(request.getMaxCapacity());
-        tour.setStartCountry(countryRepository.findById(request.getStartCountryId())
+        tour.setTotalPrice(request.basePrice());
+        tour.setNumberOfDays(request.numberOfDays());
+        tour.setStartDate(request.startDate());
+        tour.setEndDate(request.endDate());
+        tour.setMaxCapacity(request.maxCapacity());
+        tour.setAvailableSlots(request.maxCapacity());
+        tour.setStartCountry(countryRepository.findById(request.startCountryId())
                 .orElseThrow(() -> new WorkflowException("Start country not found.")));
-        tour.setEndCountry(countryRepository.findById(request.getEndCountryId())
+        tour.setEndCountry(countryRepository.findById(request.endCountryId())
                 .orElseThrow(() -> new WorkflowException("End country not found.")));
-        tour.setStartCity(cityRepository.findById(request.getStartCityId())
+        tour.setStartCity(cityRepository.findById(request.startCityId())
                 .orElseThrow(() -> new WorkflowException("Start city not found.")));
-        tour.setEndCity(cityRepository.findById(request.getEndCityId())
+        tour.setEndCity(cityRepository.findById(request.endCityId())
                 .orElseThrow(() -> new WorkflowException("End city not found.")));
         if (!Objects.equals(tour.getStartCity().getCountry().getId(), tour.getStartCountry().getId())
                 || !Objects.equals(tour.getEndCity().getCountry().getId(), tour.getEndCountry().getId())) {
             throw new WorkflowException("A selected city must belong to its selected country.");
         }
-        if (request.getDestinationCountryIds() != null) {
-            tour.getDestinationCountries().addAll(countryRepository.findAllById(request.getDestinationCountryIds()));
+        if (request.destinationCountryIds() != null) {
+            tour.getDestinationCountries().addAll(countryRepository.findAllById(request.destinationCountryIds()));
         }
-        if (request.getTransportationId() != null) {
-            tour.setTransportation(transportationService.getById(request.getTransportationId()));
+        if (request.transportationId() != null) {
+            tour.setTransportation(transportationService.getById(request.transportationId()));
             tour.setHasTransportation(true);
         }
 
@@ -228,8 +228,8 @@ public class TourService extends GenericFilterService<Tour> {
             tour.setTransportation(transportationService.getById(tour.getTransportation().getId()));
         }
 
-        if (request.getMealPlanIds() != null) {
-            tour.getAvailableMeals().addAll(bookableMeals(request.getMealPlanIds(), tour.getAgency()));
+        if (request.mealPlanIds() != null) {
+            tour.getAvailableMeals().addAll(bookableMeals(request.mealPlanIds(), tour.getAgency()));
         }
         validateTourDates(tour.getStartDate(), tour.getEndDate());
         validateCapacity(tour);
@@ -259,37 +259,37 @@ public class TourService extends GenericFilterService<Tour> {
         if (existing.getStatus() == GenericStatus.COMPLETED) {
             throw new WorkflowException("Cannot modify a completed tour.");
         }
-        if (request.getTitle() != null && !request.getTitle().isBlank()) existing.setTitle(request.getTitle().trim());
-        if (request.getTourNumber() != null && !request.getTourNumber().isBlank()) existing.setTourNumber(request.getTourNumber().trim());
-        if (request.getDescription() != null) existing.setDescription(request.getDescription());
-        if (request.getNumberOfDays() != null) existing.setNumberOfDays(request.getNumberOfDays());
-        boolean datesChanged = (request.getStartDate() != null && !request.getStartDate().equals(existing.getStartDate()))
-                || (request.getEndDate() != null && !request.getEndDate().equals(existing.getEndDate()));
-        if (request.getStartDate() != null) existing.setStartDate(request.getStartDate());
-        if (request.getEndDate() != null) existing.setEndDate(request.getEndDate());
+        if (request.title() != null && !request.title().isBlank()) existing.setTitle(request.title().trim());
+        if (request.tourNumber() != null && !request.tourNumber().isBlank()) existing.setTourNumber(request.tourNumber().trim());
+        if (request.description() != null) existing.setDescription(request.description());
+        if (request.numberOfDays() != null) existing.setNumberOfDays(request.numberOfDays());
+        boolean datesChanged = (request.startDate() != null && !request.startDate().equals(existing.getStartDate()))
+                || (request.endDate() != null && !request.endDate().equals(existing.getEndDate()));
+        if (request.startDate() != null) existing.setStartDate(request.startDate());
+        if (request.endDate() != null) existing.setEndDate(request.endDate());
         if (datesChanged) {
             // An already-running tour keeps its past start date; only new dates are checked.
             validateTourDates(existing.getStartDate(), existing.getEndDate());
         }
 
-        if (request.getMaxCapacity() != null) {
+        if (request.maxCapacity() != null) {
             int bookedOrHeld = existing.getMaxCapacity() - existing.getAvailableSlots();
-            if (request.getMaxCapacity() < bookedOrHeld) {
+            if (request.maxCapacity() < bookedOrHeld) {
                 throw new WorkflowException("CAPACITY_BELOW_BOOKINGS",
                         "Capacity cannot be lower than the number of reserved or sold places.");
             }
-            existing.setMaxCapacity(request.getMaxCapacity());
-            existing.setAvailableSlots(request.getMaxCapacity() - bookedOrHeld);
+            existing.setMaxCapacity(request.maxCapacity());
+            existing.setAvailableSlots(request.maxCapacity() - bookedOrHeld);
         }
-        if (request.getBasePrice() != null) {
-            existing.setBasePrice(request.getBasePrice());
-            existing.setPrice(request.getBasePrice());
+        if (request.basePrice() != null) {
+            existing.setBasePrice(request.basePrice());
+            existing.setPrice(request.basePrice());
         }
 
-        Country startCountry = findCountry(request.getStartCountry());
-        Country endCountry = findCountry(request.getEndCountry());
-        City startCity = findCity(request.getStartCity());
-        City endCity = findCity(request.getEndCity());
+        Country startCountry = findCountry(request.startCountry());
+        Country endCountry = findCountry(request.endCountry());
+        City startCity = findCity(request.startCity());
+        City endCity = findCity(request.endCity());
         if (startCountry != null) existing.setStartCountry(startCountry);
         if (endCountry != null) existing.setEndCountry(endCountry);
         if (startCity != null) existing.setStartCity(startCity);
@@ -299,7 +299,7 @@ public class TourService extends GenericFilterService<Tour> {
             throw new WorkflowException("A selected city must belong to its selected country.");
         }
 
-        Integer transportationId = idOf(request.getTransportation());
+        Integer transportationId = idOf(request.transportation());
         if (transportationId != null && (existing.getTransportation() == null
                 || !Objects.equals(existing.getTransportation().getId(), transportationId))) {
             if (ticketRepository.existsByTour_IdAndTicketStatusNot(existing.getId(), TicketStatus.CANCELLED)) {
@@ -314,13 +314,13 @@ public class TourService extends GenericFilterService<Tour> {
         validateCapacity(existing);
         validateTransportationAvailability(existing, existing.getId());
 
-        if (request.getDestinationCountries() != null) {
+        if (request.destinationCountries() != null) {
             existing.getDestinationCountries().clear();
-            existing.getDestinationCountries().addAll(countryRepository.findAllById(ids(request.getDestinationCountries())));
+            existing.getDestinationCountries().addAll(countryRepository.findAllById(ids(request.destinationCountries())));
         }
-        if (request.getAvailableMeals() != null) {
+        if (request.availableMeals() != null) {
             existing.getAvailableMeals().clear();
-            existing.getAvailableMeals().addAll(bookableMeals(ids(request.getAvailableMeals()), existing.getAgency()));
+            existing.getAvailableMeals().addAll(bookableMeals(ids(request.availableMeals()), existing.getAgency()));
         }
 
         double discount = existing.getDiscountPrice() != null ? existing.getDiscountPrice() : 0.0;
@@ -451,7 +451,7 @@ public class TourService extends GenericFilterService<Tour> {
      * managers those of their branch (or without a branch), employees only tours they created.
      */
     private static Integer idOf(EntityReference reference) {
-        return reference == null ? null : reference.getId();
+        return reference == null ? null : reference.id();
     }
 
     private static List<Integer> ids(List<EntityReference> references) {

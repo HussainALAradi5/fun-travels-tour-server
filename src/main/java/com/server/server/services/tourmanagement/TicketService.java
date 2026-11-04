@@ -152,12 +152,12 @@ public class TicketService extends GenericFilterService<Ticket> {
     @Transactional
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'OWNER')")
     public Ticket create(TicketCreateRequest request) {
-        Tour tour = tourService.getById(request.getTour().getId());
+        Tour tour = tourService.getById(request.tour().id());
         accessPolicy.requireAgencyAccess(accessPolicy.requireCurrentUser(), tour.getAgency());
-        User customer = userRepository.findById(request.getCustomer().getId())
+        User customer = userRepository.findById(request.customer().id())
                 .filter(User::isActive)
-                .orElseThrow(() -> new ResourceNotFoundException("User", request.getCustomer().getId()));
-        Ticket ticket = ticketIssuingService.issue(tour, customer, null, List.of(request)).get(0);
+                .orElseThrow(() -> new ResourceNotFoundException("User", request.customer().id()));
+        Ticket ticket = ticketIssuingService.issue(tour, customer, null, List.of(request.selection())).get(0);
         inventoryService.reserve(tour.getId(), 1, List.of(ticket));
         ticketIssuingService.applyPricing(ticket, tour);
         return ticketRepository.save(ticket);

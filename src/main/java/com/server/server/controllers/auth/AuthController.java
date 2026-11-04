@@ -15,7 +15,6 @@ import com.server.server.dto.auth.RegisterRequest;
 import com.server.server.dto.user.UserResponse;
 import com.server.server.services.auth.AuthService;
 import com.server.server.utilities.ApiResponse;
-import com.server.server.utilities.ModelMapper;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,12 +25,11 @@ import lombok.RequiredArgsConstructor;
 public class AuthController {
 
     private final AuthService authService;
-    private final ModelMapper modelMapper;
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<UserResponse>> register(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok("User registered successfully!",
-                modelMapper.toUserResponse(authService.register(request))));
+                UserResponse.from(authService.register(request))));
     }
 
     @PostMapping("/login")
@@ -41,7 +39,7 @@ public class AuthController {
 
     @PostMapping("/password-reset/request")
     public ResponseEntity<ApiResponse<String>> requestPasswordReset(@Valid @RequestBody PasswordResetRequest request) {
-        String message = authService.requestPasswordReset(request.getIdentifier());
+        String message = authService.requestPasswordReset(request.identifier());
         return ResponseEntity.ok(ApiResponse.ok(message, message));
     }
 
@@ -49,6 +47,6 @@ public class AuthController {
     public ResponseEntity<ApiResponse<UserResponse>> confirmPasswordReset(
             @Valid @RequestBody PasswordResetConfirmRequest request) {
         return ResponseEntity.ok(ApiResponse.ok("Password reset!",
-                modelMapper.toUserResponse(authService.confirmPasswordReset(request))));
+                UserResponse.from(authService.confirmPasswordReset(request))));
     }
 }

@@ -17,7 +17,6 @@ import com.server.server.enums.payment.PaymentMethod;
 import com.server.server.models.payment.Transaction;
 import com.server.server.services.payment.WalletTopUpService;
 import com.server.server.utilities.ApiResponse;
-import com.server.server.utilities.ModelMapper;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -27,7 +26,6 @@ public class WalletController {
 
     private final WalletTopUpService walletTopUpService;
     private final StripeConfig stripeConfig;
-    private final ModelMapper modelMapper;
 
     @GetMapping("/config")
     public ResponseEntity<ApiResponse<Map<String, String>>> getStripeConfig() {
@@ -41,6 +39,6 @@ public class WalletController {
             @RequestParam PaymentMethod method,
             @RequestParam String gatewayToken) {
         Transaction tx = walletTopUpService.processWalletTopUp(amount, method, gatewayToken);
-        return ResponseEntity.ok(ApiResponse.ok("Wallet topped up!", modelMapper.toTransactionResponse(tx)));
+        return ResponseEntity.ok(ApiResponse.ok("Wallet topped up!", TransactionResponse.from(tx)));
     }
 }

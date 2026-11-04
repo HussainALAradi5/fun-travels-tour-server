@@ -45,21 +45,21 @@ public class PortService {
 
     @Transactional
     public Port createPort(PortCreateRequest request) {
-        Country country = countryRepository.findById(request.getCountry().getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Country", request.getCountry().getId()));
-        City city = cityRepository.findById(request.getCity().getId())
-                .orElseThrow(() -> new ResourceNotFoundException("City", request.getCity().getId()));
+        Country country = countryRepository.findById(request.country().id())
+                .orElseThrow(() -> new ResourceNotFoundException("Country", request.country().id()));
+        City city = cityRepository.findById(request.city().id())
+                .orElseThrow(() -> new ResourceNotFoundException("City", request.city().id()));
         if (!Objects.equals(city.getCountry().getId(), country.getId())) {
             throw new IllegalArgumentException("The selected city does not belong to the selected country.");
         }
         Port port = new Port();
-        port.setPortName(request.getPortName().trim());
-        port.setPortCode(request.getPortCode());
-        port.setPortType(request.getPortType());
+        port.setPortName(request.portName().trim());
+        port.setPortCode(request.portCode());
+        port.setPortType(request.portType());
         port.setCity(city);
         port.setCountry(country);
-        port.setLatitude(request.getLatitude());
-        port.setLongitude(request.getLongitude());
+        port.setLatitude(request.latitude());
+        port.setLongitude(request.longitude());
         port.setStatus(GenericStatus.ACTIVE);
         return portRepository.save(port);
     }

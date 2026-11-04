@@ -23,7 +23,6 @@ import com.server.server.models.user.User;
 import com.server.server.models.agency.Agency;
 import com.server.server.services.agency.AgencyService;
 import com.server.server.utilities.ApiResponse;
-import com.server.server.utilities.ModelMapper;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -32,20 +31,19 @@ import lombok.RequiredArgsConstructor;
 public class AgencyController {
 
     private final AgencyService agencyService;
-    private final ModelMapper modelMapper;
 
     @PostMapping
     @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<ApiResponse<AgencyResponse>> create(@Valid @RequestBody AgencyCreateRequest request) {
         Agency created = agencyService.createAgency(request);
         return ResponseEntity
-                .ok(new ApiResponse<>(true, "Agency created successfully", modelMapper.toAgencyResponse(created)));
+                .ok(new ApiResponse<>(true, "Agency created successfully", AgencyResponse.from(created)));
     }
 
     @GetMapping("/{id:\\d+}")
     public ResponseEntity<ApiResponse<AgencyResponse>> getById(@NonNull @PathVariable Integer id) {
         return ResponseEntity.ok(new ApiResponse<>(true, "Fetched agency",
-                modelMapper.toAgencyResponse(agencyService.getAgencyById(id))));
+                AgencyResponse.from(agencyService.getAgencyById(id))));
     }
 
     @GetMapping("/search")
@@ -54,20 +52,20 @@ public class AgencyController {
             @RequestParam(defaultValue = "0") Integer page,
             @RequestParam(defaultValue = "20") Integer size) {
         return ResponseEntity.ok(ApiResponse.ok("Fetched matching agencies",
-                agencyService.searchAgencies(query, page, size).map(modelMapper::toAgencyResponse)));
+                agencyService.searchAgencies(query, page, size).map(AgencyResponse::from)));
     }
 
     @GetMapping("/{id:\\d+}/employees")
     public ResponseEntity<ApiResponse<List<UserResponse>>> getEmployeesByAgency(@NonNull @PathVariable Integer id) {
         List<User> employees = agencyService.getEmployeesByAgencyId(id);
         return ResponseEntity
-                .ok(new ApiResponse<>(true, "Fetched agency employees", modelMapper.toUserResponseList(employees)));
+                .ok(new ApiResponse<>(true, "Fetched agency employees", employees.stream().map(UserResponse::from).toList()));
     }
 
     @GetMapping
     @PreAuthorize("hasAnyAuthority('ADMIN', 'OWNER', 'MANAGER', 'EMPLOYEE')")
     public ResponseEntity<ApiResponse<List<AgencyResponse>>> getAll() {
         return ResponseEntity.ok(new ApiResponse<>(true, "Fetched all agencies",
-                modelMapper.toAgencyResponseList(agencyService.getAllAgencies())));
+                agencyService.getAllAgencies().stream().map(AgencyResponse::from).toList()));
     }
 }

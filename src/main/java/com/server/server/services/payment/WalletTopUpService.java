@@ -45,7 +45,8 @@ public class WalletTopUpService {
     
     private final AccessPolicyService accessPolicy;
 
-    @Transactional
+    /** The FAILED payment record is kept when the card is declined, so the attempt stays visible. */
+    @Transactional(noRollbackFor = WorkflowException.class)
     public Transaction processWalletTopUp(BigDecimal amount, PaymentMethod method, String stripeToken) {
         
         // 1. Validate Amount

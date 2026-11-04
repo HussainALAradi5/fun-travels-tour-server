@@ -7,27 +7,22 @@ import com.server.server.dto.common.EntityReference;
 
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
-import lombok.Data;
 
 /** Partial tour update: null fields are left unchanged. References are {@code { "id": n }}. */
-@Data
-public class TourUpdateRequest {
-    private String title;
-    private String tourNumber;
-    private String description;
-    @PositiveOrZero(message = "Base price cannot be negative")
-    private Double basePrice;
-    private LocalDate startDate;
-    private LocalDate endDate;
-    @Positive(message = "Number of days must be positive")
-    private Integer numberOfDays;
-    @Positive(message = "Capacity must be positive")
-    private Integer maxCapacity;
-    private EntityReference startCountry;
-    private EntityReference endCountry;
-    private EntityReference startCity;
-    private EntityReference endCity;
-    private EntityReference transportation;
-    private List<EntityReference> destinationCountries;
-    private List<EntityReference> availableMeals;
+public record TourUpdateRequest(
+        String title,
+        String tourNumber,
+        String description,
+        @PositiveOrZero(message = "Base price cannot be negative") Double basePrice,
+        LocalDate startDate,
+        LocalDate endDate,
+        @Positive(message = "Number of days must be positive") Integer numberOfDays,
+        @Positive(message = "Capacity must be positive") Integer maxCapacity,
+        EntityReference startCountry,
+        EntityReference endCountry,
+        EntityReference startCity,
+        EntityReference endCity,
+        EntityReference transportation,
+        List<EntityReference> destinationCountries,
+        List<EntityReference> availableMeals) {
 }

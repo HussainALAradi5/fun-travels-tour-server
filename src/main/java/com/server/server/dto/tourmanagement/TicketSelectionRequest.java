@@ -5,12 +5,14 @@ import java.util.List;
 import com.server.server.dto.common.EntityReference;
 
 import jakarta.validation.Valid;
-import lombok.Data;
 
 /** One traveler's optional seat and meal choices. Prices are calculated by the server. */
-@Data
-public class TicketSelectionRequest {
-    @Valid
-    private EntityReference assignedSeat;
-    private List<@Valid EntityReference> selectedMeals;
+public record TicketSelectionRequest(
+        @Valid EntityReference assignedSeat,
+        List<@Valid EntityReference> selectedMeals) {
+
+    /** A traveler with no seat or meal preference. */
+    public static TicketSelectionRequest none() {
+        return new TicketSelectionRequest(null, null);
+    }
 }

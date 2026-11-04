@@ -28,6 +28,7 @@ import com.server.server.utilities.PaginationUtils;
 import java.util.Set;
 
 import lombok.RequiredArgsConstructor;
+import java.util.EnumSet;
 
 @Service
 @RequiredArgsConstructor
@@ -36,16 +37,22 @@ public class MealPlanService {
     private final AgencyRepository agencyRepository;
     private final AccessPolicyService accessPolicy;
 
+    /** Admins see every meal; agency staff see their agency's meals and shared ones; everyone else sees shared ones. */
     @Transactional(readOnly = true)
     public PageResponse<MealPlan> findAll(Integer page, Integer size, String sortDir) {
-        return PageResponse.from(repository.findAll(PaginationUtils.pageable(page, size, "mealName", sortDir,
-                "mealName", Set.of("mealName"))));
+        var pageable = PaginationUtils.pageable(page, size, "mealName", sortDir, "mealName", Set.of("mealName"));
+        // The meal list is public: visitors get shared meals only.
+        User current = accessPolicy.currentUserOrNull();
+        if (AccessPolicyService.isAdmin(current)) {
+            return PageResponse.from(repository.findAll(pageable));
+        }
+        return PageResponse.from(repository.findByAgencyIdOrAgencyIsNull(AccessPolicyService.agencyScope(current), pageable));
     }
 
     @Transactional(readOnly = true)
     public MealPlan findById(@NonNull Integer id) {
         Objects.requireNonNull(id, "id must not be null");
-        return repository.findById(id).orElseThrow(() -> new IllegalArgumentException("Meal definition not found: " + id));
+        return repository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Meal", id));
     }
 
     @Transactional(readOnly = true)
@@ -58,25 +65,40 @@ public class MealPlanService {
     @Transactional
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'OWNER')")
     public MealPlan createMeal(MealPlanCreateRequest request) {
-        Set<MealDietaryType> types = request.getDietaryTypes() == null || request.getDietaryTypes().isEmpty()
-                ? Set.of(MealDietaryType.STANDARD)
-                : new java.util.HashSet<>(request.getDietaryTypes());
+        MealPlan meal = new MealPlan();
+        meal.setAgency(resolveMealAgency(request.agencyId()));
+        meal.setStatus(GenericStatus.ACTIVE);
+        applyDetails(meal, request);
+        return repository.save(meal);
+    }
+
+    /** Replaces a meal's name, price, description, diets, and spice level. The owning agency never changes. */
+    @Transactional
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'OWNER')")
+    public MealPlan updateMeal(@NonNull Integer id, MealPlanCreateRequest request) {
+        MealPlan meal = findById(id);
+        accessPolicy.requireAgencyAccess(accessPolicy.requireCurrentUser(), meal.getAgency());
+        applyDetails(meal, request);
+        return repository.save(meal);
+    }
+
+    private static void applyDetails(MealPlan meal, MealPlanCreateRequest request) {
+        Set<MealDietaryType> types = request.dietaryTypes() == null || request.dietaryTypes().isEmpty()
+                ? EnumSet.of(MealDietaryType.STANDARD)
+                : EnumSet.copyOf(request.dietaryTypes());
         if (types.contains(MealDietaryType.STANDARD) && types.size() > 1) {
             throw new IllegalArgumentException("Standard cannot be combined with another dietary classification.");
         }
-        if (types.contains(MealDietaryType.VEGAN)) types.add(MealDietaryType.VEGETARIAN);
-
-        MealPlan meal = new MealPlan();
-        meal.setAgency(resolveMealAgency(request.getAgencyId()));
-        meal.setMealName(request.getMealName().trim());
-        meal.setMealPrice(request.getMealPrice());
-        meal.setMealDescription(request.getMealDescription());
+        if (types.contains(MealDietaryType.VEGAN)) {
+            types.add(MealDietaryType.VEGETARIAN);
+        }
+        meal.setMealName(request.mealName().trim());
+        meal.setMealPrice(request.mealPrice());
+        meal.setMealDescription(request.mealDescription());
         meal.setVegetarian(types.contains(MealDietaryType.VEGETARIAN));
         meal.setVegan(types.contains(MealDietaryType.VEGAN));
         meal.setGlutenFree(types.contains(MealDietaryType.GLUTEN_FREE));
-        meal.setSpiceLevel(Objects.requireNonNullElse(request.getSpiceLevel(), SpiceLevel.NONE));
-        meal.setStatus(GenericStatus.ACTIVE);
-        return repository.save(meal);
+        meal.setSpiceLevel(request.spiceLevel());
     }
 
     @Transactional

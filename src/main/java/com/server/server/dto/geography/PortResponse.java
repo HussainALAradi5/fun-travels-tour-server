@@ -2,33 +2,24 @@ package com.server.server.dto.geography;
 
 import com.server.server.enums.common.GenericStatus;
 import com.server.server.enums.geography.PortType;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.server.server.models.geography.Port;
+public record PortResponse(
+        Integer id,
+        String portName,
+        String portCode,
+        PortType portType,
+        CitySummary city,
+        CountrySummary country,
+        Double latitude,
+        Double longitude,
+        GenericStatus status) {
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class PortResponse {
-    private Integer id;
-    private String portName;
-    private String portCode;
-    private PortType portType;
-    private CitySummary city;
-    private CountrySummary country;
-    private Double latitude;
-    private Double longitude;
-    private GenericStatus status;
-
-    @Data @AllArgsConstructor @NoArgsConstructor
-    public static class CitySummary {
-        private Integer id;
-        private String name;
-    }
-
-    @Data @AllArgsConstructor @NoArgsConstructor
-    public static class CountrySummary {
-        private Integer id;
-        private String famousName;
+    public static PortResponse from(Port port) {
+        if (port == null) {
+            return null;
+        }
+        return new PortResponse(port.getId(), port.getPortName(), port.getPortCode(), port.getPortType(),
+                CitySummary.from(port.getCity()), CountrySummary.from(port.getCountry()), port.getLatitude(),
+                port.getLongitude(), port.getStatus());
     }
 }

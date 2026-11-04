@@ -64,22 +64,22 @@ public class AgencyBranchService {
         Agency agency = agencyRepository.findById(agencyId)
                 .orElseThrow(() -> new ResourceNotFoundException("Agency", agencyId));
         accessPolicy.requireAgencyAccess(accessPolicy.requireCurrentUser(), agency);
-        String name = request.getBranchName().trim();
+        String name = request.branchName().trim();
         if (branchRepository.existsByBranchNameIgnoreCaseAndAgencyId(name, agencyId)) {
             throw new DuplicateResourceException("A branch named '" + name + "' already exists for " + agency.getAgencyName());
         }
         AgencyBranch branch = new AgencyBranch();
         branch.setBranchName(name);
-        branch.setBranchAddress(request.getBranchAddress());
-        branch.setContactNumber(request.getContactNumber());
+        branch.setBranchAddress(request.branchAddress());
+        branch.setContactNumber(request.contactNumber());
         branch.setAgency(agency);
         branch.setCountry(agency.getCountry());
         branch.setCity(agency.getCity());
         branch.setActive(true);
         AgencyBranch saved = branchRepository.save(branch);
-        if (request.getBranchManagerId() != null) {
-            User manager = userRepository.findById(request.getBranchManagerId())
-                    .orElseThrow(() -> new ResourceNotFoundException("User", request.getBranchManagerId()));
+        if (request.branchManagerId() != null) {
+            User manager = userRepository.findById(request.branchManagerId())
+                    .orElseThrow(() -> new ResourceNotFoundException("User", request.branchManagerId()));
             if (manager.getUserType() != UserTypeEnum.MANAGER) {
                 throw new IllegalArgumentException("The branch manager must have the MANAGER role.");
             }

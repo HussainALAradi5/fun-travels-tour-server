@@ -22,7 +22,6 @@ import com.server.server.dto.user.UserResponse;
 import com.server.server.models.user.User;
 import com.server.server.services.agency.AgencyBranchService;
 import com.server.server.utilities.ApiResponse;
-import com.server.server.utilities.ModelMapper;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -31,7 +30,6 @@ import lombok.RequiredArgsConstructor;
 public class AgencyBranchController {
 
     private final AgencyBranchService branchService;
-    private final ModelMapper modelMapper;
 
     @PostMapping("/agency/{agencyId:\\d+}")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'OWNER')")
@@ -39,14 +37,14 @@ public class AgencyBranchController {
             @NonNull @PathVariable Integer agencyId,
             @Valid @RequestBody AgencyBranchCreateRequest request) {
         return ResponseEntity.ok(new ApiResponse<>(true, "Branch added",
-                modelMapper.toBranchResponse(branchService.addBranch(agencyId, request))));
+                AgencyBranchResponse.from(branchService.addBranch(agencyId, request))));
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<ApiResponse<List<AgencyBranchResponse>>> getAllBranches() {
         return ResponseEntity.ok(new ApiResponse<>(true, "Fetched all branches",
-                modelMapper.toBranchResponseList(branchService.getAllBranches())));
+                branchService.getAllBranches().stream().map(AgencyBranchResponse::from).toList()));
     }
 
     @GetMapping("/agency/{agencyId:\\d+}")
@@ -54,7 +52,7 @@ public class AgencyBranchController {
             @NonNull @PathVariable Integer agencyId) {
         return ResponseEntity
                 .ok(new ApiResponse<>(true, "Fetched agency branches",
-                        modelMapper.toBranchResponseList(branchService.getBranchesByAgency(agencyId))));
+                        branchService.getBranchesByAgency(agencyId).stream().map(AgencyBranchResponse::from).toList()));
     }
 
     @GetMapping("/agency/{agencyId:\\d+}/search")
@@ -65,7 +63,7 @@ public class AgencyBranchController {
             @RequestParam(defaultValue = "20") Integer size) {
         return ResponseEntity.ok(ApiResponse.ok("Fetched matching agency branches",
                 branchService.searchBranches(agencyId, query, page, size)
-                        .map(modelMapper::toBranchResponse)));
+                        .map(AgencyBranchResponse::from)));
     }
 
     @GetMapping("/agency/{agencyId:\\d+}/branch/{branchId:\\d+}/employees")
@@ -75,6 +73,6 @@ public class AgencyBranchController {
 
         List<User> employees = branchService.getEmployeesByBranch(agencyId, branchId);
         return ResponseEntity.ok(new ApiResponse<>(true, "Fetched employees for specific agency branch",
-                modelMapper.toUserResponseList(employees)));
+                employees.stream().map(UserResponse::from).toList()));
     }
 }

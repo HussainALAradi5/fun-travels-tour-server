@@ -45,12 +45,12 @@ public class TicketIssuingService {
         List<Ticket> tickets = new ArrayList<>();
         for (TicketSelectionRequest selection : selections) {
             Ticket ticket = new Ticket();
-            if (selection.getAssignedSeat() != null && selection.getAssignedSeat().getId() != null) {
+            if (selection.assignedSeat() != null && selection.assignedSeat().id() != null) {
                 Seat seat = new Seat();
-                seat.setId(selection.getAssignedSeat().getId());
+                seat.setId(selection.assignedSeat().id());
                 ticket.setAssignedSeat(seat);
             }
-            ticket.setSelectedMeals(resolveMeals(tour, selection.getSelectedMeals()));
+            ticket.setSelectedMeals(resolveMeals(tour, selection.selectedMeals()));
             tickets.add(prepare(ticket, tour, customer, reservation));
         }
         return tickets;
@@ -103,10 +103,10 @@ public class TicketIssuingService {
             return meals;
         }
         for (EntityReference reference : references) {
-            if (reference == null || reference.getId() == null) {
+            if (reference == null || reference.id() == null) {
                 continue;
             }
-            MealPlan meal = mealPlanService.findById(reference.getId());
+            MealPlan meal = mealPlanService.findById(reference.id());
             if (meals.stream().anyMatch(selected -> Objects.equals(selected.getId(), meal.getId()))) {
                 throw new WorkflowException("DUPLICATE_MEAL", "Meal '" + meal.getMealName() + "' was selected twice.");
             }

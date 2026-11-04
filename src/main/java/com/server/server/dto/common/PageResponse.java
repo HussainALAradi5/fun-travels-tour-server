@@ -5,27 +5,17 @@ import java.util.function.Function;
 
 import org.springframework.data.domain.Page;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class PageResponse<T> {
-    private List<T> content;
-    private int page;
-    private int size;
-    private long totalElements;
-    private int totalPages;
+/** One page of results with the paging numbers every list endpoint returns. */
+public record PageResponse<T>(List<T> content, int page, int size, long totalElements, int totalPages) {
 
     public static <T> PageResponse<T> from(Page<T> page) {
-        return new PageResponse<>(
-                page.getContent(),
-                page.getNumber(),
-                page.getSize(),
-                page.getTotalElements(),
+        return new PageResponse<>(page.getContent(), page.getNumber(), page.getSize(), page.getTotalElements(),
                 page.getTotalPages());
+    }
+
+    /** An empty first page. */
+    public static <T> PageResponse<T> empty() {
+        return new PageResponse<>(List.of(), 0, 0, 0, 0);
     }
 
     public <R> PageResponse<R> map(Function<T, R> mapper) {

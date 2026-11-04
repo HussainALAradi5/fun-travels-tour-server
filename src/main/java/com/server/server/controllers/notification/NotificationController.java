@@ -22,7 +22,6 @@ import com.server.server.enums.notification.ReferenceType;
 import com.server.server.models.notification.Notification;
 import com.server.server.services.notification.NotificationService;
 import com.server.server.utilities.ApiResponse;
-import com.server.server.utilities.ModelMapper;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -30,7 +29,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class NotificationController {
     private final NotificationService notificationService;
-    private final ModelMapper modelMapper;
     private final AccessPolicyService accessPolicy;
 
     @GetMapping("/user/{userId}")
@@ -46,13 +44,13 @@ public class NotificationController {
         accessPolicy.requireSelfOrAdmin(userId);
         List<Notification> notifications = notificationService.filterUserNotifications(
                 userId, search, isRead, type, refType, startDate, endDate);
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toNotificationResponseList(notifications)));
+        return ResponseEntity.ok(ApiResponse.ok(notifications.stream().map(NotificationResponse::from).toList()));
     }
 
     @PutMapping("/{id}/read")
     public ResponseEntity<ApiResponse<NotificationResponse>> markAsRead(@NonNull @PathVariable Integer id) {
         Notification notification = notificationService.markAsRead(id);
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toNotificationResponse(notification)));
+        return ResponseEntity.ok(ApiResponse.ok(NotificationResponse.from(notification)));
     }
 
     @GetMapping("/user/{userId}/counts")

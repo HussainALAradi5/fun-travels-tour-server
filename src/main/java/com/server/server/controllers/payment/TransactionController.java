@@ -22,7 +22,6 @@ import com.server.server.models.payment.Transaction;
 import com.server.server.services.payment.AccountService;
 import com.server.server.services.payment.TransactionService;
 import com.server.server.utilities.ApiResponse;
-import com.server.server.utilities.ModelMapper;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -32,20 +31,19 @@ public class TransactionController {
 
     private final TransactionService transactionService;
     private final AccountService accountService;
-    private final ModelMapper modelMapper;
 
     @GetMapping
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'CUSTOMER', 'OWNER')")
     public ResponseEntity<ApiResponse<PageResponse<TransactionResponse>>> getTransactions(
             @ModelAttribute TransactionFilterRequest filter) {
         return ResponseEntity.ok(ApiResponse.ok(
-                transactionService.filterTransactions(filter).map(modelMapper::toTransactionResponse)));
+                transactionService.filterTransactions(filter).map(TransactionResponse::from)));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'CUSTOMER', 'OWNER')")
     public ResponseEntity<ApiResponse<TransactionResponse>> getById(@PathVariable Integer id) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTransactionResponse(transactionService.getById(id))));
+        return ResponseEntity.ok(ApiResponse.ok(TransactionResponse.from(transactionService.getById(id))));
     }
 
     @PostMapping("/manual-credit/{userId}")
@@ -56,6 +54,6 @@ public class TransactionController {
             @RequestParam String description) {
         Account account = accountService.getAccountByUserId(userId);
         Transaction tx = transactionService.creditAccount(account, amount, TransactionType.MANUAL_ADJUSTMENT, description, null);
-        return ResponseEntity.ok(ApiResponse.ok("Credit applied!", modelMapper.toTransactionResponse(tx)));
+        return ResponseEntity.ok(ApiResponse.ok("Credit applied!", TransactionResponse.from(tx)));
     }
 }

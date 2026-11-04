@@ -93,7 +93,7 @@ public class TourReservationService extends GenericFilterService<TourReservation
     public TourReservation create(ReservationCreateRequest request) {
         User current = accessPolicy.requireCurrentUser();
         User customer = resolveCustomer(current, request);
-        Tour tour = tourService.getById(request.getTour().getId());
+        Tour tour = tourService.getById(request.tour().id());
         accessPolicy.requireAgencyAccess(current, tour.getAgency());
         validateNoDateConflicts(customer.getId(), tour.getStartDate(), tour.getEndDate());
 
@@ -143,10 +143,6 @@ public class TourReservationService extends GenericFilterService<TourReservation
             throw new WorkflowException("TOUR_NOT_BOOKABLE", "This tour is no longer available for booking.");
         }
         Payment payment = paymentService.executeTransaction(reservation, method);
-        if (payment.getStatus() == PaymentStatus.PENDING) {
-            log.info("Payment awaiting confirmation for reservation {}", reservation.getReservationNumber());
-            return repository.save(reservation);
-        }
         if (payment.getStatus() != PaymentStatus.COMPLETED) {
             throw new WorkflowException("PAYMENT_FAILED",
                     "We could not complete the payment. Please try another payment method.");
@@ -267,22 +263,22 @@ public class TourReservationService extends GenericFilterService<TourReservation
         if (AccessPolicyService.isCustomer(current)) {
             return current;
         }
-        if (request.getUser() == null || request.getUser().getId() == null) {
+        if (request.user() == null || request.user().id() == null) {
             throw new WorkflowException("CUSTOMER_REQUIRED", "A reservation customer is required.");
         }
-        return userRepository.findById(request.getUser().getId())
+        return userRepository.findById(request.user().id())
                 .filter(User::isActive)
-                .orElseThrow(() -> new ResourceNotFoundException("User", request.getUser().getId()));
+                .orElseThrow(() -> new ResourceNotFoundException("User", request.user().id()));
     }
 
     private static List<TicketSelectionRequest> travelerSelections(ReservationCreateRequest request) {
-        if (request.getTickets() != null && !request.getTickets().isEmpty()) {
-            return request.getTickets();
+        if (request.tickets() != null && !request.tickets().isEmpty()) {
+            return request.tickets();
         }
-        int slots = Objects.requireNonNullElse(request.getRequestedSlots(), 1);
+        int slots = Objects.requireNonNullElse(request.requestedSlots(), 1);
         List<TicketSelectionRequest> selections = new ArrayList<>();
         for (int i = 0; i < slots; i++) {
-            selections.add(new TicketSelectionRequest());
+            selections.add(TicketSelectionRequest.none());
         }
         return selections;
     }

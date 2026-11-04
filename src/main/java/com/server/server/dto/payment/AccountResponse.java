@@ -2,18 +2,21 @@ package com.server.server.dto.payment;
 
 import java.math.BigDecimal;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.server.server.models.payment.Account;
+public record AccountResponse(
+        Integer id,
+        String accountNumber,
+        String accountName,
+        BigDecimal balance,
+        String type,
+        String status) {
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class AccountResponse {
-    private Integer id;
-    private String accountNumber;
-    private String accountName;
-    private BigDecimal balance;
-    private String type;
-    private String status;
+    public static AccountResponse from(Account account) {
+        if (account == null) {
+            return null;
+        }
+        return new AccountResponse(account.getId(), account.getAccountNumber(), account.getAccountName(),
+                account.getBalance(), account.getType() == null ? null : account.getType().name(),
+                account.getStatus() == null ? null : account.getStatus().name());
+    }
 }

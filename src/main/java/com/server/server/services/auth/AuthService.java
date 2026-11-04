@@ -26,11 +26,11 @@ import com.server.server.exceptions.WorkflowException;
 import com.server.server.models.user.User;
 import com.server.server.repositories.user.UserRepository;
 import com.server.server.services.user.UserService;
-import com.server.server.utilities.ModelMapper;
 
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.server.server.dto.user.UserResponse;
 
 @Slf4j
 @Service
@@ -48,31 +48,29 @@ public class AuthService {
     private final JwtService jwtService;
     private final JavaMailSender mailSender;
     private final AppProperties appProperties;
-    private final ModelMapper modelMapper;
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     /** Public sign-up always creates a customer account. */
     @Transactional
     public User register(RegisterRequest request) {
         User user = new User();
-        user.setUserName(request.getUserName().trim());
-        user.setName(request.getName().trim());
-        user.setEmail(request.getEmail().trim());
-        user.setMobileNumber(request.getMobileNumber().trim());
-        user.setAge(Objects.requireNonNullElse(request.getAge(), 0));
+        user.setUserName(request.userName().trim());
+        user.setName(request.name().trim());
+        user.setEmail(request.email().trim());
+        user.setMobileNumber(request.mobileNumber().trim());
+        user.setAge(Objects.requireNonNullElse(request.age(), 0));
         user.setUserType(UserTypeEnum.CUSTOMER);
-        return userService.registerUser(user, request.getPassword());
+        return userService.registerUser(user, request.password());
     }
 
     /** Accepts email, username, or mobile number; Spring Security verifies the password hash. */
     @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
-        String identifier = request.getIdentifier().trim();
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(identifier, request.getPassword()));
-        User user = userRepository
-                .findByEmailIgnoreCaseOrUserNameIgnoreCaseOrMobileNumber(identifier, identifier, identifier)
+        String identifier = request.identifier().trim();
+        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(identifier, request.password()));
+        User user = userRepository.findByLoginIdentifier(identifier)
                 .orElseThrow(() -> new WorkflowException("INVALID_CREDENTIALS", "Invalid username or password"));
-        return new AuthResponse(jwtService.generateToken(user.getEmail()), modelMapper.toUserResponse(user));
+        return new AuthResponse(jwtService.generateToken(user.getEmail()), UserResponse.from(user));
     }
 
     @Transactional
@@ -89,17 +87,17 @@ public class AuthService {
 
     @Transactional
     public User confirmPasswordReset(PasswordResetConfirmRequest request) {
-        User user = userRepository.findByEmailIgnoreCase(request.getIdentifier().trim())
+        User user = userRepository.findByEmailIgnoreCase(request.identifier().trim())
                 .filter(User::isActive)
                 .orElseThrow(AuthService::invalidResetLink);
         boolean tokenMatches = user.getResetToken() != null && MessageDigest.isEqual(
                 user.getResetToken().getBytes(StandardCharsets.UTF_8),
-                request.getToken().getBytes(StandardCharsets.UTF_8));
+                request.token().getBytes(StandardCharsets.UTF_8));
         boolean expired = user.getResetTokenExpiry() == null || user.getResetTokenExpiry().isBefore(LocalDateTime.now());
         if (!tokenMatches || expired) {
             throw invalidResetLink();
         }
-        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setPassword(passwordEncoder.encode(request.newPassword()));
         user.setResetToken(null);
         user.setResetTokenExpiry(null);
         return userRepository.save(user);

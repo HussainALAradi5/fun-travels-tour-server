@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.server.server.utilities.MobileNumbers;
 import com.server.server.constants.RoleGroups;
 import com.server.server.dto.common.ImportResult;
 import com.server.server.dto.user.EmployeeCreateRequest;
@@ -75,7 +76,7 @@ public class UserService {
     @Transactional
     public User createEmployee(EmployeeCreateRequest request, Integer agencyId, Integer branchId) {
         User actor = accessPolicy.requireCurrentUser();
-        UserTypeEnum role = request.getUserType();
+        UserTypeEnum role = request.userType();
         Agency agency;
         AgencyBranch branch = branchId == null ? null : branchRepository.findById(branchId)
                 .orElseThrow(() -> new ResourceNotFoundException("Branch", branchId));
@@ -89,9 +90,7 @@ public class UserService {
             case MANAGER -> {
                 requireRole(role, RoleGroups.MANAGER_CREATABLE);
                 agency = actor.getAgency();
-                if (branch == null) {
-                    branch = actor.getAgencyBranch();
-                }
+                branch = actor.getAgencyBranch();
             }
             default -> throw new AccessDeniedException("You are not allowed to create staff accounts.");
         }
@@ -102,15 +101,15 @@ public class UserService {
             throw new IllegalArgumentException("The selected branch does not belong to the agency.");
         }
         User user = new User();
-        user.setUserName(request.getUserName().trim());
-        user.setName(request.getName().trim());
-        user.setEmail(request.getEmail().trim());
-        user.setMobileNumber(request.getMobileNumber().trim());
-        user.setAge(Objects.requireNonNullElse(request.getAge(), 0));
+        user.setUserName(request.userName().trim());
+        user.setName(request.name().trim());
+        user.setEmail(request.email().trim());
+        user.setMobileNumber(request.mobileNumber().trim());
+        user.setAge(Objects.requireNonNullElse(request.age(), 0));
         user.setUserType(role);
         user.setAgency(agency);
         user.setAgencyBranch(branch);
-        return registerUser(user, request.getPassword());
+        return registerUser(user, request.password());
     }
 
     /** Users edit their own profile; admins edit anyone. Role and agency never change here. */
@@ -118,34 +117,53 @@ public class UserService {
     public User updateProfile(@NonNull Integer id, UserUpdateRequest request) {
         accessPolicy.requireSelfOrAdmin(id);
         User existing = getUserById(id);
-        if (request.getMobileNumber() != null && !request.getMobileNumber().isBlank()) {
-            if (userRepository.existsByMobileNumberAndIdNot(request.getMobileNumber(), id)) {
+        if (request.mobileNumber() != null && !request.mobileNumber().isBlank()) {
+            String mobile = MobileNumbers.clean(request.mobileNumber());
+            if (userRepository.existsByMobileNumberAndIdNot(mobile, id)) {
                 throw new DuplicateResourceException("Mobile number already in use");
             }
-            existing.setMobileNumber(request.getMobileNumber().trim());
+            existing.setMobileNumber(mobile);
         }
-        if (request.getName() != null && !request.getName().isBlank()) {
-            existing.setName(request.getName().trim());
+        if (request.name() != null && !request.name().isBlank()) {
+            existing.setName(request.name().trim());
         }
-        if (request.getAge() != null) {
-            existing.setAge(request.getAge());
+        if (request.age() != null) {
+            existing.setAge(request.age());
         }
-        if (request.isRemoveImage()) {
+        if (request.removeImage()) {
+            fileStorageService.deleteProfileImage(existing.getProfileImageUrl());
             existing.setProfileImageUrl(null);
-        } else if (request.getBase64Image() != null && !request.getBase64Image().isBlank()) {
-            existing.setProfileImageUrl(fileStorageService.saveProfileImage(request.getBase64Image(), id));
+        } else if (request.base64Image() != null && !request.base64Image().isBlank()) {
+            existing.setProfileImageUrl(
+                    fileStorageService.replaceProfileImage(request.base64Image(), id, existing.getProfileImageUrl()));
         }
         return userRepository.saveAndFlush(existing);
     }
 
+    /**
+     * Admin-only role and placement change. Agency staff must end up in an agency (taken from the
+     * branch, or from {@code agencyId} for owners who have no branch); other roles leave any agency.
+     */
     @Transactional
-    public User updatePermissions(@NonNull Integer id, UserTypeEnum type, Integer branchId) {
+    public User updatePermissions(@NonNull Integer id, UserTypeEnum type, Integer agencyId, Integer branchId) {
+        if (Objects.equals(accessPolicy.requireCurrentUser().getId(), id)) {
+            throw new IllegalArgumentException("You cannot change your own role.");
+        }
         User user = getUserById(id);
-        user.setUserType(type);
         AgencyBranch branch = branchId == null ? null : branchRepository.findById(branchId)
                 .orElseThrow(() -> new ResourceNotFoundException("Branch", branchId));
-        user.setAgencyBranch(branch);
-        user.setAgency(branch == null ? null : branch.getAgency());
+        Agency agency = branch != null ? branch.getAgency() : agencyId == null ? null
+                : agencyRepository.findById(agencyId).orElseThrow(() -> new ResourceNotFoundException("Agency", agencyId));
+        if (branch != null && agencyId != null && !Objects.equals(branch.getAgency().getId(), agencyId)) {
+            throw new IllegalArgumentException("The selected branch does not belong to the agency.");
+        }
+        boolean agencyStaff = RoleGroups.AGENCY_STAFF.contains(type);
+        if (agencyStaff && agency == null) {
+            throw new IllegalArgumentException("Agency staff must belong to an agency.");
+        }
+        user.setUserType(type);
+        user.setAgency(agencyStaff ? agency : null);
+        user.setAgencyBranch(agencyStaff ? branch : null);
         return userRepository.save(user);
     }
 
@@ -193,7 +211,7 @@ public class UserService {
         for (int index = 0; index < rows.size(); index++) {
             List<String> row = rows.get(index);
             try {
-                registerUser(toImportedUser(row, agency), required(row, COLUMN_PASSWORD, "password"));
+                registerUser(toImportedUser(row, agency, actor), required(row, COLUMN_PASSWORD, "password"));
                 imported++;
             } catch (RuntimeException e) {
                 errors.add("Row " + (index + 2) + ": " + e.getMessage());
@@ -218,9 +236,18 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User", id));
     }
 
+    /**
+     * Admins see every active user. Agency staff see their own agency's members, and customers when
+     * they ask for that role, because staff sell walk-in tickets to customers.
+     */
     @Transactional(readOnly = true)
     public List<User> getUsersByType(UserTypeEnum type) {
-        return type == null ? userRepository.findByIsActiveTrue() : userRepository.findByUserTypeAndIsActiveTrue(type);
+        Integer scope = AccessPolicyService.agencyScope(accessPolicy.requireCurrentUser());
+        if (scope == null || type == UserTypeEnum.CUSTOMER) {
+            return type == null ? userRepository.findByIsActiveTrue() : userRepository.findByUserTypeAndIsActiveTrue(type);
+        }
+        return type == null ? userRepository.findByAgencyIdAndIsActiveTrue(scope)
+                : userRepository.findByAgencyIdAndUserTypeAndIsActiveTrue(scope, type);
     }
 
     public User getCurrentUser() {
@@ -239,13 +266,14 @@ public class UserService {
         }
     }
 
-    private User toImportedUser(List<String> row, Agency agency) {
+    private User toImportedUser(List<String> row, Agency agency, User actor) {
         String roleName = required(row, COLUMN_ROLE, "role").toUpperCase();
         UserTypeEnum role = Arrays.stream(UserTypeEnum.values())
                 .filter(type -> type.name().equals(roleName))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Unknown role " + roleName));
-        requireRole(role, RoleGroups.IMPORTABLE);
+        boolean manager = actor.getUserType() == UserTypeEnum.MANAGER;
+        requireRole(role, manager ? RoleGroups.MANAGER_CREATABLE : RoleGroups.IMPORTABLE);
         User user = new User();
         user.setUserName(required(row, COLUMN_USERNAME, "username"));
         user.setName(required(row, COLUMN_NAME, "name"));
@@ -255,7 +283,9 @@ public class UserService {
         user.setUserType(role);
         user.setAgency(agency);
         String branchName = cell(row, COLUMN_BRANCH);
-        if (!branchName.isEmpty()) {
+        if (manager) {
+            user.setAgencyBranch(actor.getAgencyBranch());
+        } else if (!branchName.isEmpty()) {
             user.setAgencyBranch(branchRepository.findByBranchNameIgnoreCaseAndAgencyId(branchName, agency.getId())
                     .orElseThrow(() -> new IllegalArgumentException("Unknown branch " + branchName)));
         }

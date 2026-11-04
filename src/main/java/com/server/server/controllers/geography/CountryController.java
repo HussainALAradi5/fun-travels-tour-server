@@ -19,7 +19,6 @@ import com.server.server.dto.geography.CountryResponse;
 import com.server.server.models.geography.Country;
 import com.server.server.services.geography.CountryService;
 import com.server.server.utilities.ApiResponse;
-import com.server.server.utilities.ModelMapper;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -28,25 +27,24 @@ import lombok.RequiredArgsConstructor;
 public class CountryController {
 
     private final CountryService countryService;
-    private final ModelMapper modelMapper;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<CountryResponse>>> getAll() {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toCountryResponseList(countryService.getAllCountries())));
+        return ResponseEntity.ok(ApiResponse.ok(countryService.getAllCountries().stream().map(CountryResponse::from).toList()));
     }
 
     @PostMapping("/sync/{name}")
     @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<ApiResponse<CountryResponse>> syncExternal(@PathVariable String name) {
         Country saved = countryService.syncFromExternal(name);
-        return ResponseEntity.ok(ApiResponse.ok("Country synced successfully!", modelMapper.toCountryResponse(saved)));
+        return ResponseEntity.ok(ApiResponse.ok("Country synced successfully!", CountryResponse.from(saved)));
     }
 
     @PostMapping
     @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<ApiResponse<CountryResponse>> addManual(@Valid @RequestBody CountryCreateRequest request) {
         Country saved = countryService.createCountry(request);
-        return ResponseEntity.ok(ApiResponse.ok("Country created successfully!", modelMapper.toCountryResponse(saved)));
+        return ResponseEntity.ok(ApiResponse.ok("Country created successfully!", CountryResponse.from(saved)));
     }
 
     @PostMapping("/sync-all")

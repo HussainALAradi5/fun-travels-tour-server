@@ -24,8 +24,11 @@ public class FileStorageService {
 
     private final AppProperties appProperties;
 
-    /** Saves the image as {@code profiles/user_<id>.<ext>} and returns its public path. */
-    public String saveProfileImage(String base64Data, Integer userId) {
+    /**
+     * Saves the image under a new name ({@code profiles/user_<id>_<millis>.<ext>}) so browsers never show a
+     * cached old picture, deletes the previous file, and returns the new public path.
+     */
+    public String replaceProfileImage(String base64Data, Integer userId, String previousPath) {
         byte[] bytes = decode(base64Data);
         if (bytes.length > appProperties.maxImageBytes()) {
             throw new IllegalArgumentException("Images must be at most " + appProperties.maxImageBytes() / 1024 + " KB.");
@@ -34,15 +37,38 @@ public class FileStorageService {
         if (extension == null) {
             throw new IllegalArgumentException("Only JPEG and PNG images are supported.");
         }
-        String fileName = "user_" + userId + "." + extension;
+        String fileName = "user_" + userId + "_" + System.currentTimeMillis() + "." + extension;
         try {
-            Path folder = Paths.get(appProperties.uploadDir(), PROFILE_FOLDER).toAbsolutePath().normalize();
+            Path folder = profileFolder();
             Files.createDirectories(folder);
             Files.write(folder.resolve(fileName), bytes);
         } catch (IOException e) {
             throw new IllegalStateException("Could not save image file.", e);
         }
+        deleteProfileImage(previousPath);
         return PUBLIC_PREFIX + PROFILE_FOLDER + "/" + fileName;
+    }
+
+    /** Deletes a stored profile image by its public path; paths outside the profile folder are ignored. */
+    public void deleteProfileImage(String publicPath) {
+        String prefix = PUBLIC_PREFIX + PROFILE_FOLDER + "/";
+        if (publicPath == null || !publicPath.startsWith(prefix)) {
+            return;
+        }
+        Path folder = profileFolder();
+        Path file = folder.resolve(publicPath.substring(prefix.length())).normalize();
+        if (!file.getParent().equals(folder)) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(file);
+        } catch (IOException e) {
+            // A leftover file is harmless; the profile already points at the new image.
+        }
+    }
+
+    private Path profileFolder() {
+        return Paths.get(appProperties.uploadDir(), PROFILE_FOLDER).toAbsolutePath().normalize();
     }
 
     private static byte[] decode(String base64Data) {

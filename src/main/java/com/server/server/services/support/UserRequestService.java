@@ -2,6 +2,7 @@ package com.server.server.services.support;
 
 import com.server.server.exceptions.ResourceNotFoundException;
 import com.server.server.services.notification.NotificationService;
+import com.server.server.services.auth.AccessPolicyService;
 import com.server.server.services.user.UserService;
 
 import java.time.LocalDateTime;
@@ -24,7 +25,6 @@ import com.server.server.enums.notification.NotificationType;
 import com.server.server.enums.notification.ReferenceType;
 import com.server.server.enums.support.UserRequestAction;
 import com.server.server.enums.support.UserRequestStatus;
-import com.server.server.enums.user.UserTypeEnum;
 import com.server.server.models.user.User;
 import com.server.server.models.support.UserRequest;
 import com.server.server.repositories.user.UserRepository;
@@ -46,9 +46,9 @@ public class UserRequestService {
     @Transactional
     public UserRequest create(@NonNull UserRequestCreateRequest createRequest) {
         UserRequest request = new UserRequest();
-        request.setTitle(createRequest.getTitle().trim());
-        request.setDescription(createRequest.getDescription().trim());
-        request.setType(createRequest.getType());
+        request.setTitle(createRequest.title().trim());
+        request.setDescription(createRequest.description().trim());
+        request.setType(createRequest.type());
         request.setUser(userService.getCurrentUser());
         request.setStatus(UserRequestStatus.PENDING);
         UserRequest saved = requestRepository.save(request);
@@ -67,7 +67,7 @@ public class UserRequestService {
         }
         User agent = userRepository.findById(agentId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", agentId));
-        if (agent.getUserType() != UserTypeEnum.SUPPORT_AGENT && agent.getUserType() != UserTypeEnum.ADMIN) {
+        if (!AccessPolicyService.isSupportStaff(agent)) {
             throw new IllegalArgumentException("Requests can only be assigned to a support agent or administrator.");
         }
 
@@ -94,8 +94,7 @@ public class UserRequestService {
         boolean requester = request.getUser().getId().equals(solver.getId());
         boolean assignedAgent = request.getAssignedTo() != null
                 && request.getAssignedTo().getId().equals(solver.getId());
-        boolean privileged = solver.getUserType() == UserTypeEnum.ADMIN
-                || solver.getUserType() == UserTypeEnum.SUPPORT_AGENT;
+        boolean privileged = AccessPolicyService.isSupportStaff(solver);
         if (!requester && !assignedAgent && !privileged) {
             throw new AccessDeniedException("You are not allowed to complete this request.");
         }
@@ -162,8 +161,7 @@ public class UserRequestService {
         Specification<UserRequest> specification = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            if (currentUser.getUserType() != UserTypeEnum.ADMIN
-                    && currentUser.getUserType() != UserTypeEnum.SUPPORT_AGENT) {
+            if (!AccessPolicyService.isSupportStaff(currentUser)) {
                 predicates.add(criteriaBuilder.equal(root.get("user").get("id"), currentUserId));
             } else if (filter.getUserIdFilter() != null) {
                 predicates.add(criteriaBuilder.equal(root.get("user").get("id"), filter.getUserIdFilter()));
@@ -192,8 +190,7 @@ public class UserRequestService {
         UserRequest request = requestRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Request", id));
         User currentUser = userService.getCurrentUser();
-        if (currentUser.getUserType() != UserTypeEnum.ADMIN
-                && currentUser.getUserType() != UserTypeEnum.SUPPORT_AGENT
+        if (!AccessPolicyService.isSupportStaff(currentUser)
                 && !request.getUser().getId().equals(currentUser.getId())) {
             throw new AccessDeniedException("You are not allowed to view this request.");
         }
@@ -204,8 +201,7 @@ public class UserRequestService {
         Objects.requireNonNull(id, "id must not be null");
         UserRequest request = getById(id);
         User currentUser = userService.getCurrentUser();
-        boolean privileged = currentUser.getUserType() == UserTypeEnum.ADMIN
-                || currentUser.getUserType() == UserTypeEnum.SUPPORT_AGENT;
+        boolean privileged = AccessPolicyService.isSupportStaff(currentUser);
         if (!privileged && (!request.getUser().getId().equals(currentUser.getId())
                 || request.getStatus() != UserRequestStatus.PENDING)) {
             throw new AccessDeniedException("Only a pending request can be deleted by its requester.");

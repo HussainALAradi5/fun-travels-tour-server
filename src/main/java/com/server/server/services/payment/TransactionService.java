@@ -21,7 +21,6 @@ import com.server.server.dto.payment.TransactionFilterRequest;
 import com.server.server.dto.common.PageResponse;
 import com.server.server.utilities.PaginationUtils;
 import com.server.server.utilities.FilterUtils;
-import com.server.server.enums.user.UserTypeEnum;
 import com.server.server.models.payment.Account;
 import com.server.server.models.payment.Transaction;
 import com.server.server.models.user.User;
@@ -126,7 +125,7 @@ public class TransactionService {
         }
 
         // 1. Customer Security: They can only see their own transactions
-        if (currentUser.getUserType() == UserTypeEnum.CUSTOMER) {
+        if (AccessPolicyService.isCustomer(currentUser)) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("account").get("user").get("id"), currentUser.getId()));
             return PageResponse.from(transactionRepository.findAll(spec, pageable));
         }

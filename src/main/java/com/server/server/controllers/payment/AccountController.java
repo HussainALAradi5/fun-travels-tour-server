@@ -14,7 +14,6 @@ import com.server.server.dto.payment.AccountResponse;
 import com.server.server.models.payment.Account;
 import com.server.server.services.payment.AccountService;
 import com.server.server.utilities.ApiResponse;
-import com.server.server.utilities.ModelMapper;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -23,16 +22,15 @@ import lombok.RequiredArgsConstructor;
 public class AccountController {
 
     private final AccountService accountService;
-    private final ModelMapper modelMapper;
 
     @GetMapping("/balance")
     public ResponseEntity<ApiResponse<AccountResponse>> getAccountBalance(@NonNull @PathVariable Integer userId) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toAccountResponse(accountService.getAccountForViewer(userId))));
+        return ResponseEntity.ok(ApiResponse.ok(AccountResponse.from(accountService.getAccountForViewer(userId))));
     }
 
     @GetMapping("/history")
     public ResponseEntity<ApiResponse<List<TransactionResponse>>> getAccountHistory(@NonNull @PathVariable Integer userId) {
         Account account = accountService.getAccountForViewer(userId);
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTransactionResponseList(accountService.getTransactionHistory(account.getId()))));
+        return ResponseEntity.ok(ApiResponse.ok(accountService.getTransactionHistory(account.getId()).stream().map(TransactionResponse::from).toList()));
     }
 }

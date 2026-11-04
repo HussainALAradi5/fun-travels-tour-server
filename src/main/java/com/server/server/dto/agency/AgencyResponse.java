@@ -1,45 +1,26 @@
 package com.server.server.dto.agency;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.server.server.dto.geography.CitySummary;
+import com.server.server.dto.geography.CountrySummary;
+import com.server.server.dto.user.UserContactSummary;
+import com.server.server.models.agency.Agency;
+public record AgencyResponse(
+        Integer id,
+        String agencyName,
+        String address,
+        String contactNumber,
+        String ownerMobileNumber,
+        CountrySummary country,
+        CitySummary city,
+        UserContactSummary agencyOwner,
+        boolean active) {
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class AgencyResponse {
-    private Integer id;
-    private String agencyName;
-    private String address;
-    private String contactNumber;
-    private String ownerMobileNumber;
-    private CountrySummary country;
-    private CitySummary city;
-    private UserSummary agencyOwner;
-    private boolean active;
-
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
-    public static class CountrySummary {
-        private Integer id;
-        private String famousName;
-    }
-
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
-    public static class CitySummary {
-        private Integer id;
-        private String name;
-    }
-
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
-    public static class UserSummary {
-        private Integer id;
-        private String name;
-        private String email;
+    public static AgencyResponse from(Agency agency) {
+        if (agency == null) {
+            return null;
+        }
+        return new AgencyResponse(agency.getId(), agency.getAgencyName(), agency.getAddress(),
+                agency.getContactNumber(), agency.getOwnerMobileNumber(), CountrySummary.from(agency.getCountry()),
+                CitySummary.from(agency.getCity()), UserContactSummary.from(agency.getAgencyOwner()), agency.isActive());
     }
 }

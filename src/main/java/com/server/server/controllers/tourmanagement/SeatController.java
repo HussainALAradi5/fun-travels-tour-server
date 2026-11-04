@@ -20,7 +20,6 @@ import com.server.server.dto.tourmanagement.SeatFilterRequest;
 import com.server.server.enums.tourmanagement.SeatStatus;
 import com.server.server.services.tourmanagement.SeatService;
 import com.server.server.utilities.ApiResponse;
-import com.server.server.utilities.ModelMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -29,25 +28,24 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SeatController {
     private final SeatService seatService;
-    private final ModelMapper modelMapper;
 
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<SeatResponse>>> getAll(
             @RequestParam(defaultValue = "0") Integer page,
             @RequestParam(defaultValue = "20") Integer size,
             @RequestParam(defaultValue = "asc") String sortDir) {
-        return ResponseEntity.ok(ApiResponse.ok(seatService.getAll(page, size, sortDir).map(modelMapper::toSeatResponse)));
+        return ResponseEntity.ok(ApiResponse.ok(seatService.getAll(page, size, sortDir).map(SeatResponse::from)));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<SeatResponse>> getById(@NonNull @PathVariable Integer id) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toSeatResponse(seatService.getById(id))));
+        return ResponseEntity.ok(ApiResponse.ok(SeatResponse.from(seatService.getById(id))));
     }
 
     @PatchMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
     public ResponseEntity<ApiResponse<SeatResponse>> updateSeatDetails(@NonNull @PathVariable Integer id, @Valid @RequestBody SeatUpdateRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toSeatResponse(seatService.updateSeat(id, request))));
+        return ResponseEntity.ok(ApiResponse.ok(SeatResponse.from(seatService.updateSeat(id, request))));
     }
 
     @GetMapping("/search")
@@ -58,6 +56,6 @@ public class SeatController {
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
     public ResponseEntity<ApiResponse<SeatResponse>> updateStatus(@NonNull @PathVariable Integer id, @RequestParam SeatStatus status) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toSeatResponse(seatService.updateStatus(id, status))));
+        return ResponseEntity.ok(ApiResponse.ok(SeatResponse.from(seatService.updateStatus(id, status))));
     }
 }

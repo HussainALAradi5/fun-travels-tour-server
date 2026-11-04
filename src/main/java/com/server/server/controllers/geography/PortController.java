@@ -20,7 +20,6 @@ import com.server.server.dto.geography.PortResponse;
 import com.server.server.enums.common.GenericStatus;
 import com.server.server.services.geography.PortService;
 import com.server.server.utilities.ApiResponse;
-import com.server.server.utilities.ModelMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -29,22 +28,21 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class PortController {
     private final PortService portService;
-    private final ModelMapper modelMapper;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<PortResponse>>> getAllActivePorts() {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toPortResponseList(portService.getAllActivePorts())));
+        return ResponseEntity.ok(ApiResponse.ok(portService.getAllActivePorts().stream().map(PortResponse::from).toList()));
     }
 
     @PostMapping
     @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<ApiResponse<PortResponse>> createPort(@Valid @RequestBody PortCreateRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok("Port created!", modelMapper.toPortResponse(portService.createPort(request))));
+        return ResponseEntity.ok(ApiResponse.ok("Port created!", PortResponse.from(portService.createPort(request))));
     }
 
     @PutMapping("/{id}/status")
     @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<ApiResponse<PortResponse>> updateStatus(@NonNull @PathVariable Integer id, @RequestParam GenericStatus status) {
-        return ResponseEntity.ok(ApiResponse.ok("Status updated!", modelMapper.toPortResponse(portService.updateStatus(id, status))));
+        return ResponseEntity.ok(ApiResponse.ok("Status updated!", PortResponse.from(portService.updateStatus(id, status))));
     }
 }

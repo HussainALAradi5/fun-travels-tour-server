@@ -23,7 +23,6 @@ import com.server.server.models.tourmanagement.Tour;
 import com.server.server.repositories.tourmanagement.SeatRepository;
 import com.server.server.repositories.tourmanagement.TourRepository;
 import com.server.server.services.auth.AccessPolicyService;
-import com.server.server.utilities.ModelMapper;
 import com.server.server.utilities.PaginationUtils;
 
 import lombok.RequiredArgsConstructor;
@@ -42,7 +41,6 @@ public class SeatService {
     private final TourRepository tourRepository;
     private final InventoryService inventoryService;
     private final AccessPolicyService accessPolicy;
-    private final ModelMapper modelMapper;
 
     @Transactional(readOnly = true)
     public PageResponse<Seat> getAll(Integer page, Integer size, String sortDir) {
@@ -67,7 +65,7 @@ public class SeatService {
             Tour tour = tourRepository.findById(filter.getTourId())
                     .orElseThrow(() -> new ResourceNotFoundException("Tour", filter.getTourId()));
             if (tour.getTransportation() == null) {
-                return new PageResponse<>(java.util.List.of(), 0, 0, 0, 0);
+                return PageResponse.empty();
             }
             transportId = tour.getTransportation().getId();
             taken = inventoryService.takenSeatIds(tour.getId());
@@ -77,26 +75,21 @@ public class SeatService {
                 .and(hasChairType(filter.getChairType()))
                 .and((r, q, cb) -> search == null || search.isBlank() ? cb.conjunction()
                         : cb.like(cb.lower(r.get("seatCode")), "%" + search.toLowerCase() + "%"));
-        if (filter.getTourId() == null) {
-            spec = spec.and(hasStatus(filter.getStatus()));
-        }
+        // Filtering in the query keeps page sizes and totals right for the per-tour BOOKED status too.
+        spec = spec.and(filter.getTourId() == null ? hasStatus(filter.getStatus()) : hasTourStatus(filter.getStatus(), taken));
         Set<Integer> takenForTour = taken;
-        PageResponse<SeatResponse> page = PageResponse.from(seatRepository.findAll(spec,
-                PaginationUtils.pageable(filter, "seatCode", SORTABLE, Map.of()))).map(seat -> {
-                    SeatResponse response = modelMapper.toSeatResponse(seat);
-                    if (takenForTour.contains(seat.getId())) {
-                        response.setStatus(SeatStatus.BOOKED);
-                    } else if (response.getStatus() != SeatStatus.MAINTENANCE) {
-                        response.setStatus(SeatStatus.AVAILABLE);
-                    }
-                    return response;
-                });
-        if (filter.getTourId() != null && filter.getStatus() != null) {
-            page = new PageResponse<>(page.getContent().stream()
-                    .filter(seat -> seat.getStatus() == filter.getStatus()).toList(),
-                    page.getPage(), page.getSize(), page.getTotalElements(), page.getTotalPages());
+        boolean perTour = filter.getTourId() != null;
+        return PageResponse.from(seatRepository.findAll(spec,
+                PaginationUtils.pageable(filter, "seatCode", SORTABLE, Map.of())))
+                .map(seat -> SeatResponse.from(seat).withStatus(perTour ? tourStatus(seat, takenForTour) : seat.getStatus()));
+    }
+
+    /** A seat's status for one tour: BOOKED when an active ticket holds it, otherwise its physical condition. */
+    private static SeatStatus tourStatus(Seat seat, Set<Integer> taken) {
+        if (taken.contains(seat.getId())) {
+            return SeatStatus.BOOKED;
         }
-        return page;
+        return seat.getStatus() == SeatStatus.MAINTENANCE ? SeatStatus.MAINTENANCE : SeatStatus.AVAILABLE;
     }
 
     /** Chair type and price can only change while no active booking or approved/active tour uses the seat. */
@@ -104,18 +97,18 @@ public class SeatService {
     public Seat updateSeat(@NonNull Integer id, SeatUpdateRequest updatedData) {
         Seat seat = getById(id);
         requireEditable(seat);
-        boolean layoutChange = updatedData.getChairType() != null || updatedData.getSeatPriceModifier() != null;
+        boolean layoutChange = updatedData.chairType() != null || updatedData.seatPriceModifier() != null;
         if (layoutChange) {
             requireLayoutUnlocked(seat);
         }
-        if (updatedData.getChairType() != null) {
-            seat.setChairType(updatedData.getChairType());
+        if (updatedData.chairType() != null) {
+            seat.setChairType(updatedData.chairType());
         }
-        if (updatedData.getSeatPriceModifier() != null) {
-            seat.setSeatPriceModifier(updatedData.getSeatPriceModifier());
+        if (updatedData.seatPriceModifier() != null) {
+            seat.setSeatPriceModifier(updatedData.seatPriceModifier());
         }
-        if (updatedData.getStatus() != null) {
-            applyStatus(seat, updatedData.getStatus());
+        if (updatedData.status() != null) {
+            applyStatus(seat, updatedData.status());
         }
         return seatRepository.save(seat);
     }
@@ -163,6 +156,22 @@ public class SeatService {
 
     private Specification<Seat> hasStatus(SeatStatus s) {
         return (r, q, cb) -> s == null ? cb.conjunction() : cb.equal(r.get("status"), s);
+    }
+
+    /** The per-tour status filter expressed as a query: BOOKED means held by the tour's active tickets. */
+    private Specification<Seat> hasTourStatus(SeatStatus status, Set<Integer> taken) {
+        return (r, q, cb) -> {
+            if (status == null) {
+                return cb.conjunction();
+            }
+            if (status == SeatStatus.BOOKED) {
+                return taken.isEmpty() ? cb.disjunction() : r.get("id").in(taken);
+            }
+            var notTaken = taken.isEmpty() ? cb.conjunction() : cb.not(r.get("id").in(taken));
+            return status == SeatStatus.MAINTENANCE
+                    ? cb.and(notTaken, cb.equal(r.get("status"), SeatStatus.MAINTENANCE))
+                    : cb.and(notTaken, cb.notEqual(r.get("status"), SeatStatus.MAINTENANCE));
+        };
     }
 
     private Specification<Seat> hasChairType(ChairType c) {

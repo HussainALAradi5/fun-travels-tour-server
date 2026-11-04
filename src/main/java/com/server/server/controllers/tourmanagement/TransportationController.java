@@ -28,7 +28,6 @@ import com.server.server.dto.tourmanagement.TransportationCreateRequest;
 import com.server.server.enums.tourmanagement.TransportationStatus;
 import com.server.server.services.tourmanagement.TransportationService;
 import com.server.server.utilities.ApiResponse;
-import com.server.server.utilities.ModelMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -37,13 +36,12 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TransportationController {
     private final TransportationService service;
-    private final ModelMapper modelMapper;
 
     @PostMapping
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
     public ResponseEntity<ApiResponse<TransportationResponse>> create(@Valid @RequestBody TransportationCreateRequest transportation) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok("Transportation created!", modelMapper.toTransportationResponse(service.create(transportation))));
+                .body(ApiResponse.ok("Transportation created!", TransportationResponse.from(service.create(transportation))));
     }
 
     @PostMapping(value = "/imports", consumes = "multipart/form-data")
@@ -69,29 +67,29 @@ public class TransportationController {
             @RequestParam(defaultValue = "transportationNumber") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
         return ResponseEntity.ok(ApiResponse.ok(service.getAll(page, size, sortBy, sortDir)
-                .map(modelMapper::toTransportationListResponse)));
+                .map(TransportationResponse::listItem)));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<TransportationResponse>> getById(@NonNull @PathVariable Integer id) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTransportationResponse(service.getById(id))));
+        return ResponseEntity.ok(ApiResponse.ok(TransportationResponse.from(service.getVisible(id))));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
     public ResponseEntity<ApiResponse<TransportationResponse>> update(@NonNull @PathVariable Integer id, @Valid @RequestBody TransportationUpdateRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTransportationResponse(service.update(id, request))));
+        return ResponseEntity.ok(ApiResponse.ok(TransportationResponse.from(service.update(id, request))));
     }
 
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
     public ResponseEntity<ApiResponse<TransportationResponse>> updateStatus(@NonNull @PathVariable Integer id, @RequestParam TransportationStatus status) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toTransportationResponse(service.updateStatus(id, status))));
+        return ResponseEntity.ok(ApiResponse.ok(TransportationResponse.from(service.updateStatus(id, status))));
     }
 
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<PageResponse<TransportationResponse>>> search(
             @ModelAttribute TransportationFilterRequest filter) {
-        return ResponseEntity.ok(ApiResponse.ok(service.filter(filter).map(modelMapper::toTransportationListResponse)));
+        return ResponseEntity.ok(ApiResponse.ok(service.filter(filter).map(TransportationResponse::listItem)));
     }
 }

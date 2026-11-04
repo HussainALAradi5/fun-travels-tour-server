@@ -1,5 +1,6 @@
 package com.server.server.models.user;
 
+import com.server.server.utilities.MobileNumbers;
 import com.server.server.constants.ValidationPatterns;
 import com.server.server.models.base.BaseEntity;
 
@@ -67,6 +68,11 @@ public class User extends BaseEntity {
     @Pattern(regexp = ValidationPatterns.MOBILE_NUMBER, message = ValidationPatterns.MOBILE_NUMBER_MESSAGE)
     @Column(name = "mobile_number", nullable = false, unique = true)
     private String mobileNumber;
+
+    /** Stored without spaces or dashes ("+97339990001"); the pattern above requires the country code. */
+    public void setMobileNumber(String mobileNumber) {
+        this.mobileNumber = MobileNumbers.clean(mobileNumber);
+    }
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "agency_id")

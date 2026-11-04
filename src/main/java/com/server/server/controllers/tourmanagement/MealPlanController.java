@@ -19,7 +19,6 @@ import com.server.server.dto.common.PageResponse;
 import com.server.server.enums.common.GenericStatus;
 import com.server.server.services.tourmanagement.MealPlanService;
 import com.server.server.utilities.ApiResponse;
-import com.server.server.utilities.ModelMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -28,26 +27,32 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class MealPlanController {
     private final MealPlanService service;
-    private final ModelMapper modelMapper;
 
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<MealPlanResponse>>> getAllMeals(
             @RequestParam(defaultValue = "0") Integer page, @RequestParam(defaultValue = "20") Integer size,
             @RequestParam(defaultValue = "asc") String sortDir) {
-        return ResponseEntity.ok(ApiResponse.ok(service.findAll(page, size, sortDir).map(modelMapper::toMealPlanResponse)));
+        return ResponseEntity.ok(ApiResponse.ok(service.findAll(page, size, sortDir).map(MealPlanResponse::from)));
     }
 
     @GetMapping("/agency/{agencyId}")
     public ResponseEntity<ApiResponse<PageResponse<MealPlanResponse>>> getMenu(@NonNull @PathVariable Integer agencyId,
             @RequestParam(defaultValue = "0") Integer page, @RequestParam(defaultValue = "20") Integer size) {
         return ResponseEntity.ok(ApiResponse.ok(service.getAgencyCatalog(agencyId, page, size)
-                .map(modelMapper::toMealPlanResponse)));
+                .map(MealPlanResponse::from)));
     }
 
     @PostMapping
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
     public ResponseEntity<ApiResponse<MealPlanResponse>> defineMeal(@Valid @RequestBody MealPlanCreateRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok("Meal added!", modelMapper.toMealPlanResponse(service.createMeal(request))));
+        return ResponseEntity.ok(ApiResponse.ok("Meal added!", MealPlanResponse.from(service.createMeal(request))));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<ApiResponse<MealPlanResponse>> updateMeal(@NonNull @PathVariable Integer id,
+            @Valid @RequestBody MealPlanCreateRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok("Meal updated!", MealPlanResponse.from(service.updateMeal(id, request))));
     }
 
     @PatchMapping("/{id}/status")
@@ -60,6 +65,6 @@ public class MealPlanController {
     @PutMapping("/{id}/price")
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
     public ResponseEntity<ApiResponse<MealPlanResponse>> updatePrice(@NonNull @PathVariable Integer id, @RequestParam Double price) {
-        return ResponseEntity.ok(ApiResponse.ok("Price updated!", modelMapper.toMealPlanResponse(service.updatePricing(id, price))));
+        return ResponseEntity.ok(ApiResponse.ok("Price updated!", MealPlanResponse.from(service.updatePricing(id, price))));
     }
 }

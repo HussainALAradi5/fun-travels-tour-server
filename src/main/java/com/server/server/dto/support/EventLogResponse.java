@@ -2,26 +2,23 @@ package com.server.server.dto.support;
 
 import java.time.LocalDateTime;
 
+import com.server.server.dto.user.UserSummary;
 import com.server.server.enums.notification.ReferenceType;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.server.server.models.support.GenericEventLog;
+public record EventLogResponse(
+        Integer id,
+        ReferenceType referenceType,
+        Integer referenceId,
+        String action,
+        String description,
+        UserSummary actor,
+        LocalDateTime createdAt) {
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class EventLogResponse {
-    private Integer id;
-    private ReferenceType referenceType;
-    private Integer referenceId;
-    private String action;
-    private String description;
-    private UserSummary actor;
-    private LocalDateTime createdAt;
-
-    @Data @AllArgsConstructor @NoArgsConstructor
-    public static class UserSummary {
-        private Integer id;
-        private String name;
+    public static EventLogResponse from(GenericEventLog event) {
+        if (event == null) {
+            return null;
+        }
+        return new EventLogResponse(event.getId(), event.getReferenceType(), event.getReferenceId(), event.getAction(),
+                event.getDescription(), UserSummary.from(event.getActor()), event.getCreatedAt());
     }
 }

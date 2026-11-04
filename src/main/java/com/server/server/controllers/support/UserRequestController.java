@@ -19,7 +19,6 @@ import com.server.server.dto.support.UserRequestCreateRequest;
 import com.server.server.dto.support.UserRequestResponse;
 import com.server.server.services.support.UserRequestService;
 import com.server.server.utilities.ApiResponse;
-import com.server.server.utilities.ModelMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -29,12 +28,11 @@ import lombok.RequiredArgsConstructor;
 public class UserRequestController {
 
     private final UserRequestService service;
-    private final ModelMapper modelMapper;
 
     @PostMapping
     public ResponseEntity<ApiResponse<UserRequestResponse>> create(
             @Valid @RequestBody UserRequestCreateRequest request) {
-        UserRequestResponse response = modelMapper.toUserRequestResponse(service.create(request));
+        UserRequestResponse response = UserRequestResponse.from(service.create(request));
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok("Request submitted successfully!", response));
     }
@@ -43,25 +41,25 @@ public class UserRequestController {
     public ResponseEntity<ApiResponse<PageResponse<UserRequestResponse>>> getRequests(
             @ModelAttribute UserRequestFilterRequest filter) {
         return ResponseEntity.ok(ApiResponse.ok(
-                service.getFilteredRequests(filter).map(modelMapper::toUserRequestResponse)));
+                service.getFilteredRequests(filter).map(UserRequestResponse::from)));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<UserRequestResponse>> getById(@PathVariable Integer id) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toUserRequestResponse(service.getById(id))));
+        return ResponseEntity.ok(ApiResponse.ok(UserRequestResponse.from(service.getById(id))));
     }
 
     @PatchMapping("/{id}/assign/{agentId}")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'SUPPORT_AGENT')")
     public ResponseEntity<ApiResponse<UserRequestResponse>> assign(@PathVariable Integer id, @PathVariable Integer agentId) {
         return ResponseEntity.ok(ApiResponse.ok("Agent assigned to request.",
-                modelMapper.toUserRequestResponse(service.assignRequest(id, agentId))));
+                UserRequestResponse.from(service.assignRequest(id, agentId))));
     }
 
     @PatchMapping("/{id}/solve")
     public ResponseEntity<ApiResponse<UserRequestResponse>> solve(@PathVariable Integer id) {
         return ResponseEntity.ok(ApiResponse.ok("Request marked as solved!",
-                modelMapper.toUserRequestResponse(service.solveRequest(id))));
+                UserRequestResponse.from(service.solveRequest(id))));
     }
 
     /**
@@ -71,7 +69,7 @@ public class UserRequestController {
     @PreAuthorize("hasAnyAuthority('ADMIN', 'SUPPORT_AGENT')")
     public ResponseEntity<ApiResponse<UserRequestResponse>> reject(@PathVariable Integer id) {
         return ResponseEntity.ok(ApiResponse.ok("Request has been rejected.",
-                modelMapper.toUserRequestResponse(service.rejectRequest(id))));
+                UserRequestResponse.from(service.rejectRequest(id))));
     }
 
     @DeleteMapping("/{id}")

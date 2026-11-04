@@ -1,20 +1,9 @@
 package com.server.server.dto.geography;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.server.server.models.geography.City;
+public record CityResponse(Integer id, String name, CountrySummary country) {
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class CityResponse {
-    private Integer id;
-    private String name;
-    private CountrySummary country;
-
-    @Data @AllArgsConstructor @NoArgsConstructor
-    public static class CountrySummary {
-        private Integer id;
-        private String famousName;
+    public static CityResponse from(City city) {
+        return city == null ? null : new CityResponse(city.getId(), city.getName(), CountrySummary.from(city.getCountry()));
     }
 }

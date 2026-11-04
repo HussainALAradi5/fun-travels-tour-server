@@ -21,7 +21,6 @@ import com.server.server.dto.geography.CityResponse;
 import com.server.server.models.geography.City;
 import com.server.server.services.geography.CityService;
 import com.server.server.utilities.ApiResponse;
-import com.server.server.utilities.ModelMapper;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -30,23 +29,22 @@ import lombok.RequiredArgsConstructor;
 public class CityController {
 
     private final CityService cityService;
-    private final ModelMapper modelMapper;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<CityResponse>>> getAll() {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toCityResponseList(cityService.getAllCities())));
+        return ResponseEntity.ok(ApiResponse.ok(cityService.getAllCities().stream().map(CityResponse::from).toList()));
     }
 
     @GetMapping("/country/{countryId}")
     public ResponseEntity<ApiResponse<List<CityResponse>>> getByCountry(@NonNull @PathVariable Integer countryId) {
-        return ResponseEntity.ok(ApiResponse.ok(modelMapper.toCityResponseList(cityService.getCitiesByCountry(countryId))));
+        return ResponseEntity.ok(ApiResponse.ok(cityService.getCitiesByCountry(countryId).stream().map(CityResponse::from).toList()));
     }
 
     @PostMapping
     @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<ApiResponse<CityResponse>> create(@Valid @RequestBody CityCreateRequest request) {
         City savedCity = cityService.createCity(request);
-        return ResponseEntity.ok(ApiResponse.ok("City created successfully!", modelMapper.toCityResponse(savedCity)));
+        return ResponseEntity.ok(ApiResponse.ok("City created successfully!", CityResponse.from(savedCity)));
     }
 
     @DeleteMapping("/{id}")

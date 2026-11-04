@@ -11,4 +11,7 @@ import com.server.server.models.tourmanagement.MealPlan;
 public interface MealPlanRepository extends JpaRepository<MealPlan, Integer> {
     List<MealPlan> findByAgencyIdAndStatus(Integer agencyId, GenericStatus status);
     Page<MealPlan> findByAgencyIdAndStatus(Integer agencyId, GenericStatus status, Pageable pageable);
+
+    /** An agency's own meals plus the shared meals that belong to no agency. */
+    Page<MealPlan> findByAgencyIdOrAgencyIsNull(Integer agencyId, Pageable pageable);
 }

@@ -39,9 +39,9 @@ public class CityService {
 
     @Transactional
     public City createCity(CityCreateRequest request) {
-        Country country = countryRepository.findById(request.getCountry().getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Country", request.getCountry().getId()));
-        String name = request.getName().trim();
+        Country country = countryRepository.findById(request.country().id())
+                .orElseThrow(() -> new ResourceNotFoundException("Country", request.country().id()));
+        String name = request.name().trim();
         if (cityRepository.existsByNameIgnoreCaseAndCountryId(name, country.getId())) {
             throw new DuplicateResourceException("City '" + name + "' already exists in this country.");
         }

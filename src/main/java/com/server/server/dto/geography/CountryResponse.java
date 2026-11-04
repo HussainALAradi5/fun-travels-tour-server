@@ -1,19 +1,22 @@
 package com.server.server.dto.geography;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.server.server.models.geography.Country;
+public record CountryResponse(
+        Integer id,
+        String famousName,
+        String officialName,
+        String countryCode,
+        String flagPngUrl,
+        String flagSvgUrl,
+        String dialCode,
+        Integer mobileNumberLength) {
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class CountryResponse {
-    private Integer id;
-    private String famousName;
-    private String officialName;
-    private String countryCode;
-    private String flagPngUrl;
-    private String flagSvgUrl;
-    private String dialCode;
-    private Integer mobileNumberLength;
+    public static CountryResponse from(Country country) {
+        if (country == null) {
+            return null;
+        }
+        return new CountryResponse(country.getId(), country.getFamousName(), country.getOfficialName(),
+                country.getCountryCode(), country.getFlagPngUrl(), country.getFlagSvgUrl(), country.getDialCode(),
+                country.getMobileNumberLength());
+    }
 }
