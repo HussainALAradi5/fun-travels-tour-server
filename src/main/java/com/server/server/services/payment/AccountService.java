@@ -37,7 +37,6 @@ public class AccountService {
 
     private final TransactionRepository transactionRepository;
 
-    // 1. ADD USER REPOSITORY TO FETCH THE USER IF ACCOUNT IS MISSING
     private final UserRepository userRepository;
     private final AccessPolicyService accessPolicy;
 
@@ -60,7 +59,7 @@ public class AccountService {
         return accountRepository.save(account);
     }
 
-    // 2. THE AUTO-HEAL FIX
+    /** The user's wallet, created on first use for accounts that predate wallets. */
     @Transactional
     public Account getAccountByUserId(@NonNull Integer userId) {
         Objects.requireNonNull(userId, "userId must not be null");

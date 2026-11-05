@@ -49,7 +49,6 @@ public class WalletTopUpService {
     @Transactional(noRollbackFor = WorkflowException.class)
     public Transaction processWalletTopUp(BigDecimal amount, PaymentMethod method, String stripeToken) {
         
-        // 1. Validate Amount
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Amount must be greater than zero.");
         }
@@ -63,7 +62,7 @@ public class WalletTopUpService {
         User currentUser = accessPolicy.requireCurrentUser();
         Account userAccount = accountService.getAccountByUserId(currentUser.getId());
 
-        // 2. Create PENDING Payment Intent in your DB
+        // Record the attempt first, so failed charges stay visible.
         Payment payment = Payment.builder()
                 .amount(amount)
                 .currency(BookingRules.CURRENCY)
@@ -75,7 +74,6 @@ public class WalletTopUpService {
         payment = paymentRepository.save(payment);
 
         try {
-            // 3. CALL THE REAL STRIPE API
             // Convert Dollars to Cents (e.g., 50.00 * 100 = 5000)
             long amountInCents = amount.movePointRight(2).setScale(0, java.math.RoundingMode.HALF_UP).longValueExact();
 
@@ -89,7 +87,7 @@ public class WalletTopUpService {
             Charge charge = Charge.create(chargeParams);
 
             if (charge.getPaid()) {
-                // 4. Success! Mark Completed and Credit the Ledger
+                // Captured: complete the payment and credit the wallet.
                 payment.setStatus(PaymentStatus.COMPLETED);
                 payment.setTransactionId(charge.getId()); // Save Stripe's real receipt ID
                 paymentRepository.save(payment);

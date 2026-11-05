@@ -124,7 +124,7 @@ public class TransactionService {
             spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("description")), term));
         }
 
-        // 1. Customer Security: They can only see their own transactions
+        // Customers only see their own entries.
         if (AccessPolicyService.isCustomer(currentUser)) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("account").get("user").get("id"), currentUser.getId()));
             return PageResponse.from(transactionRepository.findAll(spec, pageable));
@@ -141,7 +141,6 @@ public class TransactionService {
         else if (filter.getUserId() != null)
             spec = spec.and((root, query, cb) -> cb.equal(root.get("account").get("user").get("id"), filter.getUserId()));
 
-        // 3. Fallback for Admin/General view
         return PageResponse.from(transactionRepository.findAll(spec, pageable));
     }
 }

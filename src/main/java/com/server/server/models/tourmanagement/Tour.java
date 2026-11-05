@@ -89,7 +89,7 @@ public class Tour extends BaseEntity {
     @Builder.Default
     private boolean hasTransportation = false;
 
-    // --- RELATIONSHIPS WITH CIRCULAR REFERENCE GUARDS ---
+    // Relationships (JSON back-references are ignored to avoid cycles)
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "transportation_id")

@@ -27,7 +27,7 @@ public class GenericTrackingController {
 
     private final GenericTrackingService trackingService;
 
-    // --- FETCH EVERYTHING FOR THE TIMELINE ---
+    /** Events and comments of one record, oldest first. */
     @GetMapping("/{refType}/{refId}")
     public ResponseEntity<ApiResponse<TimelineResponse>> getTimeline(
             @PathVariable ReferenceType refType, 
@@ -36,7 +36,6 @@ public class GenericTrackingController {
         return ResponseEntity.ok(ApiResponse.ok(trackingService.getTimeline(refId, refType)));
     }
 
-    // --- ADD A COMMENT ---
     @PostMapping("/{refType}/{refId}/comments")
     public ResponseEntity<ApiResponse<CommentResponse>> addComment(
             @PathVariable ReferenceType refType, 
@@ -47,7 +46,7 @@ public class GenericTrackingController {
         return ResponseEntity.ok(ApiResponse.ok("Comment added successfully.", response));
     }
 
-    // --- EDIT A COMMENT ---
+    /** Authors edit their own comments. */
     @PutMapping("/comments/{commentId}")
     public ResponseEntity<ApiResponse<CommentResponse>> updateComment(
             @NonNull @PathVariable Integer commentId,

@@ -66,7 +66,6 @@ public class TransportationService {
         return transportation;
     }
 
-// Inside TransportationService.java
     @Transactional
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'OWNER')")
     public Transportation create(TransportationCreateRequest request) {
@@ -75,7 +74,7 @@ public class TransportationService {
         transportation.setStatus(GenericStatus.ACTIVE);
         transportation.setUnitStatus(TransportationStatus.AVAILABLE);
 
-        // THE DRY CALL: Auto-generate seats at the exact moment of creation
+        // Seats are generated when the vehicle is registered.
         if (transportation.getSeats() == null || transportation.getSeats().isEmpty()) {
             transportation.setSeats(generateSeatLayout(transportation, transportation.getSeatConfig()));
         } else {
@@ -121,13 +120,12 @@ public class TransportationService {
         }
     }
 
-    // --- THE DRY HELPER METHOD ---
     private List<Seat> generateSeatLayout(Transportation transport, java.util.Map<String, Integer> config) {
         List<Seat> generated = new java.util.ArrayList<>();
         int seatNum = 1;
         int max = transport.getTotalCapacity();
 
-        // 1. Generate Custom Chair Types if requested
+        // Special chair types first, as requested in the seat configuration.
         if (config != null) {
             for (java.util.Map.Entry<String, Integer> entry : config.entrySet()) {
                 com.server.server.enums.tourmanagement.ChairType type = 
@@ -141,7 +139,7 @@ public class TransportationService {
             }
         }
         
-        // 2. Automatically fill the remaining capacity with STANDARD seats
+        // The rest of the capacity is standard seats.
         while (seatNum <= max) {
             generated.add(buildSeat(transport, seatNum++, com.server.server.enums.tourmanagement.ChairType.STANDARD));
         }

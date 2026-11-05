@@ -34,7 +34,6 @@ public class TourSchedulerService {
         schedulingService.registerNightlyTask(this::autoProcessScheduledTours);
     }
 
-    // 3. Add the processing logic
     @Transactional
     public void autoProcessScheduledTours() {
         LocalDate today = LocalDate.now();
@@ -81,7 +80,6 @@ public class TourSchedulerService {
                         "System automatically marked tour as COMPLETED because the end date passed.",
                         null);
 
-                // --- OPTIMIZED GREETING LOGIC ---
                 if (savedTour.getTickets() != null) {
                     // Use a Set to prevent spamming a user who bought multiple tickets
                     java.util.Set<Integer> notifiedUsers = new java.util.HashSet<>();

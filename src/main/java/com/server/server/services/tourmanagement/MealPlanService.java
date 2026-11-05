@@ -23,7 +23,6 @@ import com.server.server.repositories.tourmanagement.MealPlanRepository;
 import com.server.server.dto.common.PageResponse;
 import com.server.server.dto.tourmanagement.MealPlanCreateRequest;
 import com.server.server.enums.tourmanagement.MealDietaryType;
-import com.server.server.enums.tourmanagement.SpiceLevel;
 import com.server.server.utilities.PaginationUtils;
 import java.util.Set;
 

@@ -46,7 +46,7 @@ public class Payment extends BaseEntity {
     @JoinColumn(name = "reservation_id")
     private TourReservation reservation;
 
-    // NEW: Link to the internal ledger transactions
+    /** Ledger entries this payment produced. */
     @OneToMany(mappedBy = "payment", cascade = CascadeType.ALL)
     @JsonIgnore
     @Builder.Default

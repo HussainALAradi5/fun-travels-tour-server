@@ -16,7 +16,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Inte
     long countByRecipientIdAndIsReadFalse(Integer recipientId);
 
 
-    // --- THE DYNAMIC FILTER QUERY ---
+    /** One user's notifications; every filter is optional. */
     @Query("SELECT n FROM Notification n WHERE n.recipient.id = :userId " +
             "AND (:search IS NULL OR :search = '' OR LOWER(n.title) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(n.message) LIKE LOWER(CONCAT('%', :search, '%'))) "
             +

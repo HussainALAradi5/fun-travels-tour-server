@@ -108,8 +108,7 @@ public class NotificationService {
 
             notificationRepository.save(notification);
 
-            // --- NEW REAL-TIME BROADCAST ---
-            // Grab the new counts and send them directly to this specific user's topic
+            // Push the new unread count to this user's WebSocket topic.
             NotificationCounts counts = getNotificationCounts(managedUser.getId());
             messagingTemplate.convertAndSend("/topic/notifications/" + managedUser.getId(), counts);
 

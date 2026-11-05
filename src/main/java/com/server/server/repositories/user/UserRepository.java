@@ -18,8 +18,7 @@ public interface UserRepository extends JpaRepository<User, Integer> {
 
     boolean existsByUserNameIgnoreCase(String userName);
 
-    // --- THE LOOP KILLER ---
-    // Forces Hibernate to run the SELECT query without flushing pending updates first
+    /** Reads without flushing pending changes first, so lookups during a save cannot loop. */
     @QueryHints(value = { @QueryHint(name = "org.hibernate.flushMode", value = "COMMIT") })
     Optional<User> findByEmailIgnoreCase(String email);
 

@@ -47,19 +47,19 @@ public class TourStatusService {
             return tour;
         DomainWorkflowValidator.validateTour(currentStatus, newStatus);
 
-        // 1. Terminal State Protection
+        // Completed tours are final.
         if (currentStatus == GenericStatus.COMPLETED) {
             throw new WorkflowException("Cannot change the status of a completed tour.");
         }
 
-        // 2. Cancellation Recovery
+        // A cancelled tour can only go back to PENDING.
         if (currentStatus == GenericStatus.CANCELLED) {
             if (newStatus != GenericStatus.PENDING) {
                 throw new WorkflowException("A cancelled tour can only be restored to PENDING status.");
             }
         }
 
-        // --- NEW: CANCELLATION BUSINESS RULES ---
+        // Agency cancellation rules.
         if (newStatus == GenericStatus.CANCELLED) {
             // Rule A: Must be at least 14 days away
             if (tour.getStartDate() != null && tour.getStartDate().isBefore(LocalDate.now().plusDays(BookingRules.TOUR_CANCELLATION_MIN_DAYS))) {
@@ -80,7 +80,7 @@ public class TourStatusService {
             tour.setAvailableSlots(0);
         }
 
-        // 3. Forward Progression Rules
+        // Allowed forward transitions.
         if (currentStatus == GenericStatus.PENDING) {
             if (newStatus != GenericStatus.APPROVED && newStatus != GenericStatus.CANCELLED) {
                 throw new WorkflowException("A pending tour must be APPROVED or CANCELLED.");

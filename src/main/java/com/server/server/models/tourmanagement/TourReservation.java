@@ -68,12 +68,12 @@ public class TourReservation extends BaseEntity {
     @JsonIgnore
     private List<Ticket> tickets = new ArrayList<>();
 
-    // NEW: A reservation can have multiple ledger transactions (e.g., a payment, then a partial refund)
+    /** Ledger entries for this booking, such as its payment and later refunds. */
     @OneToMany(mappedBy = "reservation", cascade = CascadeType.ALL)
     @JsonIgnore
     private List<Transaction> transactions = new ArrayList<>();
 
-    // NEW: A reservation can have multiple external payments (e.g., Deposit paid now, remainder paid later)
+    /** Payments made for this booking. */
     @OneToMany(mappedBy = "reservation", cascade = CascadeType.ALL)
     @JsonIgnore
     private List<Payment> payments = new ArrayList<>();
