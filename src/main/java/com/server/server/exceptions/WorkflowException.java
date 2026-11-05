@@ -1,5 +1,6 @@
 package com.server.server.exceptions;
 
+import com.server.server.constants.errors.ErrorCodes;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
@@ -8,7 +9,7 @@ public class WorkflowException extends RuntimeException {
     private final String code;
 
     public WorkflowException(String message) {
-        this("WORKFLOW_CONFLICT", message);
+        this(ErrorCodes.WORKFLOW_CONFLICT, message);
     }
 
     public WorkflowException(String code, String message) {

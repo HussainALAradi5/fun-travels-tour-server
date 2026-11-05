@@ -31,7 +31,7 @@ public class SystemSchedulingService {
             try {
                 task.run();
             } catch (Exception e) {
-                log.error("Scheduled task failed: {}", e.getMessage());
+                log.error("Scheduled task failed", e);
             }
         }
         

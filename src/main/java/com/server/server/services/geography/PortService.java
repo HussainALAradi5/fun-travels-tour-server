@@ -40,7 +40,7 @@ public class PortService {
     public Port getById(@NonNull Integer id) {
         Objects.requireNonNull(id, "id must not be null");
         return portRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Port not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Port", id));
     }
 
     @Transactional

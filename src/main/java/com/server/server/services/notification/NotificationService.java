@@ -94,7 +94,7 @@ public class NotificationService {
             ReferenceType refType) {
         try {
             User managedUser = userRepository.findById(recipient.getId())
-                    .orElseThrow(() -> new RuntimeException("Recipient not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("User", recipient.getId()));
 
             Notification notification = Notification.builder()
                     .recipient(managedUser)
@@ -113,7 +113,8 @@ public class NotificationService {
             messagingTemplate.convertAndSend("/topic/notifications/" + managedUser.getId(), counts);
 
         } catch (Exception e) {
-            log.error("Async Notification Failure: {}", e.getMessage());
+            // A failed notification must never undo the action that triggered it.
+            log.error("Notification to user {} failed", recipient.getId(), e);
         }
     }
 

@@ -1,8 +1,8 @@
 package com.server.server.services.geography;
 
+import com.server.server.exceptions.ExternalServiceException;
 import com.server.server.dto.geography.CountryCreateRequest;
 
-import com.server.server.exceptions.WorkflowException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -92,10 +92,10 @@ public class CountryService {
             populateCountry(country, data, code);
 
             return countryRepository.save(country);
-        } catch (ResourceNotFoundException e) {
+        } catch (ResourceNotFoundException | ExternalServiceException e) {
             throw e;
         } catch (Exception e) {
-            throw new WorkflowException("COUNTRY_SYNC_FAILED", "External sync failed: " + e.getMessage());
+            throw new ExternalServiceException("Country lookup failed for " + name, e);
         }
     }
 
@@ -144,29 +144,31 @@ public class CountryService {
             result.put("added", addedCount);
             result.put("updated", updatedCount);
             return result;
+        } catch (ExternalServiceException e) {
+            throw e;
         } catch (Exception e) {
-            throw new WorkflowException("COUNTRY_SYNC_FAILED", "Country sync failed: " + e.getMessage());
+            throw new ExternalServiceException("Country sync failed", e);
         }
     }
 
     @SuppressWarnings("unchecked")
     private List<Map<String, Object>> getCountryRecords(String url) throws Exception {
         if (restCountriesApiKey == null || restCountriesApiKey.isBlank()) {
-            throw new IllegalStateException("REST_COUNTRIES_API_KEY is not configured");
+            throw new ExternalServiceException("REST_COUNTRIES_API_KEY is not configured");
         }
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(restCountriesApiKey);
         String responseBody = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class).getBody();
         if (responseBody == null || responseBody.isBlank()) {
-            throw new IllegalStateException("Rest Countries returned an empty response");
+            throw new ExternalServiceException("Rest Countries returned an empty response");
         }
 
         JsonNode responseJson = objectMapper.readTree(responseBody);
         JsonNode records = responseJson.path("data").path("objects");
         if (!records.isArray()) {
             String message = responseJson.path("message").asText(responseJson.toString());
-            throw new IllegalStateException("Rest Countries returned an error response: " + message);
+            throw new ExternalServiceException("Rest Countries returned an error response: " + message);
         }
         return objectMapper.readValue(records.toString(), new TypeReference<List<Map<String, Object>>>() {});
     }

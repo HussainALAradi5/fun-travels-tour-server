@@ -1,5 +1,6 @@
 package com.server.server.config.security;
 
+import com.server.server.middlewares.auth.SecurityErrorResponder;
 import com.server.server.config.properties.AppProperties;
 import com.server.server.middlewares.JwtAuthenticationFilter;
 
@@ -8,9 +9,7 @@ import java.util.Arrays;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.config.Customizer;
-import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -31,6 +30,8 @@ import lombok.RequiredArgsConstructor;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
+
+    private final SecurityErrorResponder securityErrorResponder;
     private final AuthenticationProvider authenticationProvider;
     private final AppProperties appProperties;
 
@@ -54,8 +55,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/reservations/**").hasAnyAuthority("CUSTOMER", "ADMIN", "MANAGER", "EMPLOYEE", "OWNER")
                         .requestMatchers("/api/notifications/**").hasAnyAuthority("CUSTOMER", "ADMIN", "MANAGER", "EMPLOYEE", "OWNER")
                         .anyRequest().authenticated())
-                .exceptionHandling(errors -> errors.authenticationEntryPoint(
-                        new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+                .exceptionHandling(errors -> errors
+                        .authenticationEntryPoint(securityErrorResponder)
+                        .accessDeniedHandler(securityErrorResponder))
                 .headers(headers -> headers
                         .contentTypeOptions(Customizer.withDefaults())
                         .frameOptions(frame -> frame.deny()))

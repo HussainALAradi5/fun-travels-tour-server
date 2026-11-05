@@ -1,5 +1,6 @@
 package com.server.server.services.common;
 
+import com.server.server.exceptions.StorageException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -46,7 +47,7 @@ public class FileStorageService {
             Files.createDirectories(folder);
             Files.write(folder.resolve(fileName), bytes);
         } catch (IOException e) {
-            throw new IllegalStateException("Could not save image file.", e);
+            throw new StorageException("Could not save image file.", e);
         }
         deleteProfileImage(previousPath);
         return PUBLIC_PREFIX + PROFILE_FOLDER + "/" + fileName;
@@ -77,7 +78,7 @@ public class FileStorageService {
             Files.createDirectories(file.getParent());
             Files.write(file, content);
         } catch (IOException e) {
-            throw new IllegalStateException("Could not save the file.", e);
+            throw new StorageException("Could not save the file.", e);
         }
     }
 
@@ -85,7 +86,7 @@ public class FileStorageService {
         try {
             return Files.readAllBytes(privatePath(relativePath));
         } catch (IOException e) {
-            throw new IllegalStateException("The stored file is missing.", e);
+            throw new StorageException("The stored file is missing.", e);
         }
     }
 

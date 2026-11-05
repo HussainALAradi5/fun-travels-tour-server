@@ -3,6 +3,8 @@ package com.server.server.utilities;
 import java.time.Instant;
 import java.util.Map;
 
+import com.server.server.constants.errors.ErrorCodes;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,7 +22,7 @@ public class ApiResponse<T> {
     private String path;
 
     public ApiResponse(boolean success, String message, T data) {
-        this(success, success ? "SUCCESS" : "REQUEST_FAILED", message, data,
+        this(success, success ? "SUCCESS" : ErrorCodes.BAD_REQUEST, message, data,
                 Map.of(), Instant.now(), null);
     }
 
@@ -37,7 +39,7 @@ public class ApiResponse<T> {
     }
 
     public static <T> ApiResponse<T> error(String message) {
-        return error("REQUEST_FAILED", message, Map.of(), null);
+        return error(ErrorCodes.BAD_REQUEST, message, Map.of(), null);
     }
 
     public static <T> ApiResponse<T> error(String code, String message,
