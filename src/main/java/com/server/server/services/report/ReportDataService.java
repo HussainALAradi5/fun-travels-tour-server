@@ -23,6 +23,7 @@ import com.server.server.services.auth.AccessPolicyService;
 import com.server.server.services.payment.TransactionService;
 import com.server.server.services.tourmanagement.MealPlanService;
 import com.server.server.services.tourmanagement.TicketService;
+import com.server.server.services.tourmanagement.TourCatalogService;
 import com.server.server.services.tourmanagement.TourService;
 import com.server.server.services.tourmanagement.TransportationService;
 import com.server.server.services.user.UserService;
@@ -42,6 +43,7 @@ import lombok.RequiredArgsConstructor;
 public class ReportDataService {
 
     private final TourService tourService;
+    private final TourCatalogService tourCatalogService;
     private final TicketService ticketService;
     private final TransportationService transportationService;
     private final MealPlanService mealPlanService;
@@ -57,8 +59,8 @@ public class ReportDataService {
         String author = actor.getName();
         return switch (request.type()) {
             case TOUR_CATALOG -> table(title, author, ReportColumns.TOURS,
-                    page -> tourService.getCatalogTours(null, null, null, null, page, ReportRules.LOAD_PAGE_SIZE));
-            case TOURS -> table(title, author, ReportColumns.TOURS, page -> tourService.filter(paged(new TourFilterRequest(), page)));
+                    page -> tourCatalogService.getCatalogTours(null, null, null, null, page, ReportRules.LOAD_PAGE_SIZE));
+            case TOURS -> table(title, author, ReportColumns.TOURS, page -> tourCatalogService.filter(paged(new TourFilterRequest(), page)));
             case TICKETS -> table(title, author, ReportColumns.TICKETS, page -> ticketService.filter(paged(new TicketFilterRequest(), page)));
             case PASSENGER_MANIFEST -> {
                 var tour = tourService.getById(require(request.tourId(), "tourId"));

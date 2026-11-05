@@ -26,6 +26,7 @@ import com.server.server.dto.tourmanagement.TransportationFilterRequest;
 import com.server.server.dto.common.ImportResult;
 import com.server.server.dto.tourmanagement.TransportationCreateRequest;
 import com.server.server.enums.tourmanagement.TransportationStatus;
+import com.server.server.services.tourmanagement.TransportationImportService;
 import com.server.server.services.tourmanagement.TransportationService;
 import com.server.server.utilities.ApiResponse;
 import jakarta.validation.Valid;
@@ -36,6 +37,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TransportationController {
     private final TransportationService service;
+    private final TransportationImportService importService;
 
     @PostMapping
     @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
@@ -54,7 +56,7 @@ public class TransportationController {
                 && !filename.toLowerCase().endsWith(".xls"))) {
             throw new IllegalArgumentException("Only .xlsx and .xls files are supported.");
         }
-        ImportResult result = service.importExcel(file.getInputStream());
+        ImportResult result = importService.importExcel(file.getInputStream());
         return ResponseEntity.ok(ApiResponse.ok(
                 result.failedCount() == 0 ? "Transportation import completed." : "Import completed with row errors.",
                 result));

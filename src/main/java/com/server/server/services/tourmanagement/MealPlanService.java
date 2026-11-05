@@ -111,17 +111,6 @@ public class MealPlanService {
         repository.save(meal);
     }
 
-    @Transactional
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'OWNER')")
-    public MealPlan updatePricing(@NonNull Integer id, Double newPrice) {
-        Objects.requireNonNull(id, "id must not be null");
-        if (newPrice == null || newPrice < 0) throw new IllegalArgumentException("Meal price cannot be negative or null.");
-        MealPlan meal = findById(id);
-        accessPolicy.requireAgencyAccess(accessPolicy.requireCurrentUser(), meal.getAgency());
-        meal.setMealPrice(newPrice);
-        return repository.save(meal);
-    }
-
     /** Agency staff create meals for their own agency; admins may name one or create a shared meal. */
     private Agency resolveMealAgency(Integer requestedAgencyId) {
         User current = accessPolicy.requireCurrentUser();

@@ -12,6 +12,8 @@ public final class RoleGroups {
     public static final Set<UserTypeEnum> AGENCY_STAFF = EnumSet.of(
             UserTypeEnum.OWNER, UserTypeEnum.MANAGER, UserTypeEnum.EMPLOYEE);
 
+    /** Agency staff tied to one branch; their lists are narrowed to it. */
+    public static final Set<UserTypeEnum> BRANCH_STAFF = EnumSet.of(UserTypeEnum.MANAGER, UserTypeEnum.EMPLOYEE);
     /** Staff who handle support requests across the platform. */
     public static final Set<UserTypeEnum> SUPPORT_STAFF = EnumSet.of(
             UserTypeEnum.ADMIN, UserTypeEnum.SUPPORT_AGENT);

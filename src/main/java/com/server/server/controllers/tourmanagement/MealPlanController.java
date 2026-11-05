@@ -61,10 +61,4 @@ public class MealPlanController {
         service.updateMealStatus(id, status);
         return ResponseEntity.ok(ApiResponse.ok("Status updated!"));
     }
-
-    @PutMapping("/{id}/price")
-    @PreAuthorize("hasAnyAuthority('OWNER', 'MANAGER', 'ADMIN')")
-    public ResponseEntity<ApiResponse<MealPlanResponse>> updatePrice(@NonNull @PathVariable Integer id, @RequestParam Double price) {
-        return ResponseEntity.ok(ApiResponse.ok("Price updated!", MealPlanResponse.from(service.updatePricing(id, price))));
-    }
 }

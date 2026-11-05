@@ -59,6 +59,11 @@ public class AccessPolicyService {
         return user != null && RoleGroups.AGENCY_STAFF.contains(user.getUserType());
     }
 
+    /** Managers and employees, whose tour lists are narrowed to their branch. */
+    public static boolean isBranchStaff(User user) {
+        return user != null && RoleGroups.BRANCH_STAFF.contains(user.getUserType());
+    }
+
     public static boolean isSupportStaff(User user) {
         return user != null && RoleGroups.SUPPORT_STAFF.contains(user.getUserType());
     }
