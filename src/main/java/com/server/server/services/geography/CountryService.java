@@ -45,6 +45,7 @@ public class CountryService {
     private String restCountriesApiKey;
 
     private final RestTemplate restTemplate;
+    private final CountryDirectoryService countryDirectoryService;
     private final ObjectMapper objectMapper;
 
     @Transactional(readOnly = true)
@@ -100,8 +101,12 @@ public class CountryService {
         }
     }
 
+    /** Every country: from REST Countries v5 when a key is configured, otherwise from the free country directory. */
     @Transactional
     public Map<String, Integer> syncAllCountries() {
+        if (restCountriesApiKey == null || restCountriesApiKey.isBlank()) {
+            return countryDirectoryService.importAll();
+        }
         int addedCount = 0;
         int updatedCount = 0;
 

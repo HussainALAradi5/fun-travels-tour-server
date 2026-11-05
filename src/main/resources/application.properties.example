@@ -21,6 +21,11 @@ stripe.api.secret-key=${STRIPE_SECRET_KEY:sk_test_not_configured}
 stripe.api.publishable-key=${STRIPE_PUBLISHABLE_KEY:pk_test_not_configured}
 
 api.restcountries.api-key=${REST_COUNTRIES_API_KEY:}
+# Without a REST Countries key, countries come from the free world-countries dataset (no key needed).
+# On startup it fills in every country when the database has fewer than app.countries.minimum.
+app.countries.directory-url=${COUNTRIES_DIRECTORY_URL:https://cdn.jsdelivr.net/npm/world-countries@5.1.0/countries.json}
+app.countries.import-on-startup=${COUNTRIES_IMPORT_ON_STARTUP:true}
+app.countries.minimum=${COUNTRIES_MINIMUM:200}
 api.restcountries.url=https://api.restcountries.com/countries/v5/name?q=
 api.restcountries.all.url=https://api.restcountries.com/countries/v5?limit=100&response_fields=names.common,names.official,codes.alpha_2,flag.url_png,flag.url_svg,calling_codes
 
