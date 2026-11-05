@@ -36,36 +36,36 @@ class AuthRateLimitFilterTest {
             return now.get();
         }
     };
-    private final AuthRateLimitFilter filter = new AuthRateLimitFilter("/api/v1", new AppProperties.RateLimit(3, 60),
+    private final AuthRateLimitFilter filter = new AuthRateLimitFilter("/api", new AppProperties.RateLimit(3, 60),
             new SecurityErrorResponder(new ObjectMapper().registerModule(new JavaTimeModule())), clock);
 
     @Test
     void blocksAttemptsOverTheLimitUntilTheWindowEnds() throws Exception {
         for (int i = 0; i < 3; i++) {
-            assertThat(post("/api/v1/auth/login", "10.0.0.1").getStatus()).isEqualTo(200);
+            assertThat(post("/api/auth/login", "10.0.0.1").getStatus()).isEqualTo(200);
         }
-        MockHttpServletResponse blocked = post("/api/v1/auth/login", "10.0.0.1");
+        MockHttpServletResponse blocked = post("/api/auth/login", "10.0.0.1");
         assertThat(blocked.getStatus()).isEqualTo(429);
         assertThat(blocked.getHeader("Retry-After")).isEqualTo("60");
         assertThat(blocked.getContentAsString()).contains("TOO_MANY_REQUESTS");
 
         now.set(now.get().plusSeconds(61));
-        assertThat(post("/api/v1/auth/login", "10.0.0.1").getStatus()).isEqualTo(200);
+        assertThat(post("/api/auth/login", "10.0.0.1").getStatus()).isEqualTo(200);
     }
 
     @Test
     void countsEachAddressAndPathSeparately() throws Exception {
         for (int i = 0; i < 3; i++) {
-            post("/api/v1/auth/login", "10.0.0.1");
+            post("/api/auth/login", "10.0.0.1");
         }
-        assertThat(post("/api/v1/auth/login", "10.0.0.2").getStatus()).isEqualTo(200);
-        assertThat(post("/api/v1/auth/register", "10.0.0.1").getStatus()).isEqualTo(200);
+        assertThat(post("/api/auth/login", "10.0.0.2").getStatus()).isEqualTo(200);
+        assertThat(post("/api/auth/register", "10.0.0.1").getStatus()).isEqualTo(200);
     }
 
     @Test
     void ignoresOtherRequests() throws Exception {
         for (int i = 0; i < 5; i++) {
-            assertThat(post("/api/v1/tours", "10.0.0.1").getStatus()).isEqualTo(200);
+            assertThat(post("/api/tours", "10.0.0.1").getStatus()).isEqualTo(200);
         }
     }
 

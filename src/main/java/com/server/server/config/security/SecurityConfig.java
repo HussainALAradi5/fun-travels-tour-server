@@ -72,7 +72,7 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /** A path under the configured API prefix, such as {@code /api/v1/auth/**}. */
+    /** A path under the configured API prefix, such as {@code /api/auth/**}. */
     private String api(String path) {
         return appProperties.apiPrefix() + path;
     }

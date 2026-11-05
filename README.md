@@ -14,7 +14,7 @@ cp src/main/resources/application.properties.example src/main/resources/applicat
 ./mvnw spring-boot:run
 ```
 
-The API starts at `http://localhost:8080/api/v1`. With `SEED_ENABLED=true` on an empty database, one account per role is created (`admin`, `owner`, `manager`, `employee`, `customer`, `support`, `developer`, emails `<name>@funtravel.com`); the password is `SEED_PASSWORD` or a generated one written to `seed-credentials.local.txt`. The seed never runs under the `prod` profile.
+The API starts at `http://localhost:8080/api`. With `SEED_ENABLED=true` on an empty database, one account per role is created (`admin`, `owner`, `manager`, `employee`, `customer`, `support`, `developer`, emails `<name>@funtravel.com`); the password is `SEED_PASSWORD` or a generated one written to `seed-credentials.local.txt`. The seed never runs under the `prod` profile.
 
 ## Settings
 
@@ -23,7 +23,7 @@ The API starts at `http://localhost:8080/api/v1`. With `SEED_ENABLED=true` on an
 | `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | - | PostgreSQL connection |
 | `JWT_SECRET` | - | Token signing key, at least 32 characters |
 | `SERVER_PORT` | `8080` | HTTP port |
-| `API_PREFIX` | `/api/v1` | Prefix of every REST endpoint; the web and mobile apps use the same value |
+| `API_PREFIX` | `/api` | Prefix of every REST endpoint; the web and mobile apps use the same value |
 | `AUTH_RATE_LIMIT`, `AUTH_RATE_WINDOW_SECONDS` | `10`, `60` | Sign-in, registration and password-reset attempts per address in each window |
 | `CLIENT_URL` | `http://localhost:3000` | Web app address used in password-reset emails |
 | `CORS_ALLOWED_ORIGINS` | local hosts | Allowed browser origins |
@@ -63,7 +63,7 @@ Flyway owns the schema: versioned scripts live in `src/main/resources/db/migrati
 
 1. On [Neon](https://neon.tech): create a project and copy its connection string (`postgresql://user:password@host/dbname?sslmode=require`).
 2. On [Render](https://render.com): New, then Blueprint, then this repository. Enter `DB_URL` (the Neon string) and, for now, `CLIENT_URL` and `CORS_ALLOWED_ORIGINS` as `https://*.vercel.app`.
-3. On [Vercel](https://vercel.com): import `fun-travels-tour-client` and set `NEXT_PUBLIC_API_BASE_URL` to `https://<render-service>.onrender.com/api/v1`.
+3. On [Vercel](https://vercel.com): import `fun-travels-tour-client` and set `NEXT_PUBLIC_API_BASE_URL` to `https://<render-service>.onrender.com/api`.
 4. Back on Render, set `CLIENT_URL` and `CORS_ALLOWED_ORIGINS` to the exact Vercel address.
 
 On first start, Flyway creates the schema, the seed adds one user per role (Render generates `SEED_PASSWORD`; it is under the service's Environment tab), and every country is imported from the country directory.

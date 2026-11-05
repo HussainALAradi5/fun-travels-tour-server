@@ -9,7 +9,7 @@ services:
     # Same region as the Neon database (AWS eu-central-1), so each query stays inside Frankfurt.
     region: frankfurt
     branch: main
-    healthCheckPath: /api/v1/tours/catalog
+    healthCheckPath: /api/tours/catalog
     envVars:
       # The database connection string, e.g. postgresql://user:password@host/dbname?sslmode=require
       # (Neon: Dashboard -> Connect). docker-entrypoint.sh turns it into a JDBC URL with user and password.

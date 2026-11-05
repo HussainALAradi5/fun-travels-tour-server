@@ -18,7 +18,7 @@ public class WebConfig implements WebMvcConfigurer {
 
     private final AppProperties appProperties;
 
-    /** Every REST controller is served under {@code app.api-prefix}, so the version is set in one place. */
+    /** Every REST controller is served under {@code app.api-prefix}, so the prefix is set in one place. */
     @Override
     public void configurePathMatch(@NonNull PathMatchConfigurer configurer) {
         configurer.addPathPrefix(appProperties.apiPrefix(), HandlerTypePredicate.forAnnotation(RestController.class));
