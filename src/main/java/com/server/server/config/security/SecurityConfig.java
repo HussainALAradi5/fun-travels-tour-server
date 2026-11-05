@@ -54,6 +54,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, api("/ports/**")).permitAll()
                         .requestMatchers(HttpMethod.GET, api("/cities/**")).permitAll()
                         .requestMatchers(HttpMethod.GET, api("/wallet/config")).permitAll()
+                        .requestMatchers(HttpMethod.GET, api("/agencies/*/policy")).permitAll()
                         .requestMatchers(api("/tickets/**")).hasAnyAuthority("CUSTOMER", "ADMIN", "MANAGER", "EMPLOYEE", "OWNER")
                         .requestMatchers(api("/reservations/**")).hasAnyAuthority("CUSTOMER", "ADMIN", "MANAGER", "EMPLOYEE", "OWNER")
                         .requestMatchers(api("/notifications/**")).hasAnyAuthority("CUSTOMER", "ADMIN", "MANAGER", "EMPLOYEE", "OWNER")

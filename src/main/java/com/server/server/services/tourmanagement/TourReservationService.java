@@ -45,6 +45,7 @@ import com.server.server.validations.workflow.DomainWorkflowValidator;
 import com.server.server.utilities.filters.FilterUtils;
 import com.server.server.utilities.pagination.PaginationUtils;
 import com.server.server.utilities.pricing.PricingCalculator;
+import com.server.server.utilities.pricing.PricingPolicy;
 import com.server.server.utilities.pricing.PricingCalculator.RefundQuote;
 
 import lombok.RequiredArgsConstructor;
@@ -183,7 +184,7 @@ public class TourReservationService extends GenericFilterService<TourReservation
         }
         if (reservation.getStatus() == GenericStatus.CONFIRMED) {
             RefundQuote quote = PricingCalculator.refund(BookingLifecycleService.activeTotal(reservation),
-                    tour.getStartDate(), LocalDate.now());
+                    tour.getStartDate(), LocalDate.now(), PricingPolicy.of(tour.getAgency()));
             bookingLifecycleService.refundToWallet(reservation, quote.amount(), TransactionType.REFUND, quote.reason());
         }
         bookingLifecycleService.releaseAndCancelTickets(reservation, GenericStatus.CANCELLED);

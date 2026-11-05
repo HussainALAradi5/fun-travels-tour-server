@@ -61,4 +61,34 @@ class PricingCalculatorTest {
     void nothingPaidMeansNothingRefunded() {
         assertThat(PricingCalculator.refund(null, TODAY.plusDays(30), TODAY).amount()).isEqualByComparingTo("0");
     }
+
+    // An agency's own rules: kids 30% off; full refund more than 30 days out; 25% from 10 days.
+    private static final PricingPolicy CUSTOM = new PricingPolicy(30, 30, 10, 25);
+
+    @Test
+    void kidsDiscountFollowsTheAgencyPolicy() {
+        TicketPrice price = PricingCalculator.ticketPrice(new BigDecimal("200"), ChairType.KIDS_CHAIR, BigDecimal.ZERO,
+                List.of(), CUSTOM);
+        assertThat(price.discount()).isEqualByComparingTo("60.00");
+        assertThat(price.total()).isEqualByComparingTo("140.00");
+    }
+
+    @Test
+    void refundTiersFollowTheAgencyPolicy() {
+        BigDecimal paid = new BigDecimal("100");
+        assertThat(PricingCalculator.refund(paid, TODAY.plusDays(31), TODAY, CUSTOM).amount()).isEqualByComparingTo("100");
+        assertThat(PricingCalculator.refund(paid, TODAY.plusDays(20), TODAY, CUSTOM).amount()).isEqualByComparingTo("25");
+        assertThat(PricingCalculator.refund(paid, TODAY.plusDays(10), TODAY, CUSTOM).amount()).isEqualByComparingTo("25");
+        assertThat(PricingCalculator.refund(paid, TODAY.plusDays(9), TODAY, CUSTOM).amount()).isEqualByComparingTo("0");
+        assertThat(PricingCalculator.refund(paid, TODAY.plusDays(20), TODAY, CUSTOM).reason()).contains("25%");
+    }
+
+    @Test
+    void noPartialRefundWhenItsPercentIsZero() {
+        PricingPolicy strict = new PricingPolicy(0, 7, 3, 0);
+        assertThat(PricingCalculator.refund(new BigDecimal("80"), TODAY.plusDays(5), TODAY, strict).amount()).isEqualByComparingTo("0");
+        assertThat(PricingCalculator.refund(new BigDecimal("80"), TODAY.plusDays(8), TODAY, strict).amount()).isEqualByComparingTo("80");
+        assertThat(PricingCalculator.ticketPrice(new BigDecimal("80"), ChairType.KIDS_CHAIR, BigDecimal.ZERO, List.of(), strict)
+                .total()).isEqualByComparingTo("80");
+    }
 }

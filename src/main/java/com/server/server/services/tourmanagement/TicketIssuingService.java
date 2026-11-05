@@ -23,6 +23,7 @@ import com.server.server.models.user.User;
 import com.server.server.services.common.CodeGenerationService;
 import com.server.server.utilities.codes.CodeGenerator;
 import com.server.server.utilities.pricing.PricingCalculator;
+import com.server.server.utilities.pricing.PricingPolicy;
 import com.server.server.utilities.pricing.PricingCalculator.TicketPrice;
 
 import lombok.RequiredArgsConstructor;
@@ -86,7 +87,8 @@ public class TicketIssuingService {
                 PricingCalculator.money(tour.getTotalPrice()),
                 seat == null ? null : seat.getChairType(),
                 seat == null ? BigDecimal.ZERO : PricingCalculator.money(seat.getSeatPriceModifier()),
-                meals.stream().map(meal -> PricingCalculator.money(meal.getMealPrice())).toList());
+                meals.stream().map(meal -> PricingCalculator.money(meal.getMealPrice())).toList(),
+                PricingPolicy.of(tour.getAgency()));
         if (seat != null) {
             ticket.setAssignedSeat(seat);
         }

@@ -18,6 +18,9 @@ import com.server.server.models.geography.City;
 import com.server.server.models.geography.Country;
 import com.server.server.models.user.User;
 import com.server.server.models.agency.Agency;
+import com.server.server.exceptions.common.AccessDeniedException;
+import com.server.server.models.agency.AgencyPolicy;
+import com.server.server.dto.agency.AgencyPolicyUpdateRequest;
 import com.server.server.dto.common.PageResponse;
 import com.server.server.repositories.geography.CityRepository;
 import com.server.server.repositories.geography.CountryRepository;
@@ -69,6 +72,35 @@ public class AgencyService {
     }
 
     /** Agency details (owner contacts included) for administrators and the agency's own staff. */
+    /** Discount and cancellation rules; public, so customers can read them before booking. */
+    @Transactional(readOnly = true)
+    public Agency getPolicyAgency(@NonNull Integer id) {
+        return getAgencyById(id);
+    }
+
+    /** Owners change their own agency's rules; administrators any agency's. Applies to prices and refunds from now on. */
+    @Transactional
+    public Agency updatePolicy(@NonNull Integer id, AgencyPolicyUpdateRequest request) {
+        Agency agency = getAgencyById(id);
+        User current = accessPolicy.requireCurrentUser();
+        if (!AccessPolicyService.isAdmin(current)) {
+            accessPolicy.requireAgencyMember(current, agency);
+            if (current.getUserType() != UserTypeEnum.OWNER) {
+                throw new AccessDeniedException("Only the agency owner can change its discount and refund rules.");
+            }
+        }
+        if (request.partialRefundDays() > request.fullRefundDays()) {
+            throw new IllegalArgumentException("The partial refund window must start no later than the full refund window.");
+        }
+        AgencyPolicy policy = agency.getPolicy() == null ? new AgencyPolicy() : agency.getPolicy();
+        policy.setKidsDiscountPercent(request.kidsDiscountPercent());
+        policy.setFullRefundDays(request.fullRefundDays());
+        policy.setPartialRefundDays(request.partialRefundDays());
+        policy.setPartialRefundPercent(request.partialRefundPercent());
+        agency.setPolicy(policy);
+        return agencyRepository.save(agency);
+    }
+
     @Transactional(readOnly = true)
     public Agency getVisibleAgency(@NonNull Integer id) {
         Agency agency = getAgencyById(id);

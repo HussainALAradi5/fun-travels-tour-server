@@ -7,7 +7,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
 
-import com.server.server.constants.tourmanagement.BookingRules;
 import com.server.server.enums.tourmanagement.ChairType;
 
 /** Pure pricing and refund rules shared by tickets, reservations, and tour cancellation. */
@@ -25,12 +24,18 @@ public final class PricingCalculator {
     public record RefundQuote(BigDecimal amount, String reason) {
     }
 
-    /** Ticket total = (tour price - kids discount) + seat modifier + selected meals. */
+    /** Ticket total with the default policy. */
     public static TicketPrice ticketPrice(BigDecimal tourPrice, ChairType chairType, BigDecimal seatModifier,
             List<BigDecimal> mealPrices) {
+        return ticketPrice(tourPrice, chairType, seatModifier, mealPrices, PricingPolicy.DEFAULT);
+    }
+
+    /** Ticket total = (tour price - the policy's kids discount) + seat modifier + selected meals. */
+    public static TicketPrice ticketPrice(BigDecimal tourPrice, ChairType chairType, BigDecimal seatModifier,
+            List<BigDecimal> mealPrices, PricingPolicy policy) {
         BigDecimal base = money(tourPrice);
         BigDecimal discount = chairType == ChairType.KIDS_CHAIR
-                ? money(base.multiply(BookingRules.KIDS_CHAIR_DISCOUNT_RATE))
+                ? money(base.multiply(policy.kidsDiscountRate()))
                 : money(BigDecimal.ZERO);
         BigDecimal modifier = money(seatModifier);
         BigDecimal meals = money(mealPrices == null ? BigDecimal.ZERO
@@ -42,21 +47,31 @@ public final class PricingCalculator {
         return new TicketPrice(base, discount, modifier, meals, total);
     }
 
-    /** Full refund more than two weeks out, half refund one to two weeks out, none inside a week. */
+    /** Refund with the default policy. */
     public static RefundQuote refund(BigDecimal paid, LocalDate tourStart, LocalDate today) {
+        return refund(paid, tourStart, today, PricingPolicy.DEFAULT);
+    }
+
+    /**
+     * Full refund more than {@code fullRefundDays} before the tour, the partial percentage from
+     * {@code partialRefundDays} days before, and nothing closer to the start.
+     */
+    public static RefundQuote refund(BigDecimal paid, LocalDate tourStart, LocalDate today, PricingPolicy policy) {
         BigDecimal amount = money(paid);
         if (tourStart == null || amount.signum() <= 0) {
             return new RefundQuote(money(BigDecimal.ZERO), "Nothing was paid.");
         }
         long daysUntilTour = ChronoUnit.DAYS.between(today, tourStart);
-        if (daysUntilTour > BookingRules.FULL_REFUND_AFTER_DAYS) {
-            return new RefundQuote(amount, "Full refund (more than two weeks notice)");
+        if (daysUntilTour > policy.fullRefundDays()) {
+            return new RefundQuote(amount, "Full refund (more than " + policy.fullRefundDays() + " days notice)");
         }
-        if (daysUntilTour >= BookingRules.HALF_REFUND_MIN_DAYS) {
-            return new RefundQuote(money(amount.multiply(BookingRules.HALF_REFUND_RATE)),
-                    "50% refund (one to two weeks notice)");
+        if (daysUntilTour >= policy.partialRefundDays() && policy.partialRefundPercent() > 0) {
+            return new RefundQuote(money(amount.multiply(policy.partialRefundRate())),
+                    policy.partialRefundPercent() + "% refund (" + policy.partialRefundDays() + " to "
+                            + policy.fullRefundDays() + " days notice)");
         }
-        return new RefundQuote(money(BigDecimal.ZERO), "No refund (less than one week notice)");
+        return new RefundQuote(money(BigDecimal.ZERO),
+                "No refund (less than " + Math.max(policy.partialRefundDays(), 1) + " days notice)");
     }
 
     public static BigDecimal money(BigDecimal value) {

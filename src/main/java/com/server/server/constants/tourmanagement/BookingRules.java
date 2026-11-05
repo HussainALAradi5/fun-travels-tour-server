@@ -10,8 +10,9 @@ public final class BookingRules {
     public static final int FULL_REFUND_AFTER_DAYS = 14;
     /** At least this many days before departure earns a half refund. */
     public static final int HALF_REFUND_MIN_DAYS = 7;
-    public static final BigDecimal HALF_REFUND_RATE = new BigDecimal("0.50");
-    public static final BigDecimal KIDS_CHAIR_DISCOUNT_RATE = new BigDecimal("0.50");
+    /** Defaults for a new agency's policy; each agency can change them (see AgencyPolicy). */
+    public static final int DEFAULT_KIDS_DISCOUNT_PERCENT = 50;
+    public static final int DEFAULT_PARTIAL_REFUND_PERCENT = 50;
     public static final int TOUR_CANCELLATION_MIN_DAYS = 14;
     public static final double TOUR_CANCELLATION_MAX_BOOKED_RATIO = 1.0 / 3.0;
     public static final int REMINDER_DAYS_BEFORE_TOUR = 7;

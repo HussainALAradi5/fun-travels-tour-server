@@ -34,6 +34,7 @@ import com.server.server.services.notification.NotificationService;
 import com.server.server.utilities.filters.FilterUtils;
 import com.server.server.utilities.pagination.PaginationUtils;
 import com.server.server.utilities.pricing.PricingCalculator;
+import com.server.server.utilities.pricing.PricingPolicy;
 import com.server.server.utilities.pricing.PricingCalculator.RefundQuote;
 
 import jakarta.annotation.PostConstruct;
@@ -131,7 +132,8 @@ public class TicketService extends GenericFilterService<Ticket> {
         }
         TourReservation reservation = ticket.getReservation();
         if (ticket.isPaid() && reservation != null) {
-            RefundQuote quote = PricingCalculator.refund(ticket.getTotalPrice(), tour.getStartDate(), LocalDate.now());
+            RefundQuote quote = PricingCalculator.refund(ticket.getTotalPrice(), tour.getStartDate(), LocalDate.now(),
+                    PricingPolicy.of(tour.getAgency()));
             bookingLifecycleService.refundToWallet(reservation, quote.amount(), TransactionType.PARTIAL_REFUND,
                     quote.reason() + " for ticket " + ticket.getTicketNumber());
         }

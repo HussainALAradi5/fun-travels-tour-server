@@ -13,6 +13,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import com.server.server.dto.agency.AgencyPolicyUpdateRequest;
+import com.server.server.dto.agency.AgencyPolicyResponse;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -44,6 +47,19 @@ public class AgencyController {
     public ResponseEntity<ApiResponse<AgencyResponse>> getById(@NonNull @PathVariable Integer id) {
         return ResponseEntity.ok(new ApiResponse<>(true, "Fetched agency",
                 AgencyResponse.from(agencyService.getVisibleAgency(id))));
+    }
+
+    @GetMapping("/{id:\\d+}/policy")
+    public ResponseEntity<ApiResponse<AgencyPolicyResponse>> getPolicy(@NonNull @PathVariable Integer id) {
+        return ResponseEntity.ok(ApiResponse.ok(AgencyPolicyResponse.from(agencyService.getPolicyAgency(id))));
+    }
+
+    @PutMapping("/{id:\\d+}/policy")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'OWNER')")
+    public ResponseEntity<ApiResponse<AgencyPolicyResponse>> updatePolicy(@NonNull @PathVariable Integer id,
+            @Valid @RequestBody AgencyPolicyUpdateRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok("Discount and refund rules saved",
+                AgencyPolicyResponse.from(agencyService.updatePolicy(id, request))));
     }
 
     @GetMapping("/search")

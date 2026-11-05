@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.server.server.dto.agency.AgencyPolicyResponse;
 import com.server.server.dto.agency.AgencySummary;
 import com.server.server.dto.agency.BranchSummary;
 import com.server.server.dto.geography.CitySummary;
@@ -37,7 +38,8 @@ public record TourResponse(
         TransportationSummary transportation,
         UserSummary createdBy,
         LocalDateTime createdAt,
-        List<MealPlanResponse> availableMeals) {
+        List<MealPlanResponse> availableMeals,
+        AgencyPolicyResponse policy) {
 
     public static TourResponse from(Tour tour) {
         if (tour == null) {
@@ -56,6 +58,7 @@ public record TourResponse(
                 CountrySummary.from(tour.getEndCountry()), destinations, CitySummary.from(tour.getStartCity()),
                 CitySummary.from(tour.getEndCity()), AgencySummary.from(tour.getAgency()),
                 BranchSummary.from(tour.getAgencyBranch()), TransportationSummary.from(tour.getTransportation()),
-                UserSummary.from(tour.getCreatedBy()), tour.getCreatedAt(), meals);
+                UserSummary.from(tour.getCreatedBy()), tour.getCreatedAt(), meals,
+                tour.getAgency() == null ? null : AgencyPolicyResponse.from(tour.getAgency()));
     }
 }

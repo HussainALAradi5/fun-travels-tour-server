@@ -12,6 +12,7 @@ import com.server.server.models.geography.Country;
 import com.server.server.models.user.User;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -70,6 +71,9 @@ public class Agency extends BaseEntity {
     @OneToMany(mappedBy = "agency", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnoreProperties("agency")
     private List<AgencyBranch> branches;
+
+    @Embedded
+    private AgencyPolicy policy = new AgencyPolicy();
 
     @Column(name = "is_active")
     @JsonProperty("active")
