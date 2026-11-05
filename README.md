@@ -62,11 +62,11 @@ Flyway owns the schema: versioned scripts live in `src/main/resources/db/migrati
 `render.yaml` describes the API as a free Docker web service. The database is Neon's free PostgreSQL, because a Render workspace gets only one free database.
 
 1. On [Neon](https://neon.tech): create a project and copy its connection string (`postgresql://user:password@host/dbname?sslmode=require`).
-2. On [Render](https://render.com): New, then Blueprint, then this repository. Enter `DB_URL` (the Neon string), `SEED_PASSWORD` (the shared password of the seeded accounts), and for now `CLIENT_URL` and `CORS_ALLOWED_ORIGINS` as `https://*.vercel.app`.
+2. On [Render](https://render.com): New, then Blueprint, then this repository. Enter `DB_URL` (the Neon string) and, for now, `CLIENT_URL` and `CORS_ALLOWED_ORIGINS` as `https://*.vercel.app`.
 3. On [Vercel](https://vercel.com): import `fun-travels-tour-client` and set `NEXT_PUBLIC_API_BASE_URL` to `https://<render-service>.onrender.com/api/v1`.
 4. Back on Render, set `CLIENT_URL` and `CORS_ALLOWED_ORIGINS` to the exact Vercel address.
 
-On first start, Flyway creates the schema, the seed adds one user per role, and every country is imported from the country directory.
+On first start, Flyway creates the schema, the seed adds one user per role (Render generates `SEED_PASSWORD`; it is under the service's Environment tab), and every country is imported from the country directory.
 
 The image builds with the Maven wrapper, runs as a non-root user, and `docker-entrypoint.sh` maps Render's `PORT` to `SERVER_PORT` and a `postgresql://` connection string to a JDBC URL with user and password. Client addresses come from `X-Forwarded-For`, so the sign-in rate limit works behind the proxy.
 
