@@ -1,5 +1,7 @@
 package com.server.server.config.security;
 
+import com.server.server.middlewares.logging.RequestIdFilter;
+import com.server.server.middlewares.security.AuthRateLimitFilter;
 import com.server.server.middlewares.auth.SecurityErrorResponder;
 import com.server.server.config.properties.AppProperties;
 import com.server.server.middlewares.JwtAuthenticationFilter;
@@ -32,6 +34,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
 
     private final SecurityErrorResponder securityErrorResponder;
+    private final AuthRateLimitFilter authRateLimitFilter;
     private final AuthenticationProvider authenticationProvider;
     private final AppProperties appProperties;
 
@@ -62,6 +65,7 @@ public class SecurityConfig {
                         .contentTypeOptions(Customizer.withDefaults())
                         .frameOptions(frame -> frame.deny()))
                 .authenticationProvider(authenticationProvider)
+                .addFilterBefore(authRateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -72,7 +76,8 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOriginPatterns(appProperties.corsAllowedOrigins());
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
+        config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", RequestIdFilter.HEADER));
+        config.setExposedHeaders(Arrays.asList(RequestIdFilter.HEADER, "Retry-After"));
         config.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

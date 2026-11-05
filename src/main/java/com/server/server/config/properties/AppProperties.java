@@ -24,9 +24,15 @@ public record AppProperties(
         @DefaultValue("./media") @NotBlank String mediaDir,
         /** Generated reports are deleted after this many days. */
         @DefaultValue("30") @Positive int reportRetentionDays,
-        @DefaultValue @Valid Seed seed) {
+        @DefaultValue @Valid Seed seed,
+        @DefaultValue @Valid RateLimit rateLimit) {
 
     /** Development seed: one user per role. Never runs under the prod profile. */
     public record Seed(@DefaultValue("false") boolean enabled, String password) {
+    }
+
+    /** Sign-in, registration and password-reset attempts allowed per client address in each window. */
+    public record RateLimit(@DefaultValue("10") @Positive int authRequests,
+            @DefaultValue("60") @Positive int windowSeconds) {
     }
 }
