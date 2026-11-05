@@ -11,6 +11,7 @@ import java.util.Base64;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.env.Environment;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +37,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @Component
+@Order(2)
 @RequiredArgsConstructor
 public class DataSeeder implements CommandLineRunner {
 
