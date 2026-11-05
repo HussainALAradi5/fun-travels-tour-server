@@ -57,6 +57,18 @@ Request and response bodies are Java records; the web and mobile apps mirror the
 
 Flyway owns the schema: versioned scripts live in `src/main/resources/db/migration` and run on startup, and Hibernate only validates that the schema matches the entities (`ddl-auto=validate`). A database created before migrations existed is marked as version 1 and receives only the later scripts. A schema change is a new `V<n>__<description>.sql` file; never edit a script that has already run.
 
+## Deploy (free: Render + Vercel)
+
+`render.yaml` describes the API (Docker, free web service) and a free PostgreSQL database.
+
+1. On [Render](https://render.com): New, then Blueprint, then this repository. Enter `SEED_PASSWORD` (the shared password of the seeded accounts), and for now `CLIENT_URL` and `CORS_ALLOWED_ORIGINS` as `https://*.vercel.app`.
+2. On [Vercel](https://vercel.com): import `fun-travels-tour-client` and set `NEXT_PUBLIC_API_BASE_URL` to `https://<render-service>.onrender.com/api/v1`.
+3. Back on Render, set `CLIENT_URL` and `CORS_ALLOWED_ORIGINS` to the exact Vercel address.
+
+The image builds with the Maven wrapper, runs as a non-root user, maps Render's `PORT` and database parts onto `SERVER_PORT` and `DB_URL` (`docker-entrypoint.sh`), and reads client addresses from `X-Forwarded-For` so the sign-in rate limit works behind the proxy.
+
+Free-plan limits: the service sleeps after 15 minutes without traffic (the next request takes about a minute), the free database expires after 30 days, and uploaded files and reports are lost on each redeploy.
+
 ## Checks
 
 `./mvnw test` runs the unit tests (no database needed). GitHub Actions runs them on every push and pull request.

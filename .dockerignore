@@ -1,0 +1,10 @@
+target
+uploads
+media
+.git
+.github
+.idea
+.vscode
+*.log
+seed-credentials.local.txt
+src/main/resources/application.properties

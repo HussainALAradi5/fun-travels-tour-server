@@ -1,0 +1,42 @@
+# Render blueprint: the API and its PostgreSQL database on the free plans.
+# Render dashboard -> New -> Blueprint -> pick this repository. Values marked sync: false are asked for once.
+databases:
+  - name: fun-travels-tour-db
+    plan: free
+    databaseName: fun_travels_tour
+    user: fun_travels_tour
+
+services:
+  - type: web
+    name: fun-travels-tour-api
+    runtime: docker
+    plan: free
+    branch: main
+    healthCheckPath: /api/v1/tours/catalog
+    envVars:
+      - key: DB_HOST
+        fromDatabase: { name: fun-travels-tour-db, property: host }
+      - key: DB_PORT
+        fromDatabase: { name: fun-travels-tour-db, property: port }
+      - key: DB_NAME
+        fromDatabase: { name: fun-travels-tour-db, property: database }
+      - key: DB_USERNAME
+        fromDatabase: { name: fun-travels-tour-db, property: user }
+      - key: DB_PASSWORD
+        fromDatabase: { name: fun-travels-tour-db, property: password }
+      - key: JWT_SECRET
+        generateValue: true
+      # Behind Render's proxy: read the client address from X-Forwarded-For (rate limiting) and https from the proto.
+      - key: SERVER_FORWARD_HEADERS_STRATEGY
+        value: native
+      # The web app's address on Vercel, e.g. https://fun-travels-tour.vercel.app (used in password-reset links).
+      - key: CLIENT_URL
+        sync: false
+      # Allowed browser origins, comma separated; set to the Vercel address once it exists.
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      # Development accounts (one per role) on an empty database; choose the shared password here.
+      - key: SEED_ENABLED
+        value: "true"
+      - key: SEED_PASSWORD
+        sync: false
