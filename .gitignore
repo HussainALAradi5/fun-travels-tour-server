@@ -12,7 +12,7 @@ target/
 .settings
 .springBeans
 .sts4-cache
-uploads
+/uploads/
 ### IntelliJ IDEA ###
 .idea
 *.iws
@@ -64,4 +64,4 @@ src/main/resources/application.properties.txt
 seed-credentials.local.txt
 
 # Generated reports (private media)
-media
+/media/
