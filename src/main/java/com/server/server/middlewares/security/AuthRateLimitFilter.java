@@ -23,15 +23,15 @@ import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * Limits sign-in, registration and password-reset attempts per client address: at most
- * {@code app.rate-limit.auth-requests} POSTs to {@code /api/auth/**} in each window. Excess requests get 429.
+ * {@code app.rate-limit.auth-requests} POSTs to {@code <api-prefix>/auth/**} in each window. Excess requests get 429.
  * Counts are kept in memory, so each server instance limits on its own.
  */
 @Component
 public class AuthRateLimitFilter extends OncePerRequestFilter {
 
-    private static final String AUTH_PATH = "/api/auth/";
     private static final int CLEANUP_THRESHOLD = 10_000;
 
+    private final String authPath;
     private final AppProperties.RateLimit limits;
     private final SecurityErrorResponder errorResponder;
     private final Clock clock;
@@ -39,10 +39,12 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
 
     @Autowired
     public AuthRateLimitFilter(AppProperties appProperties, SecurityErrorResponder errorResponder) {
-        this(appProperties.rateLimit(), errorResponder, Clock.systemUTC());
+        this(appProperties.apiPrefix(), appProperties.rateLimit(), errorResponder, Clock.systemUTC());
     }
 
-    AuthRateLimitFilter(AppProperties.RateLimit limits, SecurityErrorResponder errorResponder, Clock clock) {
+    AuthRateLimitFilter(String apiPrefix, AppProperties.RateLimit limits, SecurityErrorResponder errorResponder,
+            Clock clock) {
+        this.authPath = apiPrefix + "/auth/";
         this.limits = limits;
         this.errorResponder = errorResponder;
         this.clock = clock;
@@ -50,7 +52,7 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
-        return !"POST".equals(request.getMethod()) || !request.getRequestURI().startsWith(AUTH_PATH);
+        return !"POST".equals(request.getMethod()) || !request.getRequestURI().startsWith(authPath);
     }
 
     @Override

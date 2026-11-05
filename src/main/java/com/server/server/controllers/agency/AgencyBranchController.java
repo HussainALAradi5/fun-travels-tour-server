@@ -25,7 +25,7 @@ import com.server.server.utilities.ApiResponse;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/branches")
+@RequestMapping("/branches")
 @RequiredArgsConstructor
 public class AgencyBranchController {
 

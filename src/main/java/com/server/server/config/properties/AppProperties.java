@@ -15,6 +15,8 @@ import jakarta.validation.constraints.Positive;
 @Validated
 @ConfigurationProperties(prefix = "app")
 public record AppProperties(
+        /** Prefix of every REST endpoint, mirrored in the web and mobile endpoint maps. */
+        @DefaultValue("/api/v1") @NotBlank String apiPrefix,
         @DefaultValue("http://localhost:3000") @NotBlank String clientUrl,
         @DefaultValue({ "http://localhost:[*]", "http://127.0.0.1:[*]", "http://10.0.2.2:[*]" })
         @NotEmpty List<String> corsAllowedOrigins,

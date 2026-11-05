@@ -33,7 +33,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/transportations")
+@RequestMapping("/transportations")
 @RequiredArgsConstructor
 public class TransportationController {
     private final TransportationService service;

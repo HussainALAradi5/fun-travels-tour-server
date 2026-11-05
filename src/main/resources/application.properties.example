@@ -34,6 +34,8 @@ spring.mail.properties.mail.smtp.auth=${MAIL_SMTP_AUTH:true}
 spring.mail.properties.mail.smtp.starttls.enable=${MAIL_STARTTLS:true}
 
 # Application
+# Prefix of every REST endpoint; the web and mobile apps use the same value.
+app.api-prefix=${API_PREFIX:/api/v1}
 app.client-url=${CLIENT_URL:http://localhost:3000}
 app.cors-allowed-origins=${CORS_ALLOWED_ORIGINS:http://localhost:[*],http://127.0.0.1:[*],http://10.0.2.2:[*]}
 app.upload-dir=${FILE_UPLOAD_DIR:./uploads}

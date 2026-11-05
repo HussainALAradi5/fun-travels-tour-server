@@ -22,7 +22,7 @@ import com.server.server.utilities.ApiResponse;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/countries")
+@RequestMapping("/countries")
 @RequiredArgsConstructor
 public class CountryController {
 

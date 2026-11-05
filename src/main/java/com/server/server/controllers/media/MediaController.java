@@ -22,7 +22,7 @@ import com.server.server.utilities.ApiResponse;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/media")
+@RequestMapping("/media")
 @RequiredArgsConstructor
 public class MediaController {
 

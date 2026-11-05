@@ -21,7 +21,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/tracking")
+@RequestMapping("/tracking")
 @RequiredArgsConstructor
 public class GenericTrackingController {
 

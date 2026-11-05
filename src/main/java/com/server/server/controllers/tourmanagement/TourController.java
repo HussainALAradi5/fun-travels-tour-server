@@ -31,7 +31,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/tours")
+@RequestMapping("/tours")
 @RequiredArgsConstructor
 public class TourController {
     private final TourService tourService;

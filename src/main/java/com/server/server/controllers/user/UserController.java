@@ -31,7 +31,7 @@ import com.server.server.dto.user.ProfileResponse;
 import com.server.server.services.user.ProfileService;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/users")
 @RequiredArgsConstructor
 public class UserController {
 

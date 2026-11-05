@@ -45,18 +45,18 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers(api("/auth/**")).permitAll()
                         .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                         .requestMatchers("/ws-notifications/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/tours/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/meals/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/countries/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/ports/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/cities/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/wallet/config").permitAll()
-                        .requestMatchers("/api/tickets/**").hasAnyAuthority("CUSTOMER", "ADMIN", "MANAGER", "EMPLOYEE", "OWNER")
-                        .requestMatchers("/api/reservations/**").hasAnyAuthority("CUSTOMER", "ADMIN", "MANAGER", "EMPLOYEE", "OWNER")
-                        .requestMatchers("/api/notifications/**").hasAnyAuthority("CUSTOMER", "ADMIN", "MANAGER", "EMPLOYEE", "OWNER")
+                        .requestMatchers(HttpMethod.GET, api("/tours/**")).permitAll()
+                        .requestMatchers(HttpMethod.GET, api("/meals/**")).permitAll()
+                        .requestMatchers(HttpMethod.GET, api("/countries/**")).permitAll()
+                        .requestMatchers(HttpMethod.GET, api("/ports/**")).permitAll()
+                        .requestMatchers(HttpMethod.GET, api("/cities/**")).permitAll()
+                        .requestMatchers(HttpMethod.GET, api("/wallet/config")).permitAll()
+                        .requestMatchers(api("/tickets/**")).hasAnyAuthority("CUSTOMER", "ADMIN", "MANAGER", "EMPLOYEE", "OWNER")
+                        .requestMatchers(api("/reservations/**")).hasAnyAuthority("CUSTOMER", "ADMIN", "MANAGER", "EMPLOYEE", "OWNER")
+                        .requestMatchers(api("/notifications/**")).hasAnyAuthority("CUSTOMER", "ADMIN", "MANAGER", "EMPLOYEE", "OWNER")
                         .anyRequest().authenticated())
                 .exceptionHandling(errors -> errors
                         .authenticationEntryPoint(securityErrorResponder)
@@ -69,6 +69,11 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    /** A path under the configured API prefix, such as {@code /api/v1/auth/**}. */
+    private String api(String path) {
+        return appProperties.apiPrefix() + path;
     }
 
     @Bean

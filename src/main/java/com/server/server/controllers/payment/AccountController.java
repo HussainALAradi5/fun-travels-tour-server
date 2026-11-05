@@ -17,7 +17,7 @@ import com.server.server.utilities.ApiResponse;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/accounts/user/{userId}")
+@RequestMapping("/accounts/user/{userId}")
 @RequiredArgsConstructor
 public class AccountController {
 

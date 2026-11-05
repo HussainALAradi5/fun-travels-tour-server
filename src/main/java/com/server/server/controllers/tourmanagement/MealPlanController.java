@@ -23,7 +23,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/meals")
+@RequestMapping("/meals")
 @RequiredArgsConstructor
 public class MealPlanController {
     private final MealPlanService service;

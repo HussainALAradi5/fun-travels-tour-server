@@ -24,7 +24,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/seats")
+@RequestMapping("/seats")
 @RequiredArgsConstructor
 public class SeatController {
     private final SeatService seatService;

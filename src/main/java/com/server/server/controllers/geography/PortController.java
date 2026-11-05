@@ -24,7 +24,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/ports")
+@RequestMapping("/ports")
 @RequiredArgsConstructor
 public class PortController {
     private final PortService portService;
