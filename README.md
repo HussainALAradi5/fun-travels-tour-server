@@ -57,17 +57,20 @@ Request and response bodies are Java records; the web and mobile apps mirror the
 
 Flyway owns the schema: versioned scripts live in `src/main/resources/db/migration` and run on startup, and Hibernate only validates that the schema matches the entities (`ddl-auto=validate`). A database created before migrations existed is marked as version 1 and receives only the later scripts. A schema change is a new `V<n>__<description>.sql` file; never edit a script that has already run.
 
-## Deploy (free: Render + Vercel)
+## Deploy (free: Render + Neon + Vercel)
 
-`render.yaml` describes the API (Docker, free web service) and a free PostgreSQL database.
+`render.yaml` describes the API as a free Docker web service. The database is Neon's free PostgreSQL, because a Render workspace gets only one free database.
 
-1. On [Render](https://render.com): New, then Blueprint, then this repository. Enter `SEED_PASSWORD` (the shared password of the seeded accounts), and for now `CLIENT_URL` and `CORS_ALLOWED_ORIGINS` as `https://*.vercel.app`.
-2. On [Vercel](https://vercel.com): import `fun-travels-tour-client` and set `NEXT_PUBLIC_API_BASE_URL` to `https://<render-service>.onrender.com/api/v1`.
-3. Back on Render, set `CLIENT_URL` and `CORS_ALLOWED_ORIGINS` to the exact Vercel address.
+1. On [Neon](https://neon.tech): create a project and copy its connection string (`postgresql://user:password@host/dbname?sslmode=require`).
+2. On [Render](https://render.com): New, then Blueprint, then this repository. Enter `DB_URL` (the Neon string), `SEED_PASSWORD` (the shared password of the seeded accounts), and for now `CLIENT_URL` and `CORS_ALLOWED_ORIGINS` as `https://*.vercel.app`.
+3. On [Vercel](https://vercel.com): import `fun-travels-tour-client` and set `NEXT_PUBLIC_API_BASE_URL` to `https://<render-service>.onrender.com/api/v1`.
+4. Back on Render, set `CLIENT_URL` and `CORS_ALLOWED_ORIGINS` to the exact Vercel address.
 
-The image builds with the Maven wrapper, runs as a non-root user, maps Render's `PORT` and database parts onto `SERVER_PORT` and `DB_URL` (`docker-entrypoint.sh`), and reads client addresses from `X-Forwarded-For` so the sign-in rate limit works behind the proxy.
+On first start, Flyway creates the schema, the seed adds one user per role, and every country is imported from the country directory.
 
-Free-plan limits: the service sleeps after 15 minutes without traffic (the next request takes about a minute), the free database expires after 30 days, and uploaded files and reports are lost on each redeploy.
+The image builds with the Maven wrapper, runs as a non-root user, and `docker-entrypoint.sh` maps Render's `PORT` to `SERVER_PORT` and a `postgresql://` connection string to a JDBC URL with user and password. Client addresses come from `X-Forwarded-For`, so the sign-in rate limit works behind the proxy.
+
+Free-plan limits: the Render service sleeps after 15 minutes without traffic (the next request takes about a minute), Neon's free database holds 0.5 GB, and uploaded files and reports are lost on each Render redeploy.
 
 ## Checks
 
