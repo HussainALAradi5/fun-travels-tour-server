@@ -14,6 +14,8 @@ public record TourUpdateRequest(
         String tourNumber,
         String description,
         @PositiveOrZero(message = "Base price cannot be negative") Double basePrice,
+        /** Sale amount taken off the base price; 0 removes the sale. */
+        @PositiveOrZero(message = "Discount cannot be negative") Double discountPrice,
         LocalDate startDate,
         LocalDate endDate,
         @Positive(message = "Number of days must be positive") Integer numberOfDays,

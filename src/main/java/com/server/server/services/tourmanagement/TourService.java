@@ -54,7 +54,7 @@ public class TourService {
     }
 
     @Transactional
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'OWNER')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'OWNER')")
     public Tour create(TourCreateRequest request) {
         User currentUser = accessPolicy.currentUserOrNull();
         Tour tour = new Tour();
@@ -62,8 +62,8 @@ public class TourService {
         tour.setTitle(request.title().trim());
         tour.setDescription(request.description());
         tour.setBasePrice(request.basePrice());
-        tour.setDiscountPrice(0.0);
-        tour.setTotalPrice(request.basePrice());
+        tour.setDiscountPrice(request.discountPrice() == null ? 0.0 : request.discountPrice());
+        tour.setTotalPrice(request.basePrice() - tour.getDiscountPrice());
         tour.setNumberOfDays(request.numberOfDays());
         tour.setStartDate(request.startDate());
         tour.setEndDate(request.endDate());
@@ -105,7 +105,7 @@ public class TourService {
         validateTourDates(tour.getStartDate(), tour.getEndDate());
         validateCapacity(tour);
         validateTransportationAvailability(tour, null);
-        tour.setTotalPrice(tour.getBasePrice());
+        tour.setTotalPrice(tour.getBasePrice() - tour.getDiscountPrice());
         tour.setStatus(GenericStatus.PENDING);
 
         Tour savedTour = tourRepository.save(tour);
@@ -122,7 +122,7 @@ public class TourService {
     }
 
     @Transactional
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'EMPLOYEE', 'OWNER')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'OWNER')")
     public Tour updateTour(@NonNull Integer id, TourUpdateRequest request) {
         Tour existing = getById(id);
         User currentUser = accessPolicy.requireCurrentUser();
@@ -154,6 +154,9 @@ public class TourService {
         }
         if (request.basePrice() != null) {
             existing.setBasePrice(request.basePrice());
+        }
+        if (request.discountPrice() != null) {
+            existing.setDiscountPrice(request.discountPrice());
         }
 
         Country startCountry = findCountry(request.startCountry());
@@ -194,6 +197,9 @@ public class TourService {
         }
 
         double discount = existing.getDiscountPrice() != null ? existing.getDiscountPrice() : 0.0;
+        if (discount > existing.getBasePrice()) {
+            throw new WorkflowException("DISCOUNT_ABOVE_PRICE", "Discount cannot exceed the base price.");
+        }
         existing.setTotalPrice(existing.getBasePrice() - discount);
 
         Tour updatedTour = tourRepository.save(existing);
@@ -290,7 +296,7 @@ public class TourService {
         }
         if (tour.getBasePrice() != null && tour.getDiscountPrice() != null
                 && tour.getDiscountPrice() > tour.getBasePrice()) {
-            throw new WorkflowException("Discount cannot exceed the base price.");
+            throw new WorkflowException("DISCOUNT_ABOVE_PRICE", "Discount cannot exceed the base price.");
         }
     }
 

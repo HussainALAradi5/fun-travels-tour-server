@@ -5,11 +5,14 @@ import java.util.List;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 public record TourCreateRequest(
         @NotBlank(message = "Tour code is required") String tourNumber,
         @NotBlank(message = "Title is required") String title,
         String description,
-        @NotNull(message = "Base price is required") Double basePrice,
+        @NotNull(message = "Base price is required") @PositiveOrZero(message = "Base price cannot be negative") Double basePrice,
+        /** Optional sale amount taken off the base price for every traveler. */
+        @PositiveOrZero(message = "Discount cannot be negative") Double discountPrice,
         @NotNull(message = "Number of days is required") Integer numberOfDays,
         @NotNull(message = "Start date is required") LocalDate startDate,
         LocalDate endDate,
