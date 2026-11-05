@@ -45,7 +45,7 @@ public class GenericEventLog extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "actor_id", nullable = false)
     @JsonIgnoreProperties({"password", "agency", "agencyBranch", "hibernateLazyInitializer"})
     private User actor;

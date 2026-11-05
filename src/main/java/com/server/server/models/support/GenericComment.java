@@ -42,7 +42,7 @@ public class GenericComment extends BaseEntity {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_id", nullable = false)
     @JsonIgnoreProperties({ "password", "agency", "agencyBranch", "hibernateLazyInitializer" })
     private User author;

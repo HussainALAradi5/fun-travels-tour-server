@@ -48,17 +48,17 @@ public class UserRequest extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private UserRequestStatus status = UserRequestStatus.PENDING;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     @JsonIgnoreProperties({ "password", "resetToken", "resetTokenExpiry", "base64Image", "agency", "agencyBranch" })
     private User user;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_to_id")
     @JsonIgnoreProperties({ "password", "resetToken", "resetTokenExpiry", "base64Image" })
     private User assignedTo;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "solved_by_id")
     @JsonIgnoreProperties({ "password", "resetToken", "resetTokenExpiry", "base64Image" })
     private User solvedBy;

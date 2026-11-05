@@ -93,7 +93,7 @@ public class DataSeeder implements CommandLineRunner {
             user.setAgency(seed.primaryAgency() ? agency : null);
             user.setAgencyBranch(seed.branch() ? branch : null);
             User saved = userService.registerUser(user, password);
-            Account wallet = saved.getAccount();
+            Account wallet = accountRepository.findByUserId(saved.getId()).orElseThrow();
             wallet.setBalance(BigDecimal.valueOf(seed.balance()));
             accountRepository.save(wallet);
             if (seed.role() == UserTypeEnum.OWNER) {

@@ -130,6 +130,7 @@ public class NotificationService {
     }
 
     @Scheduled(cron = "0 0 9 * * ?")
+    @Transactional(readOnly = true)
     public void scheduleSevenDayReminders() {
         LocalDate targetDate = LocalDate.now().plusDays(BookingRules.REMINDER_DAYS_BEFORE_TOUR);
         List<Tour> toursStartingSoon = tourRepository.findByStartDateAndStatus(targetDate, GenericStatus.ACTIVE);

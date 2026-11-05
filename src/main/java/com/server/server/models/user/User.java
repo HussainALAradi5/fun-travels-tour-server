@@ -4,14 +4,12 @@ import com.server.server.utilities.MobileNumbers;
 import com.server.server.constants.ValidationPatterns;
 import com.server.server.models.base.BaseEntity;
 
-import com.server.server.models.payment.Account;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.server.server.enums.user.UserTypeEnum;
 import com.server.server.models.agency.Agency;
 import com.server.server.models.agency.AgencyBranch;
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -19,7 +17,6 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import jakarta.validation.constraints.Email;
@@ -74,12 +71,12 @@ public class User extends BaseEntity {
         this.mobileNumber = MobileNumbers.clean(mobileNumber);
     }
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "agency_id")
     @JsonIgnoreProperties({ "employees", "branches", "agencyOwner" })
     private Agency agency;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "agency_branch_id")
     @JsonIgnoreProperties({ "employees", "branchManager", "agency" })
     private AgencyBranch agencyBranch;
@@ -105,8 +102,5 @@ public class User extends BaseEntity {
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private java.time.LocalDateTime resetTokenExpiry;
 
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnoreProperties("user")
-    private Account account;
 
 }

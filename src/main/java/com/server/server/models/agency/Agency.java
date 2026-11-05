@@ -47,7 +47,7 @@ public class Agency extends BaseEntity {
     private String address;
     private String contactNumber;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id")
     @JsonIgnoreProperties({ "agency", "agencyBranch" })
     private User agencyOwner;
@@ -57,17 +57,17 @@ public class Agency extends BaseEntity {
 
     private String ownerMobileNumber;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "country_id")
     @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
     private Country country;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "city_id")
     @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
     private City city;
 
-    @OneToMany(mappedBy = "agency", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "agency", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnoreProperties("agency")
     private List<AgencyBranch> branches;
 

@@ -69,12 +69,12 @@ public class Transportation extends BaseEntity {
     @Column(name = "unit_status")
     private TransportationStatus unitStatus = TransportationStatus.AVAILABLE;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "agency_id")
     @JsonBackReference(value = "agency-transportations")
     private Agency agency;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "agency_branch_id")
     @JsonIgnore
     private AgencyBranch agencyBranch;
