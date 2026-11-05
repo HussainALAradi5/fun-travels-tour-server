@@ -35,7 +35,7 @@ The API starts at `http://localhost:8080`. With `SEED_ENABLED=true` on an empty 
 
 ```text
 src/main/java/com/server/server/
-  config/        database (schema maintenance), notification, payment, properties, scheduling, security, web
+  config/        database (auditing), notification, payment, properties, scheduling, security, web
   constants/     booking and report rules, code prefixes, role groups, validation patterns
   controllers/   one folder per domain: agency, auth, geography, media, notification, payment, report, support, tourmanagement, user
   dto/           request and response records per domain, built with from(entity)
@@ -47,6 +47,10 @@ src/main/java/com/server/server/
 ```
 
 Request and response bodies are Java records; the web and mobile apps mirror them as generated TypeScript (`tools/generate-ts-dtos.py` in the documentation repository).
+
+## Database migrations
+
+Flyway owns the schema: versioned scripts live in `src/main/resources/db/migration` and run on startup, and Hibernate only validates that the schema matches the entities (`ddl-auto=validate`). A database created before migrations existed is marked as version 1 and receives only the later scripts. A schema change is a new `V<n>__<description>.sql` file; never edit a script that has already run.
 
 ## Checks
 
