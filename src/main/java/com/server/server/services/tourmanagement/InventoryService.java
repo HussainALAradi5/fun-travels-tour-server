@@ -1,5 +1,6 @@
 package com.server.server.services.tourmanagement;
 
+import com.server.server.enums.tourmanagement.ChairType;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -140,9 +141,12 @@ public class InventoryService {
             }
             ticket.setAssignedSeat(seat);
         }
+        // Travelers who did not choose a seat get standard seats only: a kids chair would discount the ticket,
+        // a premium recliner would charge extra, and accessible seats are kept for those who ask for them.
         List<Seat> free = seatRepository.findByTransportation_IdAndStatusNotOrderByIdAsc(transportationId, SeatStatus.MAINTENANCE)
                 .stream()
                 .filter(seat -> !taken.contains(seat.getId()) && !chosen.contains(seat.getId()))
+                .filter(seat -> seat.getChairType() == null || seat.getChairType() == ChairType.STANDARD)
                 .toList();
         int next = 0;
         for (Ticket ticket : safe) {
@@ -150,8 +154,8 @@ public class InventoryService {
                 continue;
             }
             if (next >= free.size()) {
-                throw new WorkflowException("INSUFFICIENT_TRANSPORTATION_SEATS",
-                        "There are not enough transportation seats available for this booking.");
+                throw new WorkflowException("SEAT_CHOICE_REQUIRED",
+                        "No standard seats are left on this tour. Please choose a seat for each traveler.");
             }
             ticket.setAssignedSeat(free.get(next++));
         }

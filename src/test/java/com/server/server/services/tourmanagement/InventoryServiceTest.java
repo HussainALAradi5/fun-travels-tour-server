@@ -116,7 +116,7 @@ class InventoryServiceTest {
     void notEnoughFreeSeatsFailsTheWholeHold() {
         when(ticketRepository.findTakenSeatIds(5)).thenReturn(List.of(1, 3));
         assertThatThrownBy(() -> inventory.reserve(5, 1, List.of(new Ticket())))
-                .isInstanceOf(WorkflowException.class).hasMessageContaining("not enough transportation seats");
+                .isInstanceOf(WorkflowException.class).hasMessageContaining("No standard seats are left");
         assertThat(tour.getAvailableSlots()).isEqualTo(3);
     }
 
