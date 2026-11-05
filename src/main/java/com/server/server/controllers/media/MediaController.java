@@ -17,7 +17,7 @@ import com.server.server.services.media.MediaFile;
 import com.server.server.dto.media.MediaResponse;
 import com.server.server.enums.media.MediaCategory;
 import com.server.server.services.media.MediaService;
-import com.server.server.utilities.ApiResponse;
+import com.server.server.utilities.responses.ApiResponse;
 
 import lombok.RequiredArgsConstructor;
 

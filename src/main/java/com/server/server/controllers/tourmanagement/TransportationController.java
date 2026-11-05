@@ -28,7 +28,7 @@ import com.server.server.dto.tourmanagement.TransportationCreateRequest;
 import com.server.server.enums.tourmanagement.TransportationStatus;
 import com.server.server.services.tourmanagement.TransportationImportService;
 import com.server.server.services.tourmanagement.TransportationService;
-import com.server.server.utilities.ApiResponse;
+import com.server.server.utilities.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 

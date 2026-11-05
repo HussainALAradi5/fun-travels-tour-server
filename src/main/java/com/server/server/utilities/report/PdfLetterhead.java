@@ -13,7 +13,7 @@ import com.lowagie.text.pdf.PdfContentByte;
 import com.lowagie.text.pdf.PdfPageEventHelper;
 import com.lowagie.text.pdf.PdfTemplate;
 import com.lowagie.text.pdf.PdfWriter;
-import com.server.server.constants.ReportRules;
+import com.server.server.constants.report.ReportRules;
 
 /** Draws the navy letterhead and the "Page x of y" footer on every page of a PDF report. */
 public class PdfLetterhead extends PdfPageEventHelper {

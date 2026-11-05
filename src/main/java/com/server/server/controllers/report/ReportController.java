@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.server.server.dto.media.MediaResponse;
 import com.server.server.dto.report.ReportRequest;
 import com.server.server.services.report.ReportService;
-import com.server.server.utilities.ApiResponse;
+import com.server.server.utilities.responses.ApiResponse;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

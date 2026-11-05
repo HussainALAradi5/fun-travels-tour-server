@@ -11,7 +11,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.server.server.models.user.User;
-import com.server.server.utilities.CodeGenerator;
+import com.server.server.utilities.codes.CodeGenerator;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;

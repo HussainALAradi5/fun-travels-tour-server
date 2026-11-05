@@ -18,7 +18,7 @@ import com.server.server.dto.support.UserRequestFilterRequest;
 import com.server.server.dto.support.UserRequestCreateRequest;
 import com.server.server.dto.support.UserRequestResponse;
 import com.server.server.services.support.UserRequestService;
-import com.server.server.utilities.ApiResponse;
+import com.server.server.utilities.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 

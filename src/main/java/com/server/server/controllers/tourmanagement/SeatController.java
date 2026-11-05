@@ -19,7 +19,7 @@ import com.server.server.dto.common.PageResponse;
 import com.server.server.dto.tourmanagement.SeatFilterRequest;
 import com.server.server.enums.tourmanagement.SeatStatus;
 import com.server.server.services.tourmanagement.SeatService;
-import com.server.server.utilities.ApiResponse;
+import com.server.server.utilities.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 

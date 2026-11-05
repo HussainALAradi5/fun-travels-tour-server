@@ -9,7 +9,7 @@ import org.springframework.data.jpa.repository.QueryHints; // IMPORTANT IMPORT
 
 import com.server.server.enums.user.UserTypeEnum;
 import com.server.server.models.user.User;
-import com.server.server.utilities.MobileNumbers;
+import com.server.server.utilities.phone.MobileNumbers;
 import jakarta.persistence.QueryHint; // IMPORTANT IMPORT
 
 public interface UserRepository extends JpaRepository<User, Integer> {

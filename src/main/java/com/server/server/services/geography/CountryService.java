@@ -1,6 +1,6 @@
 package com.server.server.services.geography;
 
-import com.server.server.exceptions.ExternalServiceException;
+import com.server.server.exceptions.common.ExternalServiceException;
 import com.server.server.dto.geography.CountryCreateRequest;
 
 import java.util.HashMap;
@@ -22,8 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
-import com.server.server.exceptions.DuplicateResourceException;
-import com.server.server.exceptions.ResourceNotFoundException;
+import com.server.server.exceptions.common.DuplicateResourceException;
+import com.server.server.exceptions.common.ResourceNotFoundException;
 import com.server.server.models.geography.Country;
 import com.server.server.repositories.geography.CountryRepository;
 import lombok.RequiredArgsConstructor;

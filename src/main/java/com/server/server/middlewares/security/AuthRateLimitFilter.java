@@ -14,7 +14,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.server.server.config.properties.AppProperties;
 import com.server.server.constants.errors.ErrorCodes;
-import com.server.server.middlewares.auth.SecurityErrorResponder;
+import com.server.server.middlewares.errors.SecurityErrorResponder;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

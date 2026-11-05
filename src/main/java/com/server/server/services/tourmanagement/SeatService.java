@@ -16,14 +16,14 @@ import com.server.server.dto.tourmanagement.SeatResponse;
 import com.server.server.enums.common.GenericStatus;
 import com.server.server.enums.tourmanagement.ChairType;
 import com.server.server.enums.tourmanagement.SeatStatus;
-import com.server.server.exceptions.ResourceNotFoundException;
-import com.server.server.exceptions.WorkflowException;
+import com.server.server.exceptions.common.ResourceNotFoundException;
+import com.server.server.exceptions.common.WorkflowException;
 import com.server.server.models.tourmanagement.Seat;
 import com.server.server.models.tourmanagement.Tour;
 import com.server.server.repositories.tourmanagement.SeatRepository;
 import com.server.server.repositories.tourmanagement.TourRepository;
 import com.server.server.services.auth.AccessPolicyService;
-import com.server.server.utilities.PaginationUtils;
+import com.server.server.utilities.pagination.PaginationUtils;
 
 import lombok.RequiredArgsConstructor;
 

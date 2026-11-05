@@ -19,7 +19,7 @@ import com.server.server.dto.tourmanagement.TicketFilterRequest;
 import com.server.server.enums.common.GenericStatus;
 import com.server.server.dto.tourmanagement.TicketCreateRequest;
 import com.server.server.services.tourmanagement.TicketService;
-import com.server.server.utilities.ApiResponse;
+import com.server.server.utilities.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 

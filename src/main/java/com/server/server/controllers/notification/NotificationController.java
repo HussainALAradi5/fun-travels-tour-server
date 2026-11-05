@@ -21,7 +21,7 @@ import com.server.server.enums.notification.NotificationType;
 import com.server.server.enums.notification.ReferenceType;
 import com.server.server.models.notification.Notification;
 import com.server.server.services.notification.NotificationService;
-import com.server.server.utilities.ApiResponse;
+import com.server.server.utilities.responses.ApiResponse;
 import lombok.RequiredArgsConstructor;
 
 @RestController

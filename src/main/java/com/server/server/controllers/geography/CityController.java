@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.server.server.dto.geography.CityResponse;
 import com.server.server.models.geography.City;
 import com.server.server.services.geography.CityService;
-import com.server.server.utilities.ApiResponse;
+import com.server.server.utilities.responses.ApiResponse;
 import lombok.RequiredArgsConstructor;
 
 @RestController

@@ -13,8 +13,8 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.server.server.exceptions.DuplicateResourceException;
-import com.server.server.exceptions.ResourceNotFoundException;
+import com.server.server.exceptions.common.DuplicateResourceException;
+import com.server.server.exceptions.common.ResourceNotFoundException;
 import com.server.server.models.geography.City;
 import com.server.server.repositories.geography.CityRepository;
 import lombok.RequiredArgsConstructor;

@@ -16,13 +16,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.HtmlUtils;
 
 import com.server.server.config.properties.AppProperties;
-import com.server.server.constants.BookingRules;
+import com.server.server.constants.tourmanagement.BookingRules;
 import com.server.server.dto.auth.AuthResponse;
 import com.server.server.dto.auth.LoginRequest;
 import com.server.server.dto.auth.PasswordResetConfirmRequest;
 import com.server.server.dto.auth.RegisterRequest;
 import com.server.server.enums.user.UserTypeEnum;
-import com.server.server.exceptions.WorkflowException;
+import com.server.server.exceptions.common.WorkflowException;
 import com.server.server.models.user.User;
 import com.server.server.repositories.user.UserRepository;
 import com.server.server.services.user.UserService;

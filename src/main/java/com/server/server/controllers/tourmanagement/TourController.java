@@ -26,7 +26,7 @@ import com.server.server.enums.common.GenericStatus;
 import com.server.server.services.tourmanagement.TourService;
 import com.server.server.services.tourmanagement.TourStatusService;
 import com.server.server.services.tourmanagement.TourCatalogService;
-import com.server.server.utilities.ApiResponse;
+import com.server.server.utilities.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 

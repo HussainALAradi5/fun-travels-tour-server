@@ -1,6 +1,6 @@
 package com.server.server.services.support;
 
-import com.server.server.exceptions.ResourceNotFoundException;
+import com.server.server.exceptions.common.ResourceNotFoundException;
 import com.server.server.services.notification.NotificationService;
 import com.server.server.services.auth.AccessPolicyService;
 import com.server.server.services.user.UserService;
@@ -20,7 +20,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import com.server.server.dto.common.PageResponse;
 import com.server.server.dto.support.UserRequestFilterRequest;
 import com.server.server.dto.support.UserRequestCreateRequest;
-import com.server.server.exceptions.AccessDeniedException;
+import com.server.server.exceptions.common.AccessDeniedException;
 import com.server.server.enums.notification.NotificationType;
 import com.server.server.enums.notification.ReferenceType;
 import com.server.server.enums.support.UserRequestAction;
@@ -29,7 +29,7 @@ import com.server.server.models.user.User;
 import com.server.server.models.support.UserRequest;
 import com.server.server.repositories.user.UserRepository;
 import com.server.server.repositories.support.UserRequestRepository;
-import com.server.server.utilities.PaginationUtils;
+import com.server.server.utilities.pagination.PaginationUtils;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 

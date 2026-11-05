@@ -7,7 +7,7 @@ import java.util.function.IntFunction;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.server.server.constants.ReportRules;
+import com.server.server.constants.report.ReportRules;
 import com.server.server.dto.common.PageResponse;
 import com.server.server.dto.payment.TransactionFilterRequest;
 import com.server.server.dto.report.ReportRequest;
@@ -15,7 +15,7 @@ import com.server.server.dto.tourmanagement.TicketFilterRequest;
 import com.server.server.dto.tourmanagement.TourFilterRequest;
 import com.server.server.dto.tourmanagement.TransportationFilterRequest;
 import com.server.server.dto.common.GenericFilterRequest;
-import com.server.server.exceptions.WorkflowException;
+import com.server.server.exceptions.common.WorkflowException;
 import com.server.server.models.user.User;
 import com.server.server.services.agency.AgencyBranchService;
 import com.server.server.services.agency.AgencyService;

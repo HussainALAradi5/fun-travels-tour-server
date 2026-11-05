@@ -19,7 +19,7 @@ import com.server.server.dto.tourmanagement.ReservationFilterRequest;
 import com.server.server.enums.common.GenericStatus;
 import com.server.server.dto.tourmanagement.ReservationCreateRequest;
 import com.server.server.services.tourmanagement.TourReservationService;
-import com.server.server.utilities.ApiResponse;
+import com.server.server.utilities.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 

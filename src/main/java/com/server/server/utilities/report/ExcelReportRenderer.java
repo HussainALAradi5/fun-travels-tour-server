@@ -20,7 +20,7 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import com.server.server.constants.ReportRules;
+import com.server.server.constants.report.ReportRules;
 
 /**
  * Excel report: brand, title, and meta rows; frozen, filterable header; numbers and dates as typed cells;

@@ -13,7 +13,7 @@ import com.lowagie.text.Phrase;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
-import com.server.server.constants.ReportRules;
+import com.server.server.constants.report.ReportRules;
 
 /**
  * A4 landscape PDF: letterhead on every page, meta line, table header repeated per page, rows kept whole,

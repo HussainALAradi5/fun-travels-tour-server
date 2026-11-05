@@ -1,6 +1,6 @@
 package com.server.server.services.payment;
 
-import com.server.server.exceptions.WorkflowException;
+import com.server.server.exceptions.common.WorkflowException;
 
 import com.server.server.services.auth.AccessPolicyService;
 
@@ -19,16 +19,16 @@ import com.server.server.enums.notification.ReferenceType;
 import com.server.server.enums.payment.TransactionType;
 import com.server.server.dto.payment.TransactionFilterRequest;
 import com.server.server.dto.common.PageResponse;
-import com.server.server.utilities.PaginationUtils;
-import com.server.server.utilities.FilterUtils;
+import com.server.server.utilities.pagination.PaginationUtils;
+import com.server.server.utilities.filters.FilterUtils;
 import com.server.server.models.payment.Account;
 import com.server.server.models.payment.Transaction;
 import com.server.server.models.user.User;
 import com.server.server.models.tourmanagement.TourReservation;
 import com.server.server.repositories.payment.AccountRepository;
 import com.server.server.repositories.payment.TransactionRepository;
-import com.server.server.exceptions.ResourceNotFoundException;
-import com.server.server.exceptions.AccessDeniedException;
+import com.server.server.exceptions.common.ResourceNotFoundException;
+import com.server.server.exceptions.common.AccessDeniedException;
 @Service
 public class TransactionService {
 

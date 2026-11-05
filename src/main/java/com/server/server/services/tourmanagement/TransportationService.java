@@ -1,7 +1,7 @@
 package com.server.server.services.tourmanagement;
 
 import com.server.server.dto.tourmanagement.TransportationUpdateRequest;
-import com.server.server.exceptions.DuplicateResourceException;
+import com.server.server.exceptions.common.DuplicateResourceException;
 import com.server.server.services.auth.AccessPolicyService;
 import java.util.List;
 import java.util.ArrayList;
@@ -19,10 +19,10 @@ import com.server.server.enums.tourmanagement.TransportationType;
 import com.server.server.dto.tourmanagement.TransportationFilterRequest;
 import com.server.server.dto.tourmanagement.TransportationCreateRequest;
 import com.server.server.dto.common.PageResponse;
-import com.server.server.utilities.PaginationUtils;
+import com.server.server.utilities.pagination.PaginationUtils;
 import java.util.Set;
-import com.server.server.exceptions.WorkflowException;
-import com.server.server.exceptions.ResourceNotFoundException;
+import com.server.server.exceptions.common.WorkflowException;
+import com.server.server.exceptions.common.ResourceNotFoundException;
 import com.server.server.models.agency.Agency;
 import com.server.server.models.agency.AgencyBranch;
 import com.server.server.models.tourmanagement.Seat;

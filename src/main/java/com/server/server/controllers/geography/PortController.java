@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.server.server.dto.geography.PortResponse;
 import com.server.server.enums.common.GenericStatus;
 import com.server.server.services.geography.PortService;
-import com.server.server.utilities.ApiResponse;
+import com.server.server.utilities.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 

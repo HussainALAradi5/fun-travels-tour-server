@@ -1,6 +1,6 @@
 package com.server.server.services.geography;
 
-import com.server.server.exceptions.ResourceNotFoundException;
+import com.server.server.exceptions.common.ResourceNotFoundException;
 
 import com.server.server.repositories.geography.CityRepository;
 

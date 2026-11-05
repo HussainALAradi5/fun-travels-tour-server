@@ -13,7 +13,7 @@ import com.server.server.dto.payment.TransactionResponse;
 import com.server.server.dto.payment.AccountResponse;
 import com.server.server.models.payment.Account;
 import com.server.server.services.payment.AccountService;
-import com.server.server.utilities.ApiResponse;
+import com.server.server.utilities.responses.ApiResponse;
 import lombok.RequiredArgsConstructor;
 
 @RestController

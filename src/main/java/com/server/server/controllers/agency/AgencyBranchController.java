@@ -21,7 +21,7 @@ import com.server.server.dto.common.PageResponse;
 import com.server.server.dto.user.UserResponse;
 import com.server.server.models.user.User;
 import com.server.server.services.agency.AgencyBranchService;
-import com.server.server.utilities.ApiResponse;
+import com.server.server.utilities.responses.ApiResponse;
 import lombok.RequiredArgsConstructor;
 
 @RestController

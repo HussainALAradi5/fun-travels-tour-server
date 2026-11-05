@@ -2,7 +2,7 @@ package com.server.server.config.notification;
 
 import org.springframework.context.annotation.Configuration;
 import com.server.server.config.properties.AppProperties;
-import com.server.server.middlewares.WebSocketAuthInterceptor;
+import com.server.server.middlewares.auth.WebSocketAuthInterceptor;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;

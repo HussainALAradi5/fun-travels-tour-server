@@ -12,15 +12,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.server.server.enums.user.UserTypeEnum;
-import com.server.server.exceptions.DuplicateResourceException;
-import com.server.server.exceptions.ResourceNotFoundException;
+import com.server.server.exceptions.common.DuplicateResourceException;
+import com.server.server.exceptions.common.ResourceNotFoundException;
 import com.server.server.models.user.User;
 import com.server.server.models.agency.Agency;
 import com.server.server.models.agency.AgencyBranch;
 import com.server.server.repositories.user.UserRepository;
 import com.server.server.repositories.agency.AgencyBranchRepository;
 import com.server.server.dto.common.PageResponse;
-import com.server.server.utilities.PaginationUtils;
+import com.server.server.utilities.pagination.PaginationUtils;
 import java.util.Set;
 import com.server.server.repositories.agency.AgencyRepository;
 import lombok.RequiredArgsConstructor;

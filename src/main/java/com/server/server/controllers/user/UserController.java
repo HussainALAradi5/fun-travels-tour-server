@@ -23,7 +23,7 @@ import com.server.server.dto.user.UserResponse;
 import com.server.server.dto.user.UserUpdateRequest;
 import com.server.server.enums.user.UserTypeEnum;
 import com.server.server.services.user.UserService;
-import com.server.server.utilities.ApiResponse;
+import com.server.server.utilities.responses.ApiResponse;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

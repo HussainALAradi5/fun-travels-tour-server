@@ -1,12 +1,12 @@
 package com.server.server.services.payment;
 
-import com.server.server.constants.CodePrefixes;
+import com.server.server.constants.common.CodePrefixes;
 
-import com.server.server.utilities.CodeGenerator;
+import com.server.server.utilities.codes.CodeGenerator;
 
-import com.server.server.exceptions.ResourceNotFoundException;
+import com.server.server.exceptions.common.ResourceNotFoundException;
 
-import com.server.server.exceptions.DuplicateResourceException;
+import com.server.server.exceptions.common.DuplicateResourceException;
 
 import com.server.server.services.auth.AccessPolicyService;
 

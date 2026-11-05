@@ -15,7 +15,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.server.server.config.properties.AppProperties;
-import com.server.server.middlewares.auth.SecurityErrorResponder;
+import com.server.server.middlewares.errors.SecurityErrorResponder;
 
 class AuthRateLimitFilterTest {
 

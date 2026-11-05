@@ -15,7 +15,7 @@ import com.server.server.models.tourmanagement.Ticket;
 import com.server.server.models.tourmanagement.TourReservation;
 import com.server.server.services.payment.AccountService;
 import com.server.server.services.payment.TransactionService;
-import com.server.server.utilities.PricingCalculator;
+import com.server.server.utilities.pricing.PricingCalculator;
 
 import lombok.RequiredArgsConstructor;
 

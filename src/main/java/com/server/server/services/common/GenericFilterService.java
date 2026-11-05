@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import com.server.server.dto.common.PageResponse;
 import com.server.server.dto.common.GenericFilterRequest;
-import com.server.server.utilities.PaginationUtils;
+import com.server.server.utilities.pagination.PaginationUtils;
 public abstract class GenericFilterService<T> {
 
     protected String normalizeSearch(String search) {

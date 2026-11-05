@@ -11,7 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.server.server.enums.user.UserTypeEnum;
-import com.server.server.exceptions.AccessDeniedException;
+import com.server.server.exceptions.common.AccessDeniedException;
 import com.server.server.models.agency.Agency;
 import com.server.server.models.user.User;
 import com.server.server.repositories.user.UserRepository;

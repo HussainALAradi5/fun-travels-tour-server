@@ -1,8 +1,8 @@
 package com.server.server.services.notification;
 
-import com.server.server.constants.BookingRules;
+import com.server.server.constants.tourmanagement.BookingRules;
 
-import com.server.server.exceptions.ResourceNotFoundException;
+import com.server.server.exceptions.common.ResourceNotFoundException;
 
 import com.server.server.services.auth.AccessPolicyService;
 

@@ -16,7 +16,7 @@ import com.server.server.dto.payment.TransactionResponse;
 import com.server.server.enums.payment.PaymentMethod;
 import com.server.server.models.payment.Transaction;
 import com.server.server.services.payment.WalletTopUpService;
-import com.server.server.utilities.ApiResponse;
+import com.server.server.utilities.responses.ApiResponse;
 import lombok.RequiredArgsConstructor;
 
 @RestController

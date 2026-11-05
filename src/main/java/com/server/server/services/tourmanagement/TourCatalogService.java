@@ -15,13 +15,13 @@ import java.util.Map;
 import com.server.server.models.user.User;
 import com.server.server.models.tourmanagement.Tour;
 import com.server.server.repositories.tourmanagement.TourRepository;
-import com.server.server.utilities.PaginationUtils;
-import com.server.server.utilities.FilterUtils;
+import com.server.server.utilities.pagination.PaginationUtils;
+import com.server.server.utilities.filters.FilterUtils;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import com.server.server.services.auth.AccessPolicyService;
 import com.server.server.repositories.tourmanagement.TicketRepository;
-import com.server.server.exceptions.ResourceNotFoundException;
+import com.server.server.exceptions.common.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 
 /** Read side of tours: the public catalog, lists and search, and who may see which tour. */

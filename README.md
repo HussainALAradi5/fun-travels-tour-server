@@ -38,14 +38,17 @@ The API starts at `http://localhost:8080/api/v1`. With `SEED_ENABLED=true` on an
 ```text
 src/main/java/com/server/server/
   config/        database (auditing), notification, payment, properties, scheduling, security, web
-  constants/     booking and report rules, code prefixes, role groups, validation patterns
+  constants/     common (code prefixes, validation patterns), errors (error codes), report, tourmanagement, user (role groups)
   controllers/   one folder per domain: agency, auth, geography, media, notification, payment, report, support, tourmanagement, user
   dto/           request and response records per domain, built with from(entity)
   enums/ models/ repositories/ services/   same domain folders
-  exceptions/    domain exceptions and the global handler
-  middlewares/   JWT authentication filter
-  seeds/         development data seeder
-  utilities/     API envelope, codes, pagination, pricing, phone numbers, workflow validation, report renderers
+  exceptions/    common: the named exceptions services throw
+  middlewares/   auth (JWT filter, WebSocket auth), errors (exception handler, security error responses),
+                 logging (request ids), security (auth rate limit)
+  seeds/         development: one user per role
+  utilities/     codes, filters, pagination, phone, pricing, report (PDF and Excel renderers), responses (API envelope)
+  validations/   workflow: allowed status transitions
+src/main/resources/db/migration/   Flyway scripts
 ```
 
 Request and response bodies are Java records; the web and mobile apps mirror them as generated TypeScript (`tools/generate-ts-dtos.py` in the documentation repository).

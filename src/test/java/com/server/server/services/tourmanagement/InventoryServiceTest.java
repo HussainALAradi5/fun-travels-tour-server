@@ -19,7 +19,7 @@ import org.mockito.quality.Strictness;
 
 import com.server.server.enums.common.GenericStatus;
 import com.server.server.enums.tourmanagement.SeatStatus;
-import com.server.server.exceptions.WorkflowException;
+import com.server.server.exceptions.common.WorkflowException;
 import com.server.server.models.tourmanagement.Seat;
 import com.server.server.models.tourmanagement.Ticket;
 import com.server.server.models.tourmanagement.Tour;

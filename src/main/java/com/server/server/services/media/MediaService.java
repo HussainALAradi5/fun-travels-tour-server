@@ -9,18 +9,18 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.server.server.constants.ReportRules;
+import com.server.server.constants.report.ReportRules;
 import com.server.server.dto.common.PageResponse;
 import com.server.server.enums.media.MediaCategory;
 import com.server.server.enums.report.ReportFormat;
 import com.server.server.enums.report.ReportType;
-import com.server.server.exceptions.ResourceNotFoundException;
+import com.server.server.exceptions.common.ResourceNotFoundException;
 import com.server.server.models.media.Media;
 import com.server.server.models.user.User;
 import com.server.server.repositories.media.MediaRepository;
 import com.server.server.services.auth.AccessPolicyService;
 import com.server.server.services.common.FileStorageService;
-import com.server.server.utilities.PaginationUtils;
+import com.server.server.utilities.pagination.PaginationUtils;
 
 import lombok.RequiredArgsConstructor;
 import java.time.LocalDateTime;

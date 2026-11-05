@@ -1,0 +1,55 @@
+package com.server.server.validations.workflow;
+
+import java.util.EnumSet;
+import java.util.Map;
+import java.util.Set;
+
+import com.server.server.enums.common.GenericStatus;
+import com.server.server.exceptions.common.WorkflowException;
+public final class DomainWorkflowValidator {
+    private static final Map<GenericStatus, Set<GenericStatus>> TOUR_TRANSITIONS = Map.of(
+            GenericStatus.PENDING, EnumSet.of(GenericStatus.APPROVED, GenericStatus.CANCELLED),
+            GenericStatus.APPROVED, EnumSet.of(GenericStatus.ACTIVE, GenericStatus.CANCELLED),
+            GenericStatus.ACTIVE, EnumSet.of(GenericStatus.COMPLETED, GenericStatus.CANCELLED),
+            GenericStatus.CANCELLED, EnumSet.of(GenericStatus.PENDING),
+            GenericStatus.COMPLETED, EnumSet.noneOf(GenericStatus.class));
+
+    private static final Map<GenericStatus, Set<GenericStatus>> RESERVATION_TRANSITIONS = Map.of(
+            GenericStatus.PENDING, EnumSet.of(GenericStatus.CONFIRMED, GenericStatus.CANCELLED, GenericStatus.REJECTED),
+            GenericStatus.APPROVED, EnumSet.of(GenericStatus.CONFIRMED, GenericStatus.CANCELLED),
+            GenericStatus.CONFIRMED, EnumSet.of(GenericStatus.COMPLETED, GenericStatus.CANCELLED),
+            GenericStatus.REJECTED, EnumSet.noneOf(GenericStatus.class),
+            GenericStatus.CANCELLED, EnumSet.noneOf(GenericStatus.class),
+            GenericStatus.COMPLETED, EnumSet.noneOf(GenericStatus.class));
+
+    private DomainWorkflowValidator() {}
+
+    public static void validateTour(GenericStatus current, GenericStatus target) {
+        validate("tour", TOUR_TRANSITIONS, current, target);
+    }
+
+    public static void validateReservation(GenericStatus current, GenericStatus target) {
+        validate("reservation", RESERVATION_TRANSITIONS, current, target);
+    }
+
+    public static void validateReservationAdministrativeTransition(GenericStatus current, GenericStatus target) {
+        if (target == GenericStatus.CONFIRMED) {
+            throw new WorkflowException("A reservation can only be confirmed by a successful payment.");
+        }
+        if (target == GenericStatus.APPROVED) {
+            throw new WorkflowException("Reservation approval is not a separate step. Complete payment to confirm it.");
+        }
+        if (target != GenericStatus.REJECTED && target != GenericStatus.COMPLETED) {
+            throw new WorkflowException("Staff can only reject a pending reservation or complete a confirmed reservation.");
+        }
+        validateReservation(current, target);
+    }
+
+    private static void validate(String resource, Map<GenericStatus, Set<GenericStatus>> transitions,
+            GenericStatus current, GenericStatus target) {
+        if (current == target) return;
+        if (!transitions.getOrDefault(current, Set.of()).contains(target)) {
+            throw new WorkflowException("Invalid " + resource + " transition: " + current + " -> " + target);
+        }
+    }
+}

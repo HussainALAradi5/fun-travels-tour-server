@@ -2,9 +2,9 @@ package com.server.server.config.security;
 
 import com.server.server.middlewares.logging.RequestIdFilter;
 import com.server.server.middlewares.security.AuthRateLimitFilter;
-import com.server.server.middlewares.auth.SecurityErrorResponder;
+import com.server.server.middlewares.errors.SecurityErrorResponder;
 import com.server.server.config.properties.AppProperties;
-import com.server.server.middlewares.JwtAuthenticationFilter;
+import com.server.server.middlewares.auth.JwtAuthenticationFilter;
 
 import java.util.Arrays;
 

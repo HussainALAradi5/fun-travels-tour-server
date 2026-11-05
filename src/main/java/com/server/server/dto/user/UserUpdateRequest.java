@@ -1,7 +1,7 @@
 package com.server.server.dto.user;
 
-import com.server.server.constants.ValidationPatterns;
-import com.server.server.utilities.MobileNumbers;
+import com.server.server.constants.common.ValidationPatterns;
+import com.server.server.utilities.phone.MobileNumbers;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;

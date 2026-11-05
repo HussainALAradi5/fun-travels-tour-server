@@ -1,12 +1,12 @@
 package com.server.server.services.payment;
 
-import com.server.server.constants.BookingRules;
+import com.server.server.constants.tourmanagement.BookingRules;
 
-import com.server.server.constants.CodePrefixes;
+import com.server.server.constants.common.CodePrefixes;
 
-import com.server.server.utilities.CodeGenerator;
+import com.server.server.utilities.codes.CodeGenerator;
 
-import com.server.server.exceptions.WorkflowException;
+import com.server.server.exceptions.common.WorkflowException;
 
 import com.server.server.services.auth.AccessPolicyService;
 

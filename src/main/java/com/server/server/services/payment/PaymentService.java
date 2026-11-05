@@ -1,14 +1,14 @@
 package com.server.server.services.payment;
 
-import com.server.server.constants.BookingRules;
+import com.server.server.constants.tourmanagement.BookingRules;
 
-import com.server.server.constants.CodePrefixes;
+import com.server.server.constants.common.CodePrefixes;
 
-import com.server.server.utilities.CodeGenerator;
+import com.server.server.utilities.codes.CodeGenerator;
 
 import com.server.server.models.user.User;
 
-import com.server.server.exceptions.AccessDeniedException;
+import com.server.server.exceptions.common.AccessDeniedException;
 
 import com.server.server.services.auth.AccessPolicyService;
 
@@ -16,7 +16,7 @@ import com.server.server.enums.payment.PaymentMethod;
 import com.server.server.enums.payment.PaymentStatus;
 import com.server.server.dto.payment.PaymentFilterRequest;
 import com.server.server.dto.common.PageResponse;
-import com.server.server.exceptions.ResourceNotFoundException;
+import com.server.server.exceptions.common.ResourceNotFoundException;
 import com.server.server.models.payment.Payment;
 import com.server.server.models.tourmanagement.TourReservation;
 import com.server.server.repositories.payment.PaymentRepository;
@@ -31,8 +31,8 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Set;
 import com.server.server.services.common.GenericFilterService;
-import com.server.server.utilities.FilterUtils;
-import com.server.server.exceptions.WorkflowException;
+import com.server.server.utilities.filters.FilterUtils;
+import com.server.server.exceptions.common.WorkflowException;
 @Service
 @RequiredArgsConstructor
 public class PaymentService extends GenericFilterService<Payment> {

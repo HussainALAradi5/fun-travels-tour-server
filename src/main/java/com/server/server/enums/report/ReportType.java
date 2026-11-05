@@ -2,7 +2,7 @@ package com.server.server.enums.report;
 
 import java.util.Set;
 
-import com.server.server.constants.RoleGroups;
+import com.server.server.constants.user.RoleGroups;
 import com.server.server.enums.user.UserTypeEnum;
 
 /**

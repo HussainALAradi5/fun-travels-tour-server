@@ -16,7 +16,7 @@ import com.server.server.enums.common.GenericStatus;
 import com.server.server.enums.tourmanagement.TicketStatus;
 import com.server.server.dto.tourmanagement.TourCreateRequest;
 import com.server.server.enums.notification.ReferenceType;
-import com.server.server.exceptions.WorkflowException;
+import com.server.server.exceptions.common.WorkflowException;
 import com.server.server.models.user.User;
 import com.server.server.models.tourmanagement.Tour;
 import com.server.server.repositories.tourmanagement.TourRepository;
@@ -25,11 +25,11 @@ import com.server.server.repositories.geography.CityRepository;
 import com.server.server.repositories.tourmanagement.MealPlanRepository;
 import com.server.server.services.support.GenericTrackingService;
 import com.server.server.services.auth.AccessPolicyService;
-import com.server.server.exceptions.AccessDeniedException;
+import com.server.server.exceptions.common.AccessDeniedException;
 import com.server.server.models.tourmanagement.MealPlan;
 import com.server.server.models.agency.Agency;
 import com.server.server.repositories.tourmanagement.TicketRepository;
-import com.server.server.exceptions.ResourceNotFoundException;
+import com.server.server.exceptions.common.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 
 /** Creating and editing tours, with their validation rules. */

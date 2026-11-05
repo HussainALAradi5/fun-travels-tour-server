@@ -15,7 +15,7 @@ import com.server.server.dto.support.CommentResponse;
 import com.server.server.dto.support.TimelineResponse;
 import com.server.server.enums.notification.ReferenceType;
 import com.server.server.services.support.GenericTrackingService;
-import com.server.server.utilities.ApiResponse;
+import com.server.server.utilities.responses.ApiResponse;
 import jakarta.validation.Valid;
 
 import lombok.RequiredArgsConstructor;

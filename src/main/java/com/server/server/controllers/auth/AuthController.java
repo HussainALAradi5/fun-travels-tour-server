@@ -14,7 +14,7 @@ import com.server.server.dto.auth.PasswordResetRequest;
 import com.server.server.dto.auth.RegisterRequest;
 import com.server.server.dto.user.UserResponse;
 import com.server.server.services.auth.AuthService;
-import com.server.server.utilities.ApiResponse;
+import com.server.server.utilities.responses.ApiResponse;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

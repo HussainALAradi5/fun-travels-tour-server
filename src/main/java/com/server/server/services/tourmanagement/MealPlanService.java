@@ -1,6 +1,6 @@
 package com.server.server.services.tourmanagement;
 
-import com.server.server.exceptions.ResourceNotFoundException;
+import com.server.server.exceptions.common.ResourceNotFoundException;
 
 import com.server.server.models.user.User;
 
@@ -23,7 +23,7 @@ import com.server.server.repositories.tourmanagement.MealPlanRepository;
 import com.server.server.dto.common.PageResponse;
 import com.server.server.dto.tourmanagement.MealPlanCreateRequest;
 import com.server.server.enums.tourmanagement.MealDietaryType;
-import com.server.server.utilities.PaginationUtils;
+import com.server.server.utilities.pagination.PaginationUtils;
 import java.util.Set;
 
 import lombok.RequiredArgsConstructor;

@@ -19,7 +19,7 @@ import com.server.server.enums.payment.PaymentMethod;
 import com.server.server.models.tourmanagement.TourReservation;
 import com.server.server.services.payment.PaymentService;
 import com.server.server.services.tourmanagement.TourReservationService;
-import com.server.server.utilities.ApiResponse;
+import com.server.server.utilities.responses.ApiResponse;
 import lombok.RequiredArgsConstructor;
 
 @RestController

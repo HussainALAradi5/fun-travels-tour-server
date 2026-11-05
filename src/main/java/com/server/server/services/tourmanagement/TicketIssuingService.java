@@ -8,12 +8,12 @@ import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 
-import com.server.server.constants.BookingRules;
-import com.server.server.constants.CodePrefixes;
+import com.server.server.constants.tourmanagement.BookingRules;
+import com.server.server.constants.common.CodePrefixes;
 import com.server.server.dto.common.EntityReference;
 import com.server.server.dto.tourmanagement.TicketSelectionRequest;
 import com.server.server.enums.common.GenericStatus;
-import com.server.server.exceptions.WorkflowException;
+import com.server.server.exceptions.common.WorkflowException;
 import com.server.server.models.tourmanagement.MealPlan;
 import com.server.server.models.tourmanagement.Seat;
 import com.server.server.models.tourmanagement.Ticket;
@@ -21,9 +21,9 @@ import com.server.server.models.tourmanagement.Tour;
 import com.server.server.models.tourmanagement.TourReservation;
 import com.server.server.models.user.User;
 import com.server.server.services.common.CodeGenerationService;
-import com.server.server.utilities.CodeGenerator;
-import com.server.server.utilities.PricingCalculator;
-import com.server.server.utilities.PricingCalculator.TicketPrice;
+import com.server.server.utilities.codes.CodeGenerator;
+import com.server.server.utilities.pricing.PricingCalculator;
+import com.server.server.utilities.pricing.PricingCalculator.TicketPrice;
 
 import lombok.RequiredArgsConstructor;
 

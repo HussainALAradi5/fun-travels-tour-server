@@ -2,7 +2,7 @@ package com.server.server.services.agency;
 
 import com.server.server.enums.user.UserTypeEnum;
 
-import com.server.server.exceptions.DuplicateResourceException;
+import com.server.server.exceptions.common.DuplicateResourceException;
 
 import com.server.server.dto.agency.AgencyCreateRequest;
 
@@ -13,7 +13,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.server.server.exceptions.ResourceNotFoundException;
+import com.server.server.exceptions.common.ResourceNotFoundException;
 import com.server.server.models.geography.City;
 import com.server.server.models.geography.Country;
 import com.server.server.models.user.User;
@@ -23,7 +23,7 @@ import com.server.server.repositories.geography.CityRepository;
 import com.server.server.repositories.geography.CountryRepository;
 import com.server.server.repositories.user.UserRepository;
 import com.server.server.repositories.agency.AgencyRepository;
-import com.server.server.utilities.PaginationUtils;
+import com.server.server.utilities.pagination.PaginationUtils;
 import java.util.Set;
 
 import lombok.RequiredArgsConstructor;

@@ -18,7 +18,7 @@ import com.server.server.dto.tourmanagement.MealPlanCreateRequest;
 import com.server.server.dto.common.PageResponse;
 import com.server.server.enums.common.GenericStatus;
 import com.server.server.services.tourmanagement.MealPlanService;
-import com.server.server.utilities.ApiResponse;
+import com.server.server.utilities.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
