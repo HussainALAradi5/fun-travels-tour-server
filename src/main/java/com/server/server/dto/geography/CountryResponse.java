@@ -1,6 +1,8 @@
 package com.server.server.dto.geography;
 
 import com.server.server.models.geography.Country;
+import com.server.server.utilities.geography.FlagUrls;
+
 public record CountryResponse(
         Integer id,
         String famousName,
@@ -16,7 +18,8 @@ public record CountryResponse(
             return null;
         }
         return new CountryResponse(country.getId(), country.getFamousName(), country.getOfficialName(),
-                country.getCountryCode(), country.getFlagPngUrl(), country.getFlagSvgUrl(), country.getDialCode(),
+                country.getCountryCode(), FlagUrls.orDefault(country.getFlagPngUrl(), FlagUrls.png(country.getCountryCode())),
+                FlagUrls.orDefault(country.getFlagSvgUrl(), FlagUrls.svg(country.getCountryCode())), country.getDialCode(),
                 country.getMobileNumberLength());
     }
 }

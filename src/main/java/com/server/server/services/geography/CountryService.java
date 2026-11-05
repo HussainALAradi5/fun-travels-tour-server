@@ -1,5 +1,6 @@
 package com.server.server.services.geography;
 
+import com.server.server.utilities.geography.FlagUrls;
 import com.server.server.exceptions.common.ExternalServiceException;
 import com.server.server.dto.geography.CountryCreateRequest;
 
@@ -70,8 +71,8 @@ public class CountryService {
         country.setCountryCode(code);
         country.setDialCode(request.dialCode());
         country.setMobileNumberLength(request.mobileNumberLength());
-        country.setFlagPngUrl(request.flagPngUrl());
-        country.setFlagSvgUrl(request.flagSvgUrl());
+        country.setFlagPngUrl(FlagUrls.orDefault(request.flagPngUrl(), FlagUrls.png(code)));
+        country.setFlagSvgUrl(FlagUrls.orDefault(request.flagSvgUrl(), FlagUrls.svg(code)));
         return countryRepository.save(country);
     }
 
@@ -182,8 +183,8 @@ public class CountryService {
         country.setFamousName(String.valueOf(names.get("common")));
         country.setOfficialName(String.valueOf(names.get("official")));
         country.setCountryCode(code);
-        country.setFlagPngUrl(String.valueOf(flag.get("url_png")));
-        country.setFlagSvgUrl(String.valueOf(flag.get("url_svg")));
+        country.setFlagPngUrl(FlagUrls.orDefault(flag == null ? null : (String) flag.get("url_png"), FlagUrls.png(code)));
+        country.setFlagSvgUrl(FlagUrls.orDefault(flag == null ? null : (String) flag.get("url_svg"), FlagUrls.svg(code)));
         country.setDialCode(callingCodes == null || callingCodes.isEmpty() ? null : "+" + callingCodes.get(0));
     }
 
