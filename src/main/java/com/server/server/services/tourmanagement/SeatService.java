@@ -1,5 +1,6 @@
 package com.server.server.services.tourmanagement;
 
+import com.server.server.constants.errors.WorkflowErrorCodes;
 import com.server.server.dto.tourmanagement.SeatUpdateRequest;
 
 import java.util.Map;
@@ -124,11 +125,11 @@ public class SeatService {
     /** Staff only toggle AVAILABLE and MAINTENANCE; a seat held by an active ticket cannot go to maintenance. */
     private void applyStatus(Seat seat, SeatStatus target) {
         if (target != SeatStatus.AVAILABLE && target != SeatStatus.MAINTENANCE) {
-            throw new WorkflowException("SEAT_STATUS_LOCKED",
+            throw new WorkflowException(WorkflowErrorCodes.SEAT_STATUS_LOCKED,
                     "Seats are reserved and booked through tickets; staff can only set AVAILABLE or MAINTENANCE.");
         }
         if (target == SeatStatus.MAINTENANCE && inventoryService.isSeatInUse(seat.getId())) {
-            throw new WorkflowException("SEAT_IN_USE", "This seat is held by an active ticket. Move or cancel the ticket first.");
+            throw new WorkflowException(WorkflowErrorCodes.SEAT_IN_USE, "This seat is held by an active ticket. Move or cancel the ticket first.");
         }
         seat.setStatus(target);
     }
@@ -140,12 +141,12 @@ public class SeatService {
 
     private void requireLayoutUnlocked(Seat seat) {
         if (inventoryService.isSeatInUse(seat.getId())) {
-            throw new WorkflowException("SEAT_IN_USE", "Cannot change the type or price of a seat held by an active ticket.");
+            throw new WorkflowException(WorkflowErrorCodes.SEAT_IN_USE, "Cannot change the type or price of a seat held by an active ticket.");
         }
         if (seat.getTransportation() != null && seat.getTransportation().getTours() != null
                 && seat.getTransportation().getTours().stream().anyMatch(tour ->
                         tour.getStatus() == GenericStatus.APPROVED || tour.getStatus() == GenericStatus.ACTIVE)) {
-            throw new WorkflowException("SEAT_LAYOUT_LOCKED",
+            throw new WorkflowException(WorkflowErrorCodes.SEAT_LAYOUT_LOCKED,
                     "Seat layout is locked while the vehicle is assigned to an approved or active tour.");
         }
     }

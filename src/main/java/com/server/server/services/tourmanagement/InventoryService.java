@@ -1,5 +1,6 @@
 package com.server.server.services.tourmanagement;
 
+import com.server.server.constants.errors.WorkflowErrorCodes;
 import com.server.server.enums.tourmanagement.ChairType;
 import java.util.HashSet;
 import java.util.List;
@@ -55,12 +56,12 @@ public class InventoryService {
         Tour tour = lockTour(tourId);
         requirePositive(quantity);
         if (tour.getStatus() != GenericStatus.ACTIVE) {
-            throw new WorkflowException("TOUR_NOT_BOOKABLE", "This tour is not available for booking.");
+            throw new WorkflowException(WorkflowErrorCodes.TOUR_NOT_BOOKABLE, "This tour is not available for booking.");
         }
         // Counted from tickets, not trusted from the stored counter, so any drift is corrected at each booking.
         int available = placesLeft(tour);
         if (available < quantity) {
-            throw new WorkflowException("INSUFFICIENT_CAPACITY", "There are not enough places available for this booking.");
+            throw new WorkflowException(WorkflowErrorCodes.INSUFFICIENT_CAPACITY, "There are not enough places available for this booking.");
         }
         assignSeats(tour, tickets);
         tour.setAvailableSlots(available - quantity);
@@ -116,7 +117,7 @@ public class InventoryService {
         List<Ticket> safe = tickets == null ? List.of() : tickets;
         if (tour.getTransportation() == null) {
             if (safe.stream().anyMatch(ticket -> ticket.getAssignedSeat() != null)) {
-                throw new WorkflowException("INVALID_SEAT_FOR_TOUR", "This tour has no transportation seats to choose.");
+                throw new WorkflowException(WorkflowErrorCodes.INVALID_SEAT_FOR_TOUR, "This tour has no transportation seats to choose.");
             }
             return;
         }
@@ -128,15 +129,15 @@ public class InventoryService {
                 continue;
             }
             Seat seat = seatRepository.findById(ticket.getAssignedSeat().getId())
-                    .orElseThrow(() -> new WorkflowException("SEAT_NOT_FOUND", "Seat not found."));
+                    .orElseThrow(() -> new WorkflowException(WorkflowErrorCodes.SEAT_NOT_FOUND, "Seat not found."));
             if (seat.getTransportation() == null || !Objects.equals(seat.getTransportation().getId(), transportationId)) {
-                throw new WorkflowException("INVALID_SEAT_FOR_TOUR", "The selected seat does not belong to this tour's transportation.");
+                throw new WorkflowException(WorkflowErrorCodes.INVALID_SEAT_FOR_TOUR, "The selected seat does not belong to this tour's transportation.");
             }
             if (!chosen.add(seat.getId())) {
-                throw new WorkflowException("DUPLICATE_SEAT", "Each traveler must have a different seat.");
+                throw new WorkflowException(WorkflowErrorCodes.DUPLICATE_SEAT, "Each traveler must have a different seat.");
             }
             if (seat.getStatus() == SeatStatus.MAINTENANCE || taken.contains(seat.getId())) {
-                throw new WorkflowException("SEAT_NOT_AVAILABLE",
+                throw new WorkflowException(WorkflowErrorCodes.SEAT_NOT_AVAILABLE,
                         "Seat " + seat.getSeatCode() + " is no longer available. Please choose another seat.");
             }
             ticket.setAssignedSeat(seat);
@@ -154,7 +155,7 @@ public class InventoryService {
                 continue;
             }
             if (next >= free.size()) {
-                throw new WorkflowException("SEAT_CHOICE_REQUIRED",
+                throw new WorkflowException(WorkflowErrorCodes.SEAT_CHOICE_REQUIRED,
                         "No standard seats are left on this tour. Please choose a seat for each traveler.");
             }
             ticket.setAssignedSeat(free.get(next++));

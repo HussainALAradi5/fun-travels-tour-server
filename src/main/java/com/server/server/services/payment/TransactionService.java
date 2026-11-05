@@ -1,5 +1,6 @@
 package com.server.server.services.payment;
 
+import com.server.server.constants.errors.WorkflowErrorCodes;
 import com.server.server.exceptions.common.WorkflowException;
 
 import com.server.server.services.auth.AccessPolicyService;
@@ -87,7 +88,7 @@ public class TransactionService {
             throw new IllegalArgumentException("Debit amount must be greater than zero.");
         }
         if (account.getBalance().compareTo(amount) < 0) {
-            throw new WorkflowException("INSUFFICIENT_BALANCE", "Insufficient wallet balance.");
+            throw new WorkflowException(WorkflowErrorCodes.INSUFFICIENT_BALANCE, "Insufficient wallet balance.");
         }
 
         account.setBalance(account.getBalance().subtract(amount));

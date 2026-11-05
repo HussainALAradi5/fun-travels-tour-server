@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.HtmlUtils;
 
 import com.server.server.config.properties.AppProperties;
+import com.server.server.constants.errors.WorkflowErrorCodes;
 import com.server.server.constants.tourmanagement.BookingRules;
 import com.server.server.dto.auth.AuthResponse;
 import com.server.server.dto.auth.LoginRequest;
@@ -70,7 +71,7 @@ public class AuthService {
         String identifier = request.identifier().trim();
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(identifier, request.password()));
         User user = userRepository.findByLoginIdentifier(identifier)
-                .orElseThrow(() -> new WorkflowException("INVALID_CREDENTIALS", "Invalid username or password"));
+                .orElseThrow(() -> new WorkflowException(WorkflowErrorCodes.INVALID_CREDENTIALS, "Invalid username or password"));
         return new AuthResponse(jwtService.generateToken(user.getEmail()), UserResponse.from(user));
     }
 
@@ -105,7 +106,7 @@ public class AuthService {
     }
 
     private static WorkflowException invalidResetLink() {
-        return new WorkflowException("INVALID_RESET_LINK", "This reset link is invalid or has expired.");
+        return new WorkflowException(WorkflowErrorCodes.INVALID_RESET_LINK, "This reset link is invalid or has expired.");
     }
 
     private void sendResetEmail(User user, String token) {

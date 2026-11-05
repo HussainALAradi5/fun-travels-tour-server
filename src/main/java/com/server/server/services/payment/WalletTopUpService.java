@@ -3,6 +3,7 @@ package com.server.server.services.payment;
 import com.server.server.constants.tourmanagement.BookingRules;
 
 import com.server.server.constants.common.CodePrefixes;
+import com.server.server.constants.errors.WorkflowErrorCodes;
 
 import com.server.server.utilities.codes.CodeGenerator;
 
@@ -100,20 +101,20 @@ public class WalletTopUpService {
                         null
                 );
             } else {
-                throw new WorkflowException("PAYMENT_NOT_CAPTURED", "The card payment was not captured.");
+                throw new WorkflowException(WorkflowErrorCodes.PAYMENT_NOT_CAPTURED, "The card payment was not captured.");
             }
 
         } catch (CardException e) {
             // Stripe actively declined the card (e.g., insufficient funds, fraud)
             payment.setStatus(PaymentStatus.FAILED);
             paymentRepository.save(payment);
-            throw new WorkflowException("CARD_DECLINED", "Card declined: " + e.getMessage());
+            throw new WorkflowException(WorkflowErrorCodes.CARD_DECLINED, "Card declined: " + e.getMessage());
 
         } catch (StripeException e) {
             // General Stripe API errors (e.g., network issue, wrong token format)
             payment.setStatus(PaymentStatus.FAILED);
             paymentRepository.save(payment);
-            throw new WorkflowException("PAYMENT_FAILED", "Payment processing error: " + e.getMessage());
+            throw new WorkflowException(WorkflowErrorCodes.PAYMENT_FAILED, "Payment processing error: " + e.getMessage());
         }
     }
 }

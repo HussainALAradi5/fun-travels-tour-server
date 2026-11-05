@@ -3,6 +3,7 @@ package com.server.server.services.payment;
 import com.server.server.constants.tourmanagement.BookingRules;
 
 import com.server.server.constants.common.CodePrefixes;
+import com.server.server.constants.errors.WorkflowErrorCodes;
 
 import com.server.server.utilities.codes.CodeGenerator;
 
@@ -79,7 +80,7 @@ public class PaymentService extends GenericFilterService<Payment> {
         // Bookings are paid from the wallet; cards top the wallet up first. There is no provider
         // webhook to complete an external booking payment, so other methods would stay pending forever.
         if (method != PaymentMethod.WALLET) {
-            throw new WorkflowException("PAYMENT_METHOD_UNSUPPORTED",
+            throw new WorkflowException(WorkflowErrorCodes.PAYMENT_METHOD_UNSUPPORTED,
                     "Bookings are paid from your wallet. Top up your wallet by card, then pay.");
         }
         var account = accountService.getAccountByUserId(res.getUser().getId());

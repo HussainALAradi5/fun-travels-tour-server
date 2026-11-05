@@ -7,6 +7,7 @@ import java.util.function.IntFunction;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.server.server.constants.errors.WorkflowErrorCodes;
 import com.server.server.constants.report.ReportRules;
 import com.server.server.dto.common.PageResponse;
 import com.server.server.dto.payment.TransactionFilterRequest;
@@ -111,7 +112,7 @@ public class ReportDataService {
 
     private static Integer require(Integer id, String name) {
         if (id == null) {
-            throw new WorkflowException("REPORT_PARAMETER_REQUIRED", "This report needs " + name + ".");
+            throw new WorkflowException(WorkflowErrorCodes.REPORT_PARAMETER_REQUIRED, "This report needs " + name + ".");
         }
         return id;
     }

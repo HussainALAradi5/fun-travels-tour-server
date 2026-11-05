@@ -1,5 +1,6 @@
 package com.server.server.services.tourmanagement;
 
+import com.server.server.constants.errors.WorkflowErrorCodes;
 import com.server.server.models.tourmanagement.Transportation;
 import com.server.server.models.geography.City;
 import com.server.server.models.geography.Country;
@@ -146,7 +147,7 @@ public class TourService {
         if (request.maxCapacity() != null) {
             int bookedOrHeld = existing.getMaxCapacity() - existing.getAvailableSlots();
             if (request.maxCapacity() < bookedOrHeld) {
-                throw new WorkflowException("CAPACITY_BELOW_BOOKINGS",
+                throw new WorkflowException(WorkflowErrorCodes.CAPACITY_BELOW_BOOKINGS,
                         "Capacity cannot be lower than the number of reserved or sold places.");
             }
             existing.setMaxCapacity(request.maxCapacity());
@@ -176,7 +177,7 @@ public class TourService {
         if (transportationId != null && (existing.getTransportation() == null
                 || !Objects.equals(existing.getTransportation().getId(), transportationId))) {
             if (ticketRepository.existsByTour_IdAndTicketStatusNot(existing.getId(), TicketStatus.CANCELLED)) {
-                throw new WorkflowException("TRANSPORTATION_LOCKED",
+                throw new WorkflowException(WorkflowErrorCodes.TRANSPORTATION_LOCKED,
                         "Transportation cannot change after tickets were issued for this tour.");
             }
             Transportation transportation = transportationService.getById(transportationId);
@@ -198,7 +199,7 @@ public class TourService {
 
         double discount = existing.getDiscountPrice() != null ? existing.getDiscountPrice() : 0.0;
         if (discount > existing.getBasePrice()) {
-            throw new WorkflowException("DISCOUNT_ABOVE_PRICE", "Discount cannot exceed the base price.");
+            throw new WorkflowException(WorkflowErrorCodes.DISCOUNT_ABOVE_PRICE, "Discount cannot exceed the base price.");
         }
         existing.setTotalPrice(existing.getBasePrice() - discount);
 
@@ -257,10 +258,10 @@ public class TourService {
         }
         for (MealPlan meal : meals) {
             if (meal.getStatus() != GenericStatus.ACTIVE) {
-                throw new WorkflowException("MEAL_INACTIVE", "Meal '" + meal.getMealName() + "' is not active.");
+                throw new WorkflowException(WorkflowErrorCodes.MEAL_INACTIVE, "Meal '" + meal.getMealName() + "' is not active.");
             }
             if (meal.getAgency() != null && (agency == null || !Objects.equals(meal.getAgency().getId(), agency.getId()))) {
-                throw new WorkflowException("MEAL_OTHER_AGENCY", "Meal '" + meal.getMealName() + "' belongs to another agency.");
+                throw new WorkflowException(WorkflowErrorCodes.MEAL_OTHER_AGENCY, "Meal '" + meal.getMealName() + "' belongs to another agency.");
             }
         }
         return meals;
@@ -296,7 +297,7 @@ public class TourService {
         }
         if (tour.getBasePrice() != null && tour.getDiscountPrice() != null
                 && tour.getDiscountPrice() > tour.getBasePrice()) {
-            throw new WorkflowException("DISCOUNT_ABOVE_PRICE", "Discount cannot exceed the base price.");
+            throw new WorkflowException(WorkflowErrorCodes.DISCOUNT_ABOVE_PRICE, "Discount cannot exceed the base price.");
         }
     }
 

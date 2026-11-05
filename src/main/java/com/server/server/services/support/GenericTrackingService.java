@@ -7,6 +7,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.server.server.constants.errors.WorkflowErrorCodes;
 import com.server.server.dto.support.TimelineResponse;
 import com.server.server.enums.notification.ReferenceType;
 import com.server.server.enums.support.UserRequestStatus;
@@ -135,7 +136,7 @@ public class GenericTrackingService {
         }
         UserRequestStatus status = findUserRequest(refId).getStatus();
         if (status == UserRequestStatus.COMPLETED || status == UserRequestStatus.REJECTED) {
-            throw new WorkflowException("REQUEST_CLOSED", "This request is closed. No further modifications are allowed.");
+            throw new WorkflowException(WorkflowErrorCodes.REQUEST_CLOSED, "This request is closed. No further modifications are allowed.");
         }
     }
 

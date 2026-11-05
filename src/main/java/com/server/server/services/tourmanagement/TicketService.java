@@ -2,6 +2,7 @@ package com.server.server.services.tourmanagement;
 
 import java.math.BigDecimal;
 import java.time.temporal.ChronoUnit;
+import com.server.server.constants.errors.WorkflowErrorCodes;
 import com.server.server.dto.tourmanagement.RefundQuoteResponse;
 import java.time.LocalDate;
 import java.util.List;
@@ -115,7 +116,7 @@ public class TicketService extends GenericFilterService<Ticket> {
             throw new WorkflowException("Ticket status can only progress to APPROVED, CONFIRMED, or COMPLETED.");
         }
         if (!ticket.isPaid()) {
-            throw new WorkflowException("TICKET_NOT_PAID", "Cannot approve this ticket before it is paid.");
+            throw new WorkflowException(WorkflowErrorCodes.TICKET_NOT_PAID, "Cannot approve this ticket before it is paid.");
         }
         if (newStatus == GenericStatus.COMPLETED && ticket.getTour().getStatus() != GenericStatus.COMPLETED) {
             throw new WorkflowException("A ticket can only be completed after the tour is completed.");

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import com.server.server.constants.tourmanagement.BookingRules;
 import com.server.server.constants.common.CodePrefixes;
+import com.server.server.constants.errors.WorkflowErrorCodes;
 import com.server.server.dto.common.EntityReference;
 import com.server.server.dto.tourmanagement.TicketSelectionRequest;
 import com.server.server.enums.common.GenericStatus;
@@ -71,7 +72,7 @@ public class TicketIssuingService {
             ticket.setBarcode(codeGenerationService.generateBarcode(ticketNumber,
                     BookingRules.BARCODE_WIDTH, BookingRules.BARCODE_HEIGHT));
         } catch (Exception e) {
-            throw new WorkflowException("TICKET_CODE_FAILED", "Ticket codes could not be generated.");
+            throw new WorkflowException(WorkflowErrorCodes.TICKET_CODE_FAILED, "Ticket codes could not be generated.");
         }
         applyPricing(ticket, tour);
         return ticket;
@@ -110,15 +111,15 @@ public class TicketIssuingService {
             }
             MealPlan meal = mealPlanService.findById(reference.id());
             if (meals.stream().anyMatch(selected -> Objects.equals(selected.getId(), meal.getId()))) {
-                throw new WorkflowException("DUPLICATE_MEAL", "Meal '" + meal.getMealName() + "' was selected twice.");
+                throw new WorkflowException(WorkflowErrorCodes.DUPLICATE_MEAL, "Meal '" + meal.getMealName() + "' was selected twice.");
             }
             if (meal.getStatus() != GenericStatus.ACTIVE) {
-                throw new WorkflowException("MEAL_INACTIVE", "Meal '" + meal.getMealName() + "' is no longer available.");
+                throw new WorkflowException(WorkflowErrorCodes.MEAL_INACTIVE, "Meal '" + meal.getMealName() + "' is no longer available.");
             }
             boolean offered = tour.getAvailableMeals().stream()
                     .anyMatch(available -> Objects.equals(available.getId(), meal.getId()));
             if (!offered) {
-                throw new WorkflowException("MEAL_NOT_OFFERED", "Meal '" + meal.getMealName() + "' is not offered on this tour.");
+                throw new WorkflowException(WorkflowErrorCodes.MEAL_NOT_OFFERED, "Meal '" + meal.getMealName() + "' is not offered on this tour.");
             }
             meals.add(meal);
         }

@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.server.server.constants.tourmanagement.BookingRules;
 import com.server.server.constants.common.CodePrefixes;
+import com.server.server.constants.errors.WorkflowErrorCodes;
 import com.server.server.dto.common.PageResponse;
 import com.server.server.dto.tourmanagement.ReservationCreateRequest;
 import com.server.server.dto.tourmanagement.ReservationFilterRequest;
@@ -144,26 +145,26 @@ public class TourReservationService extends GenericFilterService<TourReservation
     @PreAuthorize("hasAnyAuthority('CUSTOMER', 'ADMIN', 'MANAGER', 'OWNER')")
     public TourReservation finalizeReservationWithPayment(@NonNull Integer reservationId, PaymentMethod method) {
         TourReservation reservation = repository.findByIdWithLock(reservationId)
-                .orElseThrow(() -> new WorkflowException("RESERVATION_NOT_FOUND", "Reservation was not found."));
+                .orElseThrow(() -> new WorkflowException(WorkflowErrorCodes.RESERVATION_NOT_FOUND, "Reservation was not found."));
         accessPolicy.requireRecordAccess(accessPolicy.requireCurrentUser(), reservation.getUser().getId(),
                 reservation.getTour().getAgency());
         if (reservation.getStatus() != GenericStatus.PENDING) {
-            throw new WorkflowException("RESERVATION_NOT_PAYABLE",
+            throw new WorkflowException(WorkflowErrorCodes.RESERVATION_NOT_PAYABLE,
                     "This reservation can no longer be paid because it is "
                             + reservation.getStatus().name().toLowerCase() + ".");
         }
         if (reservation.getHoldExpiresAt() != null && !reservation.getHoldExpiresAt().isAfter(LocalDateTime.now())) {
             expireReservation(reservation);
-            throw new WorkflowException("RESERVATION_HOLD_EXPIRED",
+            throw new WorkflowException(WorkflowErrorCodes.RESERVATION_HOLD_EXPIRED,
                     "Your reservation hold expired. Please select your seats again.");
         }
         Tour tour = reservation.getTour();
         if (tour.getStartDate().isBefore(LocalDate.now()) || tour.getStatus() != GenericStatus.ACTIVE) {
-            throw new WorkflowException("TOUR_NOT_BOOKABLE", "This tour is no longer available for booking.");
+            throw new WorkflowException(WorkflowErrorCodes.TOUR_NOT_BOOKABLE, "This tour is no longer available for booking.");
         }
         Payment payment = paymentService.executeTransaction(reservation, method);
         if (payment.getStatus() != PaymentStatus.COMPLETED) {
-            throw new WorkflowException("PAYMENT_FAILED",
+            throw new WorkflowException(WorkflowErrorCodes.PAYMENT_FAILED,
                     "We could not complete the payment. Please try another payment method.");
         }
         DomainWorkflowValidator.validateReservation(reservation.getStatus(), GenericStatus.CONFIRMED);
@@ -193,7 +194,7 @@ public class TourReservationService extends GenericFilterService<TourReservation
     public TourReservation cancelReservation(@NonNull Integer reservationId) {
         TourReservation reservation = getById(reservationId);
         if (reservation.getStatus() == GenericStatus.CANCELLED) {
-            throw new WorkflowException("ALREADY_CANCELLED", "Reservation is already cancelled.");
+            throw new WorkflowException(WorkflowErrorCodes.ALREADY_CANCELLED, "Reservation is already cancelled.");
         }
         DomainWorkflowValidator.validateReservation(reservation.getStatus(), GenericStatus.CANCELLED);
         Tour tour = reservation.getTour();
@@ -283,7 +284,7 @@ public class TourReservationService extends GenericFilterService<TourReservation
             return current;
         }
         if (request.user() == null || request.user().id() == null) {
-            throw new WorkflowException("CUSTOMER_REQUIRED", "A reservation customer is required.");
+            throw new WorkflowException(WorkflowErrorCodes.CUSTOMER_REQUIRED, "A reservation customer is required.");
         }
         return userRepository.findById(request.user().id())
                 .filter(User::isActive)
@@ -305,7 +306,7 @@ public class TourReservationService extends GenericFilterService<TourReservation
     private void validateNoDateConflicts(@NonNull Integer userId, LocalDate startDate, LocalDate endDate) {
         LocalDate effectiveEndDate = endDate != null ? endDate : startDate;
         if (repository.hasOverlappingReservations(userId, startDate, effectiveEndDate)) {
-            throw new WorkflowException("DATE_CONFLICT",
+            throw new WorkflowException(WorkflowErrorCodes.DATE_CONFLICT,
                     "You already have an active reservation that conflicts with these dates.");
         }
     }

@@ -1,5 +1,6 @@
 package com.server.server.services.tourmanagement;
 
+import com.server.server.constants.errors.WorkflowErrorCodes;
 import com.server.server.dto.tourmanagement.TransportationUpdateRequest;
 import com.server.server.exceptions.common.DuplicateResourceException;
 import com.server.server.services.auth.AccessPolicyService;
@@ -191,7 +192,7 @@ public class TransportationService {
         }
 
         if (seats.stream().anyMatch(seat -> inventoryService.isSeatInUse(seat.getId()))) {
-            throw new WorkflowException("SEAT_LAYOUT_LOCKED",
+            throw new WorkflowException(WorkflowErrorCodes.SEAT_LAYOUT_LOCKED,
                     "Seat layout cannot be changed while seats are held by active tickets.");
         }
 
