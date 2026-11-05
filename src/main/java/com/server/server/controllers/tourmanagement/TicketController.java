@@ -1,5 +1,6 @@
 package com.server.server.controllers.tourmanagement;
 
+import com.server.server.dto.tourmanagement.RefundQuoteResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -41,6 +42,12 @@ public class TicketController {
             @RequestParam(defaultValue = "desc") String sortDir) {
         return ResponseEntity.ok(ApiResponse.ok(ticketService.getAll(page, size, sortDir)
                 .map(TicketResponse::from)));
+    }
+
+    /** What cancelling this ticket now would refund, shown before the customer confirms. */
+    @GetMapping("/{id}/refund-quote")
+    public ResponseEntity<ApiResponse<RefundQuoteResponse>> refundQuote(@NonNull @PathVariable Integer id) {
+        return ResponseEntity.ok(ApiResponse.ok(ticketService.refundQuote(id)));
     }
 
     @GetMapping("/{id}")

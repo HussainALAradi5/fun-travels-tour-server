@@ -1,5 +1,8 @@
 package com.server.server.services.tourmanagement;
 
+import java.math.BigDecimal;
+import java.time.temporal.ChronoUnit;
+import com.server.server.dto.tourmanagement.RefundQuoteResponse;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -83,6 +86,21 @@ public class TourReservationService extends GenericFilterService<TourReservation
         accessPolicy.requireRecordAccess(accessPolicy.requireCurrentUser(), reservation.getUser().getId(),
                 reservation.getTour().getAgency());
         return reservation;
+    }
+
+    /** What cancelling the whole booking now would refund; nothing for an unpaid or cancelled booking. */
+    @Transactional(readOnly = true)
+    public RefundQuoteResponse refundQuote(@NonNull Integer id) {
+        TourReservation reservation = getById(id);
+        Tour tour = reservation.getTour();
+        long days = tour.getStartDate() == null ? 0 : ChronoUnit.DAYS.between(LocalDate.now(), tour.getStartDate());
+        if (reservation.getStatus() != GenericStatus.CONFIRMED) {
+            return RefundQuoteResponse.of(BigDecimal.ZERO, new RefundQuote(PricingCalculator.money(BigDecimal.ZERO),
+                    "Nothing was paid, so nothing is refunded."), days);
+        }
+        BigDecimal paid = BookingLifecycleService.activeTotal(reservation);
+        return RefundQuoteResponse.of(paid, PricingCalculator.refund(paid, tour.getStartDate(), LocalDate.now(),
+                PricingPolicy.of(tour.getAgency())), days);
     }
 
     /**

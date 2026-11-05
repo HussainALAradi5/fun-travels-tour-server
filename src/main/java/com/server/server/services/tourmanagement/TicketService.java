@@ -1,5 +1,8 @@
 package com.server.server.services.tourmanagement;
 
+import java.math.BigDecimal;
+import java.time.temporal.ChronoUnit;
+import com.server.server.dto.tourmanagement.RefundQuoteResponse;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -80,6 +83,20 @@ public class TicketService extends GenericFilterService<Ticket> {
         accessPolicy.requireRecordAccess(accessPolicy.requireCurrentUser(), ticket.getCustomer().getId(),
                 ticket.getTour().getAgency());
         return ticket;
+    }
+
+    /** What cancelling this ticket now would refund; nothing for an unpaid or cancelled ticket. */
+    @Transactional(readOnly = true)
+    public RefundQuoteResponse refundQuote(@NonNull Integer id) {
+        Ticket ticket = getById(id);
+        Tour tour = ticket.getTour();
+        long days = tour.getStartDate() == null ? 0 : ChronoUnit.DAYS.between(LocalDate.now(), tour.getStartDate());
+        if (!ticket.isPaid() || ticket.getTicketStatus() == TicketStatus.CANCELLED) {
+            return RefundQuoteResponse.of(BigDecimal.ZERO, new RefundQuote(PricingCalculator.money(BigDecimal.ZERO),
+                    "Nothing was paid for this ticket, so nothing is refunded."), days);
+        }
+        return RefundQuoteResponse.of(ticket.getTotalPrice(), PricingCalculator.refund(ticket.getTotalPrice(),
+                tour.getStartDate(), LocalDate.now(), PricingPolicy.of(tour.getAgency())), days);
     }
 
     /** Staff progress a paid ticket: APPROVED, CONFIRMED, or COMPLETED. Cancellation has its own rules. */
