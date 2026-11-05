@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.server.server.config.properties.AppProperties;
+import com.server.server.enums.user.Gender;
 import com.server.server.enums.user.UserTypeEnum;
 import com.server.server.models.agency.Agency;
 import com.server.server.models.agency.AgencyBranch;
@@ -45,18 +46,18 @@ public class DataSeeder implements CommandLineRunner {
     private static final String PRODUCTION_PROFILE = "prod";
     private static final int GENERATED_PASSWORD_BYTES = 12;
 
-    private record SeedUser(String userName, String name, UserTypeEnum role, String mobile, int age,
+    private record SeedUser(String userName, String name, UserTypeEnum role, Gender gender, String mobile, int age,
             boolean primaryAgency, boolean branch, double balance) {
     }
 
     private static final SeedUser[] USERS = {
-            new SeedUser("admin", "System Admin", UserTypeEnum.ADMIN, "+97310000001", 30, false, false, 10000),
-            new SeedUser("owner", "Ahmed Owner", UserTypeEnum.OWNER, "+97310000002", 45, true, false, 5000),
-            new SeedUser("manager", "Sara Manager", UserTypeEnum.MANAGER, "+97310000003", 35, true, true, 1000),
-            new SeedUser("employee", "Ali Employee", UserTypeEnum.EMPLOYEE, "+97310000004", 28, true, true, 500),
-            new SeedUser("customer", "John Customer", UserTypeEnum.CUSTOMER, "+97310000005", 25, false, false, 2500),
-            new SeedUser("support", "Fatima Support", UserTypeEnum.SUPPORT_AGENT, "+97310000006", 32, false, false, 500),
-            new SeedUser("developer", "Dana Developer", UserTypeEnum.DEVELOPER, "+97310000007", 27, false, false, 0),
+            new SeedUser("admin", "System Admin", UserTypeEnum.ADMIN, Gender.MALE, "+97310000001", 30, false, false, 10000),
+            new SeedUser("owner", "Ahmed Owner", UserTypeEnum.OWNER, Gender.MALE, "+97310000002", 45, true, false, 5000),
+            new SeedUser("manager", "Sara Manager", UserTypeEnum.MANAGER, Gender.FEMALE, "+97310000003", 35, true, true, 1000),
+            new SeedUser("employee", "Ali Employee", UserTypeEnum.EMPLOYEE, Gender.MALE, "+97310000004", 28, true, true, 500),
+            new SeedUser("customer", "John Customer", UserTypeEnum.CUSTOMER, Gender.MALE, "+97310000005", 25, false, false, 2500),
+            new SeedUser("support", "Fatima Support", UserTypeEnum.SUPPORT_AGENT, Gender.FEMALE, "+97310000006", 32, false, false, 500),
+            new SeedUser("developer", "Dana Developer", UserTypeEnum.DEVELOPER, Gender.FEMALE, "+97310000007", 27, false, false, 0),
     };
 
     private final AppProperties appProperties;
@@ -92,6 +93,7 @@ public class DataSeeder implements CommandLineRunner {
             user.setMobileNumber(seed.mobile());
             user.setAge(seed.age());
             user.setUserType(seed.role());
+            user.setGender(seed.gender());
             user.setAgency(seed.primaryAgency() ? agency : null);
             user.setAgencyBranch(seed.branch() ? branch : null);
             User saved = userService.registerUser(user, password);

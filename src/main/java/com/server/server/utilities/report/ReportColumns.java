@@ -92,6 +92,7 @@ public final class ReportColumns {
             ReportColumn.of("Username", User::getUserName),
             ReportColumn.of("Email", User::getEmail),
             ReportColumn.of("Mobile", User::getMobileNumber),
+            ReportColumn.of("Gender", User::getGender),
             ReportColumn.of("Role", User::getUserType),
             ReportColumn.of("Agency", u -> nested(u, User::getAgency, a -> a.getAgencyName())),
             ReportColumn.of("Branch", u -> nested(u, User::getAgencyBranch, AgencyBranch::getBranchName)),

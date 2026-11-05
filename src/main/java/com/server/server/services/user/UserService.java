@@ -106,6 +106,7 @@ public class UserService {
         user.setEmail(request.email().trim());
         user.setMobileNumber(request.mobileNumber().trim());
         user.setAge(Objects.requireNonNullElse(request.age(), 0));
+        user.setGender(request.gender());
         user.setUserType(role);
         user.setAgency(agency);
         user.setAgencyBranch(branch);
@@ -129,6 +130,9 @@ public class UserService {
         }
         if (request.age() != null) {
             existing.setAge(request.age());
+        }
+        if (request.gender() != null) {
+            existing.setGender(request.gender());
         }
         if (request.removeImage()) {
             fileStorageService.deleteProfileImage(existing.getProfileImageUrl());

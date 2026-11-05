@@ -7,6 +7,7 @@ import com.server.server.models.base.BaseEntity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.server.server.enums.user.Gender;
 import com.server.server.enums.user.UserTypeEnum;
 import com.server.server.models.agency.Agency;
 import com.server.server.models.agency.AgencyBranch;
@@ -60,6 +61,10 @@ public class User extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     private UserTypeEnum userType;
+
+    /** MALE or FEMALE; null only for accounts created before it was asked. */
+    @Enumerated(EnumType.STRING)
+    private Gender gender;
 
     @NotBlank(message = "Mobile number is required")
     @Pattern(regexp = ValidationPatterns.MOBILE_NUMBER, message = ValidationPatterns.MOBILE_NUMBER_MESSAGE)

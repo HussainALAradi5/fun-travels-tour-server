@@ -59,6 +59,7 @@ public class AuthService {
         user.setEmail(request.email().trim());
         user.setMobileNumber(request.mobileNumber().trim());
         user.setAge(Objects.requireNonNullElse(request.age(), 0));
+        user.setGender(request.gender());
         user.setUserType(UserTypeEnum.CUSTOMER);
         return userService.registerUser(user, request.password());
     }
