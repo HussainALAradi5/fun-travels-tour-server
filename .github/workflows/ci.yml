@@ -17,3 +17,70 @@ jobs:
           cache: maven
       - name: Unit tests and package
         run: ./mvnw -B verify
+
+  # Starts the packaged server on a fresh, seeded Postgres and runs every live suite in live-tests/ against it.
+  live:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: fun_travels_tour
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DB_URL: jdbc:postgresql://localhost:5432/fun_travels_tour
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      JWT_SECRET: ci-only-secret-0123456789abcdef0123456789abcdef
+      SEED_ENABLED: "true"
+      SEED_PASSWORD: Seed-Pass-2026
+      # The suites sign in hundreds of times; the default allows 10 per minute.
+      AUTH_RATE_LIMIT: "1000"
+      SERVER_PORT: "8080"
+      FILE_UPLOAD_DIR: ${{ runner.temp }}/uploads
+      MEDIA_DIR: ${{ runner.temp }}/media
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: live-tests/package-lock.json
+      - name: Package
+        run: ./mvnw -B -q package -DskipTests
+      - name: Start the server
+        run: |
+          # Every setting in the example file reads an environment variable, as in the Docker image.
+          cp src/main/resources/application.properties.example "$RUNNER_TEMP/application.properties"
+          java -jar target/server-0.0.1-SNAPSHOT.jar --spring.config.location="file:$RUNNER_TEMP/application.properties" \
+            > "$RUNNER_TEMP/server.log" 2>&1 &
+          for i in $(seq 1 90); do
+            grep -q "Demo catalog created" "$RUNNER_TEMP/server.log" && exit 0
+            grep -q "Application run failed" "$RUNNER_TEMP/server.log" && break
+            sleep 2
+          done
+          cat "$RUNNER_TEMP/server.log"
+          exit 1
+      - name: Install the STOMP client
+        run: npm ci --prefix live-tests
+      - name: Live suites
+        run: python -I -B live-tests/run.py http://localhost:8080 "$SEED_PASSWORD" fun_travels_tour
+      - name: Server log
+        if: failure()
+        run: tail -n 300 "$RUNNER_TEMP/server.log"

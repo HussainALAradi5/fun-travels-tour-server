@@ -74,7 +74,7 @@ Free-plan limits: the Render service sleeps after 15 minutes without traffic (th
 
 ## Checks
 
-`./mvnw test` runs the unit tests (no database needed). GitHub Actions runs them on every push and pull request.
+`./mvnw test` runs the unit tests (no database needed). [`live-tests/`](live-tests/README.md) holds 316 checks that call a running server the way the web and mobile apps do: pricing, refunds, roles and ownership, reports, WebSocket notifications. GitHub Actions runs both on every push and pull request; the live job starts the server on a fresh Postgres first.
 
 ## Documentation
 

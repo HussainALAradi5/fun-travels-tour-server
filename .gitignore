@@ -65,3 +65,6 @@ seed-credentials.local.txt
 
 # Generated reports (private media)
 /media/
+
+# Live test dependencies (live-tests/package.json)
+live-tests/node_modules/

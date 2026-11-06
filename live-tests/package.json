@@ -1,0 +1,9 @@
+{
+  "name": "fun-travels-tour-live-tests",
+  "private": true,
+  "description": "STOMP client for the WebSocket live check; the other suites need only Python.",
+  "type": "module",
+  "dependencies": {
+    "@stomp/stompjs": "7.3.0"
+  }
+}
