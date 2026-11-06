@@ -41,8 +41,8 @@ jobs:
       # The suites sign in hundreds of times; the default allows 10 per minute.
       AUTH_RATE_LIMIT: "1000"
       SERVER_PORT: "8080"
-      FILE_UPLOAD_DIR: ${{ runner.temp }}/uploads
-      MEDIA_DIR: ${{ runner.temp }}/media
+      FILE_UPLOAD_DIR: /tmp/fun-travels/uploads
+      MEDIA_DIR: /tmp/fun-travels/media
       PGHOST: localhost
       PGPORT: "5432"
       PGUSER: postgres
